@@ -219,6 +219,72 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .buq-item .buq-val{font-family:'Cormorant Garamond',serif;font-size:14.5px;font-weight:500;color:var(--sd)}
 .hint{font-size:11px;color:var(--txl);margin-top:5px;line-height:1.45}
 .hint-warn{color:#8A5A30}
+
+/* ── TAB NAV ── */
+#tabnav{background:var(--wh);border-bottom:1px solid var(--bd);padding:0 22px;display:flex;gap:2px;flex-shrink:0}
+.tni{height:42px;padding:0 15px;border:none;border-bottom:2.5px solid transparent;background:transparent;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:500;color:var(--txm);cursor:pointer;margin-bottom:-1px;transition:color .16s,border-color .16s;display:flex;align-items:center;gap:6px;position:relative}
+.tni:hover{color:var(--sd)}
+.tni.act{color:var(--sd);border-bottom-color:var(--sd)}
+.tnbdg{position:absolute;top:6px;right:2px;min-width:14px;height:14px;padding:0 3px;background:#D4A8A0;border-radius:7px;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid var(--wh)}
+
+/* ── REPORTS + INVENTORY VIEWS ── */
+#rv,#iv{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;min-height:0}
+.rsec{background:var(--wh);border:1px solid var(--bd);border-radius:11px;overflow:hidden;flex-shrink:0}
+.rsh{padding:13px 18px 11px;border-bottom:1px solid var(--bdl);display:flex;align-items:center;gap:10px}
+.rs-ico{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.rsti{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:500;color:var(--tx)}
+.rstc{min-width:22px;height:20px;padding:0 6px;border-radius:9px;background:var(--cdark);color:var(--txl);font-size:10px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0}
+.rstc.al{background:#FEEDEA;color:#B03420}
+.rsb{display:flex;flex-direction:column}
+.r-emp{padding:14px 18px;font-size:12.5px;color:var(--txl);text-align:center}
+.rth{display:grid;padding:7px 18px;background:var(--ccol);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--txm);border-bottom:1px solid var(--bdl);gap:10px;align-items:center}
+.rtr{display:grid;padding:10px 18px;border-bottom:1px solid var(--bdl);align-items:center;gap:10px;cursor:pointer;transition:background .14s}
+.rtr:last-child{border-bottom:none}
+.rtr:hover{background:var(--cbg)}
+.rth.fin,.rtr.fin{grid-template-columns:1fr 90px 130px 100px}
+.rth.mat,.rtr.mat{grid-template-columns:1fr 90px 140px}
+.rth.sum,.rtr.sum{grid-template-columns:170px 44px 1fr}
+.rtr.sum{cursor:default}
+.rtr.sum:hover{background:transparent}
+.r-nm{font-size:13px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-sub{font-size:10.5px;color:var(--txl);margin-top:1px}
+.r-val{font-size:13px;font-weight:600;color:var(--sd)}
+.r-pill{display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:8px;white-space:nowrap}
+.r-late{background:#FEEDEA;color:#B03420}
+.r-warn{background:#FEF3E4;color:#A86018}
+.r-ok{background:#EAF3E6;color:var(--sd)}
+.r-nd{background:var(--cdark);color:var(--txm)}
+.sum-bar-wrap{background:var(--cdark);border-radius:4px;height:6px;overflow:hidden}
+.sum-bar{height:100%;border-radius:4px;transition:width .3s}
+.fat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 18px;border-bottom:1px solid var(--bdl)}
+.fat-card{text-align:center}
+.fat-lbl{font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txl);margin-bottom:4px}
+.fat-val{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:500}
+
+/* ── INVENTORY ── */
+.inv-hd{display:grid;grid-template-columns:1fr 72px 64px 72px 1fr 68px 28px;gap:8px;padding:7px 16px;background:var(--ccol);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--txm);border-bottom:1px solid var(--bdl);align-items:center}
+.inv-item{display:grid;grid-template-columns:1fr 72px 64px 72px 1fr 68px 28px;gap:8px;padding:9px 16px;border-bottom:1px solid var(--bdl);align-items:center}
+.inv-item:last-child{border-bottom:none}
+.inv-item.al{background:#FFF8F6}
+.inv-nm{font-size:13px;color:var(--tx);font-weight:500;display:flex;align-items:center;gap:6px}
+.repor-tag{font-size:9px;font-weight:700;padding:2px 6px;background:#FEEDEA;color:#B03420;border-radius:5px;letter-spacing:.04em;flex-shrink:0}
+.inv-in{height:30px;padding:0 7px;border:1.5px solid var(--bd);border-radius:6px;background:var(--cbg);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--tx);outline:none;width:100%;transition:border-color .16s}
+.inv-in:focus{border-color:var(--sm)}
+.inv-in.al{border-color:#F0B8B0;background:#FFF8F6}
+.inv-sel{height:30px;padding:0 5px;border:1.5px solid var(--bd);border-radius:6px;background:var(--cbg);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--tx);outline:none;width:100%;cursor:pointer;transition:border-color .16s}
+.inv-sel:focus{border-color:var(--sm)}
+.inv-del{background:none;border:none;cursor:pointer;color:var(--txl);padding:3px;border-radius:4px;display:flex;align-items:center;transition:color .16s,background .16s}
+.inv-del:hover{color:#B03420;background:#FEEDEA}
+.inv-hist{padding:6px 16px 9px;background:#F8F4EF;border-bottom:1px solid var(--bdl);font-size:10.5px;color:var(--txm)}
+.inv-hist-ttl{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--txl);margin-bottom:4px}
+.inv-hist-row{padding:3px 0;border-bottom:1px solid var(--bdl)}
+.inv-hist-row:last-child{border-bottom:none}
+.inv-add{display:flex;gap:8px;padding:11px 18px;border-top:1px solid var(--bdl)}
+.inv-add .fi{flex:1}
+
+/* ── EXPORT / IMPORT ── */
+.b-io{height:35px;padding:0 12px;background:transparent;color:var(--txm);border:1.5px solid var(--bd);border-radius:17px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .16s}
+.b-io:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
 </style>
 </head>
 <body>
@@ -244,6 +310,16 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <input id="si" type="text" placeholder="Buscar noiva…" oninput="doSearch(this.value)">
   </div>
   <div class="ha">
+    <button class="b-io" onclick="exportData()" title="Exportar dados JSON">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar
+    </button>
+    <label class="b-io" style="cursor:pointer" title="Importar dados JSON">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Importar
+      <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+    </label>
+    <div class="hsep"></div>
     <button class="bbel" id="bbell" onclick="toggleRP()" title="Lembretes">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span class="bbadge hidden" id="bdg">0</span>
@@ -262,8 +338,56 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <span class="arr">Ver todos →</span>
 </div>
 
+<!-- TABS -->
+<nav id="tabnav">
+  <button class="tni act" id="tab-kb" onclick="showTab('kb')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/><rect x="14" y="17" width="7" height="4" rx="1"/></svg>
+    Kanban
+  </button>
+  <button class="tni" id="tab-rv" onclick="showTab('rv')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Relatórios
+  </button>
+  <button class="tni" id="tab-iv" onclick="showTab('iv')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    Inventário
+    <span class="tnbdg hidden" id="iv-bdg">0</span>
+  </button>
+</nav>
+
 <!-- KANBAN -->
 <div id="kw"><div id="kb"></div></div>
+
+<!-- REPORTS VIEW -->
+<div id="rv" class="hidden">
+  <div class="rsec">
+    <div class="rsh"><div class="rs-ico" style="background:#FEF3E4">💰</div><span class="rsti">Pendências Financeiras</span><span class="rstc" id="fin-ct">—</span></div>
+    <div class="rsb" id="fin-bdy"></div>
+  </div>
+  <div class="rsec">
+    <div class="rsh"><div class="rs-ico" style="background:#FEEDEA">📦</div><span class="rsti">Pendências de Material</span><span class="rstc" id="mat-ct">—</span></div>
+    <div class="rsb" id="mat-bdy"></div>
+  </div>
+  <div class="rsec">
+    <div class="rsh"><div class="rs-ico" style="background:#EDF4EB">📊</div><span class="rsti">Resumo Geral</span></div>
+    <div class="rsb" id="sum-bdy"></div>
+  </div>
+</div>
+
+<!-- INVENTORY VIEW -->
+<div id="iv" class="hidden">
+  <div class="rsec">
+    <div class="rsh"><div class="rs-ico" style="background:#EDF4EB">🗃️</div><span class="rsti">Inventário de Materiais</span><span class="rstc" id="inv-ct">—</span></div>
+    <div class="inv-hd">
+      <span>Material</span><span>Qtd atual</span><span>Unidade</span><span>Qtd mín.</span><span>Observação</span><span>Reposição</span><span></span>
+    </div>
+    <div id="inv-bdy"></div>
+    <div class="inv-add">
+      <input id="inv-new" type="text" class="fi" placeholder="Nome do material…" onkeydown="if(event.key==='Enter')addInvItem()">
+      <button class="bsec" onclick="addInvItem()">+ Adicionar</button>
+    </div>
+  </div>
+</div>
 
 <!-- REMINDERS PANEL -->
 <div id="rp" class="hidden">
@@ -527,7 +651,8 @@ const EMBLABEL={naoEncomendada:'Não encomendada',encomendada:'Encomendada',emMa
 const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
 
 /* ── STATE ───────────────────────────────────── */
-let DATA=[], editId=null, mRem=[], dragId=null, srch='', rpOpen=false;
+let DATA=[], editId=null, mRem=[], dragId=null, srch='', rpOpen=false, curTab='kb';
+let INV=[];
 
 /* ── STORAGE ─────────────────────────────────── */
 function migrateOld(){
@@ -594,6 +719,8 @@ function renderAll(){
   const board=g('kb');board.innerHTML='';
   COLS.forEach(c=>board.appendChild(buildCol(c)));
   bellUpdate();
+  if(curTab==='rv')renderReports();
+  if(curTab==='iv')renderInv();
 }
 
 function buildCol(col){
@@ -1013,6 +1140,258 @@ function calOpenAll(){
   });
 }
 
+/* ── TABS ────────────────────────────────────── */
+function showTab(t){
+  curTab=t;
+  g('kw').classList.toggle('hidden',t!=='kb');
+  g('rv').classList.toggle('hidden',t!=='rv');
+  g('iv').classList.toggle('hidden',t!=='iv');
+  ['kb','rv','iv'].forEach(id=>{ const el=g('tab-'+id);if(el)el.classList.toggle('act',id===t); });
+  if(t==='rv')renderReports();
+  if(t==='iv')renderInv();
+}
+
+/* ── EXPORT / IMPORT ─────────────────────────── */
+function exportData(){
+  const payload={data:DATA,inv:INV,exported:today()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='florelle_backup_'+today().replace(/-/g,'')+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const p=JSON.parse(ev.target.result);
+      const nd=Array.isArray(p)?p:(Array.isArray(p.data)?p.data:[]);
+      const ni=(!Array.isArray(p)&&p.inv)||null;
+      if(!confirm('Importar '+nd.length+' noiva(s)?\n'+(ni?'• Inventário também será importado\n':'')+'Os dados atuais serão SUBSTITUÍDOS.'))return;
+      DATA=nd;save();
+      if(ni){INV=ni;saveInv();}
+      renderAll();
+      alert('✅ '+nd.length+' noivas importadas!');
+    }catch(er){alert('❌ Erro ao importar: '+er.message);}
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+/* ── INVENTORY ───────────────────────────────── */
+const INV_KEY='florelle_inv_v1';
+const INV_DEFAULT=[
+  {nome:'Verniz',         qtdAtual:0,qtdMin:1,unidade:'unid',obs:''},
+  {nome:'Sílica',         qtdAtual:0,qtdMin:1,unidade:'kg',  obs:''},
+  {nome:'Pote',           qtdAtual:0,qtdMin:1,unidade:'unid',obs:''},
+  {nome:'Plástico filme', qtdAtual:0,qtdMin:1,unidade:'rolo',obs:''},
+  {nome:'Cola quente',    qtdAtual:0,qtdMin:1,unidade:'unid',obs:''},
+  {nome:'Fita',           qtdAtual:0,qtdMin:1,unidade:'rolo',obs:''},
+  {nome:'Tekbond',        qtdAtual:0,qtdMin:1,unidade:'unid',obs:''},
+  {nome:'Mat. impressos', qtdAtual:0,qtdMin:5,unidade:'unid',obs:''},
+  {nome:'Tag',            qtdAtual:0,qtdMin:5,unidade:'unid',obs:''},
+];
+function loadInv(){
+  try{
+    const s=localStorage.getItem(INV_KEY);
+    if(s)INV=JSON.parse(s);
+    else{INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));saveInv();}
+  }catch{INV=[];}
+}
+function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
+function invAlertCount(){return INV.filter(x=>x.qtdMin>0&&Number(x.qtdAtual)<=Number(x.qtdMin)).length;}
+function updInvBadge(){
+  const n=invAlertCount();
+  const bdg=g('iv-bdg');if(bdg){bdg.textContent=n;bdg.classList.toggle('hidden',n===0);}
+}
+function addInvItem(){
+  const el=g('inv-new');const v=(el?el.value:'').trim();
+  if(!v){if(el)el.focus();return;}
+  INV.push({id:uid(),nome:v,qtdAtual:0,qtdMin:1,unidade:'unid',obs:'',historico:[]});
+  saveInv();if(el)el.value='';renderInv();
+}
+function delInvItem(id){
+  if(!confirm('Remover este item do inventário?'))return;
+  INV=INV.filter(x=>x.id!==id);saveInv();renderInv();
+}
+function updInv(id,field,val){
+  const item=INV.find(x=>x.id===id);if(!item)return;
+  item[field]=(field==='qtdAtual'||field==='qtdMin')?(Number(val)||0):val;
+  saveInv();
+  const n=invAlertCount();
+  const ct=g('inv-ct');if(ct){ct.textContent=n?n+' repor':'✓ OK';ct.classList.toggle('al',n>0);}
+  const bdg=g('iv-bdg');if(bdg){bdg.textContent=n;bdg.classList.toggle('hidden',n===0);}
+  const row=document.querySelector('.inv-item[data-id="'+id+'"]');
+  if(row){
+    const isAl=item.qtdMin>0&&Number(item.qtdAtual)<=Number(item.qtdMin);
+    row.classList.toggle('al',isAl);
+    const nm=row.querySelector('.inv-nm');if(nm)nm.classList.toggle('al-nm',isAl);
+    const qtdIn=row.querySelector('.inv-in-qt');if(qtdIn)qtdIn.classList.toggle('al',isAl);
+    const rt=row.querySelector('.repor-tag');if(rt)rt.classList.toggle('hidden',!isAl);
+  }
+}
+function restockInv(id){
+  const item=INV.find(x=>x.id===id);if(!item)return;
+  const qtdStr=prompt('Quantidade reposta ('+item.unidade+'):');
+  if(qtdStr===null)return;
+  const qtd=parseFloat(qtdStr.replace(',','.'));
+  if(!Number.isFinite(qtd)||qtd<=0){alert('Quantidade inválida.');return;}
+  const obsStr=prompt('Observação (ex: comprei na loja X):','')??'';
+  item.qtdAtual=Number(item.qtdAtual)+qtd;
+  item.historico=item.historico||[];
+  item.historico.unshift({data:today(),quantidade:qtd,obs:obsStr});
+  if(item.historico.length>20)item.historico=item.historico.slice(0,20);
+  saveInv();renderInv();
+}
+function renderInv(){
+  const body=g('inv-bdy');if(!body)return;
+  body.innerHTML='';
+  const n=invAlertCount();
+  const ct=g('inv-ct');if(ct){ct.textContent=n?n+' repor':'✓ OK';ct.classList.toggle('al',n>0);}
+  const bdg=g('iv-bdg');if(bdg){bdg.textContent=n;bdg.classList.toggle('hidden',n===0);}
+  const UNITS=['unid','ml','g','kg','rolo','metros'];
+  INV.forEach(item=>{
+    const isAl=item.qtdMin>0&&Number(item.qtdAtual)<=Number(item.qtdMin);
+    const el=document.createElement('div');
+    el.className='inv-item'+(isAl?' al':'');
+    el.dataset.id=item.id;
+    const uOpts=UNITS.map(u=>`<option value="${u}"${item.unidade===u?' selected':''}>${u}</option>`).join('');
+    el.innerHTML=
+      `<div class="inv-nm">${esc(item.nome)}<span class="repor-tag${isAl?'':' hidden'}">REPOR</span></div>`+
+      `<input type="number" class="inv-in inv-in-qt${isAl?' al':''}" value="${item.qtdAtual}" min="0" step="0.5" style="width:100%" onchange="updInv('${item.id}','qtdAtual',this.value)">`+
+      `<select class="inv-sel" onchange="updInv('${item.id}','unidade',this.value)">${uOpts}</select>`+
+      `<input type="number" class="inv-in" value="${item.qtdMin}" min="0" step="1" style="width:100%" onchange="updInv('${item.id}','qtdMin',this.value)">`+
+      `<input type="text" class="inv-in" value="${esc(item.obs)}" placeholder="Observação…" style="width:100%" onchange="updInv('${item.id}','obs',this.value)">`+
+      `<button class="bsec" style="height:30px;padding:0 10px;font-size:11px;white-space:nowrap" onclick="restockInv('${item.id}')">+ Repor</button>`+
+      `<button class="inv-del" onclick="delInvItem('${item.id}')" title="Remover">${icn('<path d="M1 1l10 10M11 1L1 11"/>',10,10)}</button>`;
+    body.appendChild(el);
+    if(item.historico&&item.historico.length){
+      const hist=document.createElement('div');
+      hist.className='inv-hist';
+      hist.innerHTML='<div class="inv-hist-ttl">Histórico de reposição</div>'+
+        item.historico.slice(0,3).map(h=>`<div class="inv-hist-row">${fmt(h.data)} — +${h.quantidade} ${item.unidade}${h.obs?' · '+esc(h.obs):''}</div>`).join('');
+      body.appendChild(hist);
+    }
+  });
+}
+
+/* ── REPORTS ─────────────────────────────────── */
+const ETLBL={lead:'Lead',retomar:'Retomar',contratoEnviado:'Cto. enviado',contratoAssinado:'Cto. assinado',reserva:'Reserva paga',secagem:'Secagem',montagem:'Montagem',embalado:'Embalado',entregue:'Entregue',cancelado:'Cancelado'};
+function calcValor(b){
+  if(!b.valorTotal)return 0;
+  const n=parseFloat(b.valorTotal.replace(/\./g,'').replace(',','.'));
+  return Number.isFinite(n)?n:0;
+}
+function fmtBRL(n){return'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function renderReports(){renderFinancial();renderMaterial();renderSummary();}
+
+function renderFinancial(){
+  const body=g('fin-bdy');if(!body)return;body.innerHTML='';
+  const t=today();
+  const rows=DATA.filter(b=>b.etapa!=='cancelado').map(b=>{
+    let lbl='Não definido',cls='r-nd',ord=4;
+    if(b.formaPagamento&&b.dataPagamento){
+      const last=b.formaPagamento==='pix3x'?addDays(b.dataPagamento,60):b.dataPagamento;
+      const d=daysTo(last);
+      if(d<0){lbl='Vencido '+Math.abs(d)+'d';cls='r-late';ord=0;}
+      else if(d===0){lbl='Vence hoje';cls='r-warn';ord=1;}
+      else if(d<=14){lbl='Em '+d+'d';cls='r-warn';ord=2;}
+      else{lbl='Em '+d+'d';cls='r-ok';ord=3;}
+    }else if(b.formaPagamento){lbl='Sem data';cls='r-nd';ord=4;}
+    return{b,lbl,cls,ord};
+  }).sort((a,bx)=>a.ord-bx.ord||(a.b.dataPagamento||'').localeCompare(bx.b.dataPagamento||''));
+  const venc=rows.filter(r=>r.ord===0).length;
+  const ct=g('fin-ct');if(ct){ct.textContent=venc?venc+' vencido'+(venc>1?'s':''):rows.length;ct.classList.toggle('al',venc>0);}
+  if(!rows.length){body.innerHTML='<div class="r-emp">Nenhuma noiva ativa.</div>';return;}
+  const hd=document.createElement('div');hd.className='rth fin';
+  hd.innerHTML='<span>Noiva</span><span>Pagamento</span><span>Valor</span><span>Status</span>';
+  body.appendChild(hd);
+  rows.forEach(({b,lbl,cls})=>{
+    const pag=b.formaPagamento==='pix3x'?'Pix 3×':b.formaPagamento==='pixAVista'?'Pix à vista':b.formaPagamento==='cartao'?'Cartão':'—';
+    const dt=b.dataPagamento?(b.formaPagamento==='pix3x'?'1ª '+fmt(b.dataPagamento):fmt(b.dataPagamento)):'—';
+    const el=document.createElement('div');el.className='rtr fin';
+    el.onclick=()=>{showTab('kb');openModal(b.id);};
+    el.innerHTML=
+      `<div><div class="r-nm">${esc(b.nome)}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa} · ${b.dataCasamento?fmt(b.dataCasamento):'s/ data'}</div></div>`+
+      `<div><div style="font-size:12.5px">${pag}</div><div class="r-sub">${dt}</div></div>`+
+      `<div class="r-val">${b.valorTotal?fmtBRL(calcValor(b)):'—'}</div>`+
+      `<span class="r-pill ${cls}">${lbl}</span>`;
+    body.appendChild(el);
+  });
+}
+
+function renderMaterial(){
+  const body=g('mat-bdy');if(!body)return;body.innerHTML='';
+  const ativas=DATA.filter(b=>b.etapa!=='cancelado'&&b.etapa!=='entregue');
+  const semRedoma=ativas.filter(b=>b.redomaPedida==='nao');
+  const semEmb=ativas.filter(b=>b.embPedida==='nao');
+  const silVenc=ativas.filter(b=>b.dataSilica&&addDays(b.dataSilica,30)<today()&&b.etapa==='secagem');
+  const total=semRedoma.length+semEmb.length+silVenc.length;
+  const ct=g('mat-ct');if(ct){ct.textContent=total||'✓';ct.classList.toggle('al',total>0);}
+  if(!total){body.innerHTML='<div class="r-emp">✓ Sem pendências de material.</div>';return;}
+  function sec(titulo,itens,tag,cls){
+    if(!itens.length)return;
+    const sh=document.createElement('div');
+    sh.style='padding:7px 18px 5px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txm);background:var(--cbg);border-bottom:1px solid var(--bdl)';
+    sh.textContent=titulo+' ('+itens.length+')';body.appendChild(sh);
+    itens.forEach(b=>{
+      const el=document.createElement('div');el.className='rtr mat';
+      el.onclick=()=>{showTab('kb');openModal(b.id);};
+      el.innerHTML=
+        `<div><div class="r-nm">${esc(b.nome)}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa}</div></div>`+
+        `<div class="r-sub">${b.dataCasamento?fmt(b.dataCasamento):'s/ data'}</div>`+
+        `<span class="r-pill ${cls}">${tag}</span>`;
+      body.appendChild(el);
+    });
+  }
+  const hd=document.createElement('div');hd.className='rth mat';
+  hd.innerHTML='<span>Noiva</span><span>Casamento</span><span>Pendência</span>';
+  body.appendChild(hd);
+  sec('Redoma não pedida',semRedoma,'Encomendar redoma','r-warn');
+  sec('Embalagem não pedida',semEmb,'Encomendar embalagem','r-warn');
+  sec('Sílica vencida — retirada pendente',silVenc,'Retirar da sílica!','r-late');
+}
+
+function renderSummary(){
+  const body=g('sum-bdy');if(!body)return;body.innerHTML='';
+  const t=today();
+  const ativos=DATA.filter(b=>b.etapa!=='cancelado');
+  let totPrev=0,totVenc=0,totPend=0,totIndef=0;
+  ativos.forEach(b=>{
+    const v=calcValor(b);totPrev+=v;
+    if(!b.dataPagamento){totIndef+=v;return;}
+    const last=b.formaPagamento==='pix3x'?addDays(b.dataPagamento,60):b.dataPagamento;
+    if(last<t)totVenc+=v;else totPend+=v;
+  });
+  const fat=document.createElement('div');fat.className='fat-grid';
+  [
+    {l:'Total previsto',v:fmtBRL(totPrev),c:'var(--tx)'},
+    {l:'Vencido / pago',v:fmtBRL(totVenc),c:'#B03420'},
+    {l:'A receber',v:fmtBRL(totPend),c:'#A86018'},
+    {l:'Sem data',v:fmtBRL(totIndef),c:'var(--txm)'},
+  ].forEach(x=>{
+    const d=document.createElement('div');d.className='fat-card';
+    d.innerHTML=`<div class="fat-lbl">${x.l}</div><div class="fat-val" style="color:${x.c}">${x.v}</div>`;
+    fat.appendChild(d);
+  });
+  body.appendChild(fat);
+  const hd=document.createElement('div');hd.className='rth sum';
+  hd.innerHTML='<span>Etapa</span><span>Qtd</span><span>Distribuição</span>';
+  body.appendChild(hd);
+  const max=Math.max(...COLS.map(c=>DATA.filter(b=>b.etapa===c.id).length),1);
+  COLS.forEach(col=>{
+    const n=DATA.filter(b=>b.etapa===col.id).length;
+    const el=document.createElement('div');el.className='rtr sum';
+    el.innerHTML=
+      `<div style="font-size:12.5px;color:var(--tx)">${col.label}</div>`+
+      `<div style="font-size:13px;font-weight:600;color:var(--sd)">${n}</div>`+
+      `<div class="sum-bar-wrap"><div class="sum-bar" style="width:${Math.round(n/max*100)}%;background:${col.color}"></div></div>`;
+    body.appendChild(el);
+  });
+}
+
 /* ── KEYBOARD ────────────────────────────────── */
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
@@ -1023,7 +1402,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ── INIT ────────────────────────────────────── */
-load();renderAll();
+load();loadInv();renderAll();updInvBadge();
 </script>
 </body>
 </html>
