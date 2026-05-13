@@ -285,6 +285,52 @@ body{display:flex;flex-direction:column;overflow:hidden}
 /* ── EXPORT / IMPORT ── */
 .b-io{height:35px;padding:0 12px;background:transparent;color:var(--txm);border:1.5px solid var(--bd);border-radius:17px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .16s}
 .b-io:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
+
+/* ── SYNC / DRIVE ── */
+#drv-btn{position:relative}
+.sdot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;border:2px solid var(--wh)}
+.sd-ok{background:#58B06A}.sd-spin{background:#D4B830;animation:sdp .9s ease infinite}.sd-err{background:#E08080}
+@keyframes sdp{0%,100%{opacity:1}50%{opacity:.35}}
+#login-ov{position:fixed;inset:0;background:rgba(44,40,37,.65);z-index:3000;display:flex;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);animation:fu .22s ease}
+#lbox{background:var(--wh);border-radius:18px;width:100%;max-width:390px;padding:36px 32px;box-shadow:var(--sh3);text-align:center}
+.lbico{width:52px;height:52px;background:#EEF4EA;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.lbt{font-family:'Cormorant Garamond',serif;font-size:23px;font-weight:500;color:var(--tx);margin-bottom:6px}
+.lbd{font-size:13px;color:var(--txm);line-height:1.55;margin-bottom:22px}
+.gbtn{width:100%;height:42px;background:var(--sd);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;transition:background .16s}
+.gbtn:hover{background:var(--smd)}
+.gbtn:disabled{opacity:.55;cursor:not-allowed}
+.gskp{background:none;border:none;color:var(--txl);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:color .16s}
+.gskp:hover{color:var(--txm);text-decoration:underline}
+
+/* ── WHATSAPP IMPORT ── */
+#wa-ov{position:fixed;inset:0;background:rgba(44,40,37,.5);z-index:1500;display:flex;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(3px)}
+#wa-panel{background:var(--wh);border-radius:15px;width:100%;max-width:580px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--sh3);overflow:hidden;animation:fu .2s ease}
+.wa-hd{padding:18px 24px 14px;border-bottom:1px solid var(--bdl);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.wa-ico{width:38px;height:38px;background:#E8F5E9;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.wa-ey{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--txl);margin-bottom:2px}
+.wa-nm{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:500;color:var(--tx)}
+.wa-bdy{flex:1;overflow-y:auto;padding:18px 24px}
+.wa-bdy::-webkit-scrollbar{width:4px}
+.wa-bdy::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+.wa-key-row{display:flex;gap:8px;margin-bottom:14px;align-items:flex-end}
+.wa-key-row .fg{flex:1}
+.wa-key-a{height:37px;padding:0 13px;background:transparent;color:var(--txm);border:1.5px solid var(--bd);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;white-space:nowrap;text-decoration:none;display:flex;align-items:center;transition:all .16s;flex-shrink:0}
+.wa-key-a:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
+.wa-ta{width:100%;min-height:200px;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;background:var(--cbg);font-family:'DM Sans',sans-serif;font-size:12.5px;color:var(--tx);outline:none;resize:vertical;transition:border-color .18s,background .18s;line-height:1.5}
+.wa-ta:focus{border-color:var(--sm);background:var(--wh)}
+.wa-ta::placeholder{color:var(--txl)}
+.wa-hint{font-size:11px;color:var(--txl);margin-top:8px;line-height:1.5}
+.wa-status{margin-top:12px;padding:9px 13px;border-radius:8px;font-size:12.5px;display:flex;align-items:center;gap:8px;line-height:1.4}
+.wa-status.loading{background:#EDF4EB;color:var(--sd);border:1px solid var(--sl)}
+.wa-status.err{background:#FEEDEA;color:#B03420;border:1px solid #F0B8B0}
+.wa-ft{padding:13px 24px;border-top:1px solid var(--bdl);display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-shrink:0}
+.bwa{height:35px;padding:0 18px;background:#25D366;color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .16s}
+.bwa:hover{background:#1EBD59}
+.bwa:disabled{opacity:.55;cursor:not-allowed}
+.b-wa{border-color:#25D366!important;color:#25D366!important}
+.b-wa:hover{background:#E8F5E9!important;border-color:#1EBD59!important;color:#1EBD59!important}
+.spin{display:inline-block;animation:sp .75s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -323,6 +369,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <button class="bbel" id="bbell" onclick="toggleRP()" title="Lembretes">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span class="bbadge hidden" id="bdg">0</span>
+    </button>
+    <button class="b-io b-wa" onclick="openWaImport()" title="Importar conversa do WhatsApp">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Importar do WhatsApp
     </button>
     <button class="bprim" onclick="openNew('lead')">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
@@ -624,6 +674,42 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <div class="calft">
       <span class="cal-note">Cada link abre o Calendar pré-preenchido. Revise e confirme em cada aba.</span>
       <button class="cal-all" onclick="calOpenAll()">Criar todos →</button>
+    </div>
+  </div>
+</div>
+
+<!-- WHATSAPP IMPORT MODAL -->
+<div id="wa-ov" class="hidden" onclick="waOvClick(event)">
+  <div id="wa-panel" onclick="event.stopPropagation()">
+    <div class="wa-hd">
+      <div class="wa-ico">💬</div>
+      <div style="flex:1">
+        <div class="wa-ey">Importar conversa</div>
+        <div class="wa-nm">WhatsApp → Nova Noiva</div>
+      </div>
+      <button class="bcls" onclick="closeWaImport()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="wa-bdy">
+      <div class="wa-key-row">
+        <div class="fg">
+          <label class="fl">Chave de API Anthropic (Claude)</label>
+          <input type="password" id="wa-apikey" class="fi" placeholder="sk-ant-api03-…" oninput="waSaveKey(this.value)">
+        </div>
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="wa-key-a">Obter chave ↗</a>
+      </div>
+      <div class="fg">
+        <label class="fl">Conteúdo da conversa do WhatsApp</label>
+        <textarea id="wa-txt" class="wa-ta" placeholder="Cole aqui o texto exportado do WhatsApp…&#10;&#10;Exemplo:&#10;01/05/2025, 14:30 - Noiva: Olá, vi seu trabalho com os buquês!&#10;01/05/2025, 14:31 - Você: Oi! Pode me contar mais sobre o casamento?&#10;…"></textarea>
+      </div>
+      <p class="wa-hint">A IA analisará a conversa e tentará extrair: nome da noiva, data do casamento, produto desejado (quadro/cúpula), endereço, forma de pagamento e observações. Os dados serão exibidos no formulário para revisão antes de salvar.</p>
+      <div id="wa-status" class="wa-status hidden"></div>
+    </div>
+    <div class="wa-ft">
+      <button class="bsec" onclick="closeWaImport()">Cancelar</button>
+      <button class="bwa" id="wa-btn" onclick="waAnalyze()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Analisar com IA
+      </button>
     </div>
   </div>
 </div>
@@ -1392,10 +1478,122 @@ function renderSummary(){
   });
 }
 
+/* ── WHATSAPP IMPORT ─────────────────────────── */
+const WA_KEY='florelle_claude_key';
+
+function openWaImport(){
+  sv2('wa-apikey',localStorage.getItem(WA_KEY)||'');
+  sv2('wa-txt','');
+  const s=g('wa-status');s.className='wa-status hidden';s.textContent='';
+  const btn=g('wa-btn');
+  btn.disabled=false;
+  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Analisar com IA';
+  g('wa-ov').classList.remove('hidden');
+  setTimeout(()=>{const t=g('wa-apikey');if(t&&!t.value)t.focus();else{const ta=g('wa-txt');if(ta)ta.focus();}},80);
+}
+
+function closeWaImport(){g('wa-ov').classList.add('hidden');}
+function waOvClick(e){if(e.target===g('wa-ov'))closeWaImport();}
+function waSaveKey(v){const k=v.trim();if(k)localStorage.setItem(WA_KEY,k);}
+
+function waSetStatus(type,msg){
+  const el=g('wa-status');
+  el.className='wa-status '+type;
+  el.innerHTML=msg;
+  el.classList.remove('hidden');
+}
+
+async function waAnalyze(){
+  const apiKey=(gv('wa-apikey')||'').trim();
+  const text=(gv('wa-txt')||'').trim();
+
+  if(!apiKey){g('wa-apikey').focus();waSetStatus('err','Insira a chave de API da Anthropic para continuar.');return;}
+  if(text.length<30){g('wa-txt').focus();waSetStatus('err','Cole o conteúdo da conversa antes de analisar (mínimo 30 caracteres).');return;}
+
+  const btn=g('wa-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin">↻</span> Analisando…';
+  waSetStatus('loading','Aguarde, a IA está lendo a conversa…');
+
+  const prompt=`Você analisa conversas do WhatsApp entre uma artesã de preservação de buquês de noivas e clientes. Extraia as informações relevantes e retorne APENAS um objeto JSON válido, sem markdown, sem texto adicional.
+
+Campos obrigatórios no JSON:
+- "nome": nome da noiva ou cliente (string | null)
+- "dataCasamento": data do casamento no formato YYYY-MM-DD (string | null)
+- "produto": tipo de produto desejado, deve ser exatamente um destes valores — "quadro25x30", "quadro32x42", "quadroSobMedida", "cupulaG", "cupulaM", "multiplos" — ou null se não mencionado
+- "produtoObs": detalhes do produto como cor, medidas, estilo (string — vazio se não houver)
+- "endereco": endereço completo se mencionado (string — vazio se não houver)
+- "formaPagamento": deve ser exatamente "pixAVista", "pix3x" ou "cartao" — ou null se não mencionado
+- "valorTotal": valor mencionado no formato "1.290,00" sem "R$" (string — vazio se não houver)
+- "anotacoes": outras informações relevantes da conversa (string — vazio se não houver)
+
+Conversa do WhatsApp:
+${text}
+
+Retorne apenas o JSON.`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:600,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+
+    if(!resp.ok){
+      let msg='Erro '+resp.status;
+      try{const e=await resp.json();msg=e.error?.message||msg;}catch{}
+      throw new Error(msg);
+    }
+
+    const data=await resp.json();
+    const raw=(data.content?.[0]?.text||'').trim();
+
+    let parsed;
+    try{
+      const m=raw.match(/\{[\s\S]*\}/);
+      parsed=JSON.parse(m?m[0]:raw);
+    }catch{
+      throw new Error('A IA retornou um formato inesperado. Tente novamente.');
+    }
+
+    closeWaImport();
+
+    editId=null;mRem=[];
+    fillForm({
+      etapa:'lead',
+      nome:         parsed.nome||'',
+      dataCasamento:parsed.dataCasamento||'',
+      endereco:     parsed.endereco||'',
+      produto:      parsed.produto||'',
+      produtoObs:   parsed.produtoObs||'',
+      formaPagamento:parsed.formaPagamento||'',
+      valorTotal:   parsed.valorTotal||'',
+      anotacoes:    parsed.anotacoes||'',
+    });
+    g('bdel').classList.add('hidden');
+    g('ov').classList.remove('hidden');
+
+  }catch(err){
+    waSetStatus('err','Erro: '+err.message);
+    btn.disabled=false;
+    btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Tentar novamente';
+  }
+}
+
 /* ── KEYBOARD ────────────────────────────────── */
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(!g('cal-ov').classList.contains('hidden'))calClose();
+    else if(!g('wa-ov').classList.contains('hidden'))closeWaImport();
     else if(!g('ov').classList.contains('hidden'))closeModal();
     else if(rpOpen)toggleRP();
   }
