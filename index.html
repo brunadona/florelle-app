@@ -331,6 +331,89 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .b-wa:hover{background:#E8F5E9!important;border-color:#1EBD59!important;color:#1EBD59!important}
 .spin{display:inline-block;animation:sp .75s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── HAMBURGER MENU ── */
+#hbtn{display:none;width:40px;height:40px;border-radius:9px;border:1.5px solid var(--bd);background:transparent;cursor:pointer;align-items:center;justify-content:center;color:var(--txm);flex-shrink:0;transition:background .18s,border-color .18s}
+#hbtn:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
+#hmenu{display:none;position:fixed;top:62px;right:10px;background:var(--wh);border:1px solid var(--bd);border-radius:11px;box-shadow:var(--sh3);z-index:400;min-width:210px;padding:5px;flex-direction:column;gap:1px}
+#hmenu.hm-open{display:flex}
+.hmi{height:44px;padding:0 14px;background:transparent;color:var(--txm);border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;transition:background .14s,color .14s}
+.hmi:hover{background:var(--ccol);color:var(--sd)}
+.hmi.hmi-wa{color:#25D366}
+.hmi.hmi-wa:hover{background:#E8F5E9;color:#1EBD59}
+.hmi-sep{height:1px;background:var(--bdl);margin:3px 4px;flex-shrink:0}
+
+/* ── COLUMN NAV (mobile) ── */
+#col-nav{display:none;align-items:center;gap:10px;background:var(--wh);border-bottom:1px solid var(--bd);padding:9px 14px;flex-shrink:0}
+#col-nav.cn-off{display:none!important}
+.cn-btn{width:40px;height:40px;border-radius:9px;border:1.5px solid var(--bd);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txm);flex-shrink:0;transition:background .16s,border-color .16s}
+.cn-btn:hover:not(:disabled){background:var(--ccol);border-color:var(--sl);color:var(--sd)}
+.cn-btn:disabled{opacity:.28;cursor:default}
+.cn-info{flex:1;text-align:center;min-width:0}
+.cn-lbl{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:500;color:var(--tx);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cn-sub{font-size:10px;color:var(--txl);margin-top:2px;display:flex;align-items:center;justify-content:center;gap:5px}
+.cn-ct{min-width:17px;height:17px;padding:0 4px;border-radius:8px;background:var(--cdark);color:var(--txl);font-size:9.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.cn-sep{color:var(--bdl)}
+
+/* ── MOBILE (<= 640px) ── */
+@media(max-width:640px){
+  /* header */
+  .b-io,.ha .hsep{display:none!important}
+  #hbtn{display:flex}
+  #hd{padding:0 12px;gap:8px}
+  .srch{max-width:none;flex:1}
+  .logo-sub{display:none}
+
+  /* column nav */
+  #col-nav{display:flex}
+
+  /* kanban: one column at a time */
+  #kw{padding:10px 10px 6px;overflow-x:hidden}
+  #kb{gap:0;width:100%!important;min-width:0!important}
+  .kcol{width:100%!important;display:none}
+  .kcol.mcur{display:flex}
+
+  /* modals as bottom sheet */
+  #ov{padding:0;align-items:flex-end}
+  #mp{border-radius:18px 18px 0 0;max-width:100%;max-height:96vh}
+  #wa-ov{padding:0;align-items:flex-end}
+  #wa-panel{border-radius:18px 18px 0 0;max-width:100%;max-height:96vh}
+  #cal-ov{padding:0;align-items:flex-end}
+  #cal-panel{border-radius:18px 18px 0 0;max-width:100%;max-height:96vh}
+
+  /* 44px touch targets */
+  .bprim{height:44px!important;padding:0 20px!important}
+  .bsec,.bsav,.bdng,.bwa,.b-io,.gbtn{height:44px!important}
+  .bbel{width:44px!important;height:44px!important}
+  .bcls{width:44px!important;height:44px!important}
+  .fi,.fs{height:44px!important}
+  .stsel{height:44px!important}
+  .badd{height:44px!important;font-size:12px}
+  .tni{height:48px!important;padding:0 16px!important}
+  .rl,.cl{padding:9px 14px!important}
+  .tl{padding:10px 6px!important}
+  .inv-in,.inv-sel{height:44px!important}
+  .inv-del{min-width:44px;min-height:44px;justify-content:center}
+  .rpi{padding:12px 14px}
+  .hmi{height:48px}
+  .cn-btn{width:44px;height:44px}
+
+  /* spacing */
+  .mbdy{padding:16px 18px}
+  .mhd{padding:15px 18px 13px}
+  .mft{padding:11px 18px}
+  .wa-bdy{padding:14px 18px}
+  .wa-ft{padding:11px 18px}
+  .calbdy{padding:12px 18px}
+  .calft{padding:10px 18px}
+}
+
+/* ── TABLET (641-900px) ── */
+@media(max-width:900px) and (min-width:641px){
+  .kcol{width:236px}
+  .logo-sub{display:none}
+  #hd{gap:12px}
+}
 </style>
 </head>
 <body>
@@ -378,8 +461,29 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       Nova Noiva
     </button>
+    <button id="hbtn" onclick="toggleHMenu(event)" aria-label="Menu">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
   </div>
 </header>
+
+<!-- HAMBURGER DROPDOWN -->
+<div id="hmenu" onclick="event.stopPropagation()">
+  <button class="hmi hmi-wa" onclick="openWaImport();closeHMenu()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Importar do WhatsApp
+  </button>
+  <div class="hmi-sep"></div>
+  <button class="hmi" onclick="exportData();closeHMenu()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Exportar dados
+  </button>
+  <label class="hmi" onclick="closeHMenu()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Importar dados
+    <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+  </label>
+</div>
 
 <!-- BANNER -->
 <div id="ban" class="hidden" onclick="toggleRP()">
@@ -404,6 +508,24 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <span class="tnbdg hidden" id="iv-bdg">0</span>
   </button>
 </nav>
+
+<!-- COLUMN NAV (mobile only) -->
+<div id="col-nav">
+  <button class="cn-btn" id="cn-prev" onclick="navCol(-1)" aria-label="Coluna anterior">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="cn-info">
+    <div class="cn-lbl" id="cn-lbl">Lead</div>
+    <div class="cn-sub">
+      <span class="cn-ct" id="cn-ct">0</span>
+      <span class="cn-sep">·</span>
+      <span id="cn-pos">1 / 10</span>
+    </div>
+  </div>
+  <button class="cn-btn" id="cn-next" onclick="navCol(1)" aria-label="Próxima coluna">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
 
 <!-- KANBAN -->
 <div id="kw"><div id="kb"></div></div>
@@ -807,6 +929,7 @@ function renderAll(){
   bellUpdate();
   if(curTab==='rv')renderReports();
   if(curTab==='iv')renderInv();
+  if(isMobile())applyMobileCol();
 }
 
 function buildCol(col){
@@ -1233,6 +1356,7 @@ function showTab(t){
   g('rv').classList.toggle('hidden',t!=='rv');
   g('iv').classList.toggle('hidden',t!=='iv');
   ['kb','rv','iv'].forEach(id=>{ const el=g('tab-'+id);if(el)el.classList.toggle('act',id===t); });
+  const cn=g('col-nav');if(cn)cn.classList.toggle('cn-off',t!=='kb');
   if(t==='rv')renderReports();
   if(t==='iv')renderInv();
 }
@@ -1477,6 +1601,60 @@ function renderSummary(){
     body.appendChild(el);
   });
 }
+
+/* ── MOBILE ──────────────────────────────────── */
+let mobileColIdx=0;
+function isMobile(){return window.innerWidth<=640;}
+
+function navCol(dir){
+  const n=Math.max(0,Math.min(COLS.length-1,mobileColIdx+dir));
+  if(n===mobileColIdx)return;
+  mobileColIdx=n;
+  applyMobileCol();
+}
+
+function applyMobileCol(){
+  document.querySelectorAll('#kb .kcol').forEach((el,i)=>el.classList.toggle('mcur',i===mobileColIdx));
+  const col=COLS[mobileColIdx];
+  const cnt=DATA.filter(b=>{
+    if(b.etapa!==col.id)return false;
+    if(srch){const q=srch.toLowerCase();return(b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q);}
+    return true;
+  }).length;
+  const lbl=g('cn-lbl');if(lbl)lbl.textContent=col.label;
+  const ct=g('cn-ct');if(ct)ct.textContent=cnt;
+  const pos=g('cn-pos');if(pos)pos.textContent=(mobileColIdx+1)+' / '+COLS.length;
+  const prev=g('cn-prev');if(prev)prev.disabled=mobileColIdx===0;
+  const next=g('cn-next');if(next)next.disabled=mobileColIdx===COLS.length-1;
+}
+
+function toggleHMenu(e){
+  e.stopPropagation();
+  g('hmenu').classList.toggle('hm-open');
+}
+function closeHMenu(){g('hmenu').classList.remove('hm-open');}
+document.addEventListener('click',()=>closeHMenu());
+
+/* swipe to change column on mobile */
+(function(){
+  let sx=0,sy=0;
+  document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!isMobile()||curTab!=='kb')return;
+    if(!g('ov').classList.contains('hidden')||!g('wa-ov').classList.contains('hidden'))return;
+    const dx=e.changedTouches[0].clientX-sx;
+    const dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.5)navCol(dx<0?1:-1);
+  },{passive:true});
+})();
+
+window.addEventListener('resize',(function(){
+  let t;
+  return function(){clearTimeout(t);t=setTimeout(()=>{
+    if(isMobile())applyMobileCol();
+    else document.querySelectorAll('#kb .kcol').forEach(el=>el.classList.remove('mcur'));
+  },180);};
+})());
 
 /* ── WHATSAPP IMPORT ─────────────────────────── */
 const WA_KEY='florelle_claude_key';
