@@ -1671,69 +1671,84 @@ function driveSetStatus(type,msg){
 }
 
 /* ── GOOGLE DRIVE ────────────────────────────── */
-/* Preencha após criar o projeto no Google Cloud Console: */
 const GDRIVE_CLIENT_ID='232678212261-q2n2tjhc2dkhoj1njkdcp7femcrab3o4.apps.googleusercontent.com';
 const GDRIVE_API_KEY='AIzaSyANPlI6lcgu1Ysbg2_tUSJHXIX6ZhzYRbl';
 
 let _driveToken=null,_driveTokenExpiry=0;
 let _gapiReady=false,_gisReady=false,_tokenClient=null;
-let _driveLoadStarted=false,_driveFolderId=null;
+let _driveLoadStarted=false,_driveFolderId=null,_driveRetry=0;
 
 function driveEnabled(){return!!(GDRIVE_CLIENT_ID&&GDRIVE_API_KEY);}
 
 function _driveLoadAPIs(){
   if(_driveLoadStarted)return;
   _driveLoadStarted=true;
+
   const s1=document.createElement('script');
   s1.src='https://apis.google.com/js/api.js';
+  s1.onerror=()=>driveSetStatus('err','Falha ao carregar apis.google.com — verifique sua conexão.');
   s1.onload=()=>{
-    gapi.load('client:picker',async()=>{
-      try{
-        await gapi.client.init({
-          apiKey:GDRIVE_API_KEY,
-          discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-        });
+    /* Carrega client + picker sem discovery docs (mais rápido e confiável) */
+    gapi.load('client:picker',{
+      callback:()=>{
+        gapi.client.setApiKey(GDRIVE_API_KEY);
         _gapiReady=true;
-      }catch(e){driveSetStatus('err','Erro ao inicializar gapi: '+e.message);}
+      },
+      onerror:()=>driveSetStatus('err','Falha ao carregar gapi client:picker.')
     });
   };
   document.head.appendChild(s1);
 
   const s2=document.createElement('script');
   s2.src='https://accounts.google.com/gsi/client';
+  s2.onerror=()=>driveSetStatus('err','Falha ao carregar Google Identity Services.');
   s2.onload=()=>{
-    _tokenClient=google.accounts.oauth2.initTokenClient({
-      client_id:GDRIVE_CLIENT_ID,
-      scope:'https://www.googleapis.com/auth/drive',
-      callback:resp=>{
-        if(resp.error){driveSetStatus('err','Autenticação falhou: '+resp.error);return;}
-        _driveToken=resp.access_token;
-        _driveTokenExpiry=Date.now()+(resp.expires_in-60)*1000;
-        driveSetStatus('ok','Conectado ao Drive.');
-        setTimeout(()=>driveSetStatus('',''),2500);
-        _driveOpenPicker();
-      }
-    });
-    _gisReady=true;
+    try{
+      _tokenClient=google.accounts.oauth2.initTokenClient({
+        client_id:GDRIVE_CLIENT_ID,
+        scope:'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
+        callback:resp=>{
+          if(resp.error){driveSetStatus('err','Autenticação falhou: '+resp.error);return;}
+          _driveToken=resp.access_token;
+          _driveTokenExpiry=Date.now()+(resp.expires_in-60)*1000;
+          driveSetStatus('ok','Drive conectado.');
+          setTimeout(()=>driveSetStatus('',''),2500);
+          _driveOpenPicker();
+        }
+      });
+      _gisReady=true;
+    }catch(e){driveSetStatus('err','Erro GIS: '+e.message);}
   };
   document.head.appendChild(s2);
 }
 
 function drivePickForModal(){
-  if(!driveEnabled()){
-    driveSetStatus('err','Configure GDRIVE_CLIENT_ID e GDRIVE_API_KEY no código.');
-    return;
-  }
+  if(!driveEnabled()){driveSetStatus('err','Credenciais não configuradas.');return;}
   if(!_driveLoadStarted)_driveLoadAPIs();
   if(!_gapiReady||!_gisReady){
-    driveSetStatus('','Carregando APIs Google…');
-    setTimeout(drivePickForModal,1400);
+    _driveRetry++;
+    if(_driveRetry>20){
+      _driveRetry=0;
+      driveSetStatus('err','Tempo esgotado. Recarregue a página e tente novamente.');
+      return;
+    }
+    driveSetStatus('','Carregando APIs Google… ('+_driveRetry+'/20)');
+    setTimeout(drivePickForModal,800);
     return;
   }
+  _driveRetry=0;
   driveSetStatus('','');
   const tokenOk=_driveToken&&Date.now()<_driveTokenExpiry;
   if(!tokenOk){_tokenClient.requestAccessToken({prompt:_driveToken?'':'consent'});}
   else{_driveOpenPicker();}
+}
+
+async function _driveFetch(q){
+  /* Chama Drive REST API diretamente via fetch — sem precisar de discovery docs */
+  const url='https://www.googleapis.com/drive/v3/files?'+new URLSearchParams(q);
+  const r=await fetch(url,{headers:{Authorization:'Bearer '+_driveToken}});
+  if(!r.ok)throw new Error('Drive API '+r.status);
+  return r.json();
 }
 
 async function _driveOpenPicker(){
@@ -1742,11 +1757,11 @@ async function _driveOpenPicker(){
 
   if(!_driveFolderId){
     try{
-      const r=await gapi.client.drive.files.list({
+      const d=await _driveFetch({
         q:"name='FLORELLE - NOIVAS' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-        fields:'files(id)',pageSize:1
+        fields:'files(id)',pageSize:'1'
       });
-      _driveFolderId=r.result.files?.[0]?.id||null;
+      _driveFolderId=d.files?.[0]?.id||null;
     }catch{}
   }
 
@@ -1754,11 +1769,11 @@ async function _driveOpenPicker(){
   if(_driveFolderId&&nomePasta){
     try{
       const first=nomePasta.split(' ')[0].replace(/'/g,"\\'");
-      const r=await gapi.client.drive.files.list({
+      const d=await _driveFetch({
         q:`name contains '${first}' and mimeType='application/vnd.google-apps.folder' and '${_driveFolderId}' in parents and trashed=false`,
-        fields:'files(id,name)',pageSize:5
+        fields:'files(id,name)',pageSize:'5'
       });
-      brideFolder=r.result.files?.[0]?.id||null;
+      brideFolder=d.files?.[0]?.id||null;
     }catch{}
   }
 
