@@ -1235,7 +1235,7 @@ function addRem(){
 }
 
 /* ── SAVE / DELETE ───────────────────────────── */
-function saveModal(){
+async function saveModal(){
   const nome=gv('m-nome').trim();
   if(!nome){const i=g('m-nome');i.classList.add('err');i.focus();setTimeout(()=>i.classList.remove('err'),2000);return;}
 
@@ -1268,16 +1268,29 @@ function saveModal(){
     upd:            Date.now(),
   };
 
+  const isNew=!editId;
+  let newId=null;
+
   if(editId){
     const i=DATA.findIndex(x=>x.id===editId);
     if(i!==-1)DATA[i]={...DATA[i],...rec};
   } else {
-    DATA.push({id:uid(),crd:Date.now(),...rec});
+    newId=uid();
+    DATA.push({id:newId,crd:Date.now(),...rec});
   }
 
   const calEvs=buildCalEvents(rec);
   save();closeModal();renderAll();
   if(calEvs.length)setTimeout(()=>showCalModal(rec.nome,calEvs),80);
+
+  // Auto-create Drive folder for new brides
+  if(isNew&&newId){
+    if(_gToken){
+      _autoCreateBrideFolder(newId, nome, rec.dataCasamento);
+    } else {
+      _flashSyncBtn('Conecte ao Drive para criar a pasta de '+nome);
+    }
+  }
 }
 
 function delBride(){
@@ -1285,6 +1298,44 @@ function delBride(){
   if(!confirm('Excluir esta noiva? Essa ação não pode ser desfeita.'))return;
   DATA=DATA.filter(x=>x.id!==editId);
   save();closeModal();renderAll();
+}
+
+function _brideFolderName(nome,dataCasamento){
+  if(!dataCasamento)return nome;
+  const[y,m,d]=dataCasamento.split('-');
+  return `${nome} - ${d}-${m}-${y}`;
+}
+
+async function _autoCreateBrideFolder(brideId,nome,dataCasamento){
+  try{
+    const name=_brideFolderName(nome,dataCasamento);
+    // Try hardcoded parent first; fall back to named root if 403/404
+    let r=await _drvFetch('POST','/files',
+      JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:[GD_NOIVAS_ID]}),
+      'application/json'
+    );
+    if(!r.ok&&(r.status===403||r.status===404)){
+      const rootId=await _getOrCreateFolder(GD_ROOT,'root');
+      r=await _drvFetch('POST','/files',
+        JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:[rootId]}),
+        'application/json'
+      );
+    }
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d.id)return;
+    const i=DATA.findIndex(x=>x.id===brideId);
+    if(i!==-1){DATA[i].driveFolder=d.id;save();}
+  }catch(e){console.warn('Drive folder creation failed:',e);}
+}
+
+function _flashSyncBtn(msg){
+  const btn=g('sync-btn');if(!btn)return;
+  const orig=btn.title;
+  btn.title=msg;
+  btn.style.borderColor='var(--tp)';
+  btn.style.color='var(--tpd)';
+  setTimeout(()=>{btn.title=orig;btn.style.borderColor='';btn.style.color='';},6000);
 }
 
 /* ── BELL / REMINDERS PANEL ──────────────────── */
@@ -1716,6 +1767,7 @@ function _mimeIcon(mt){
 const GD_CLIENT_ID='232678212261-q2n2tjhc2dkhoj1njkdcp7femcrab3o4.apps.googleusercontent.com';
 const GD_SCOPE='https://www.googleapis.com/auth/drive.file';
 const GD_ROOT='FLORELLE - NOIVAS';
+const GD_NOIVAS_ID='1cUGoU0TT-M01nIdUX5qCkxuSE2QUWr2o'; // pasta raiz FLORELLE - NOIVAS
 
 let _gToken=null, _gClient=null;
 
@@ -1783,8 +1835,7 @@ async function handleAnexoFiles(e){
   for(const f of files){
     try{
       st.textContent='Enviando "'+f.name+'"…';
-      const rootId=await _getOrCreateFolder(GD_ROOT,'root');
-      const noivId=await _getOrCreateFolder(nomNoiva,rootId);
+      const noivId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);
       if(!_mDriveFolder){_mDriveFolder=noivId;syncDriveBtn();}
       const meta=new Blob([JSON.stringify({name:f.name,parents:[noivId]})],{type:'application/json'});
       const form=new FormData();form.append('metadata',meta);form.append('file',f);
