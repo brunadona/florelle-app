@@ -1688,13 +1688,10 @@ function _driveLoadAPIs(){
   s1.src='https://apis.google.com/js/api.js';
   s1.onerror=()=>driveSetStatus('err','Falha ao carregar apis.google.com — verifique sua conexão.');
   s1.onload=()=>{
-    /* Carrega client + picker sem discovery docs (mais rápido e confiável) */
-    gapi.load('client:picker',{
-      callback:()=>{
-        gapi.client.setApiKey(GDRIVE_API_KEY);
-        _gapiReady=true;
-      },
-      onerror:()=>driveSetStatus('err','Falha ao carregar gapi client:picker.')
+    /* Carrega APENAS o Picker — sem módulo client, sem auth2 iframe */
+    gapi.load('picker',{
+      callback:()=>{ _gapiReady=true; },
+      onerror:()=>driveSetStatus('err','Falha ao carregar Google Picker.')
     });
   };
   document.head.appendChild(s1);
