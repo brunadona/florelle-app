@@ -342,12 +342,12 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .anx-del{background:none;border:none;cursor:pointer;color:var(--txl);padding:3px;border-radius:4px;display:flex;align-items:center;transition:color .16s,background .16s;flex-shrink:0}
 .anx-del:hover{color:#B03420;background:#FEEDEA}
 .anx-badge{display:flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;color:var(--sd);background:#EDF4EB;padding:2px 5px;border-radius:7px}
+.anx-thumb{width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid var(--bdl);cursor:pointer}
+.anx-size{font-size:10px;color:var(--txl);flex-shrink:0;white-space:nowrap}
 .drv-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.drv-btn{height:35px;padding:0 14px;background:transparent;color:var(--txm);border:1.5px solid var(--bd);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .16s;white-space:nowrap}
+.drv-btn{height:35px;padding:0 14px;background:transparent;color:var(--txm);border:1.5px solid var(--bd);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .16s;white-space:nowrap;text-decoration:none}
 .drv-btn:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
-.drv-btn:disabled{opacity:.5;cursor:not-allowed}
-.drv-st{font-size:11px;color:var(--txl);transition:color .2s}
-.drv-st.ok{color:var(--sd)}.drv-st.err{color:#B03420}
+.drv-st{font-size:11px;color:var(--txl)}
 @media(max-width:640px){.drv-btn{height:44px!important}}
 
 /* ── HAMBURGER MENU ── */
@@ -782,16 +782,17 @@ body{display:flex;flex-direction:column;overflow:hidden}
       </div>
     </div>
 
-    <!-- 9. Anexos Drive -->
+    <!-- 9. Anexos -->
     <div class="fsec">
       <div class="sttl">Anexos</div>
       <div id="m-anx-list" class="anx-list"></div>
       <div class="drv-row">
-        <button class="drv-btn" id="drv-pick-btn" onclick="drivePickForModal()">
+        <label class="drv-btn">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          Anexar do Drive
-        </button>
-        <span id="drv-modal-st" class="drv-st"></span>
+          Anexar arquivo
+          <input type="file" id="anx-fi" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" style="display:none" onchange="handleAnexoFiles(event)">
+        </label>
+        <span class="drv-st">Máx. 5 MB · imagens, PDF, documentos</span>
       </div>
     </div>
 
@@ -937,7 +938,10 @@ function load(){
     else{DATA=migrateOld();if(DATA.length)save();}
   }catch{DATA=[];}
 }
-function save(){localStorage.setItem('florelle_v3',JSON.stringify(DATA));}
+function save(){
+  try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}
+  catch(e){if(e.name==='QuotaExceededError')alert('Armazenamento local cheio. Remova alguns anexos para continuar salvando.');}
+}
 
 /* ── UTILS ───────────────────────────────────── */
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,9);}
@@ -1104,7 +1108,6 @@ function fillForm(b){
   pecaVis();
   renderRL();
   renderAnexos();
-  driveSetStatus('','');
 }
 
 function syncName(){
@@ -1647,9 +1650,16 @@ function renderAnexos(){
   if(!mAnexos.length){list.innerHTML='<div class="anx-empty">Nenhum arquivo anexado ainda.</div>';return;}
   mAnexos.forEach(a=>{
     const div=document.createElement('div');div.className='anx-item';
+    const isImg=a.mimeType&&a.mimeType.startsWith('image/');
+    const preview=isImg
+      ?`<img class="anx-thumb" src="${a.data}" alt="${esc(a.nome)}" onclick="window.open(this.src)">`
+      :`<span class="anx-ico">${_mimeIcon(a.mimeType)}</span>`;
+    const link=a.data
+      ?`<a class="anx-name" href="${a.data}" download="${esc(a.nome)}" title="${esc(a.nome)}">${esc(a.nome)}</a>`
+      :`<span class="anx-name" title="${esc(a.nome)}">${esc(a.nome)}</span>`;
     div.innerHTML=
-      `<span class="anx-ico">${_mimeIcon(a.mimeType)}</span>`+
-      `<a class="anx-name" href="${a.url}" target="_blank" rel="noopener" title="${esc(a.nome)}">${esc(a.nome)}</a>`+
+      preview+link+
+      `<span class="anx-size">${_fmtSize(a.size)}</span>`+
       `<button class="anx-del" onclick="delAnexo('${a.id}')" title="Remover">${icn('<path d="M1 1l10 10M11 1L1 11"/>',10,10)}</button>`;
     list.appendChild(div);
   });
@@ -1665,151 +1675,39 @@ function _mimeIcon(mt){
   if(mt.includes('folder'))return'📁';
   return'📄';
 }
-function driveSetStatus(type,msg){
-  const el=g('drv-modal-st');if(!el)return;
-  el.className='drv-st'+(type?' '+type:'');el.textContent=msg;
-}
+/* ── ANEXOS (arquivo local → base64) ──────────── */
+const ANX_MAX=5*1024*1024; // 5 MB
 
-/* ── GOOGLE DRIVE ────────────────────────────── */
-const GDRIVE_CLIENT_ID='232678212261-q2n2tjhc2dkhoj1njkdcp7femcrab3o4.apps.googleusercontent.com';
-const GDRIVE_API_KEY='AIzaSyANPlI6lcgu1Ysbg2_tUSJHXIX6ZhzYRbl';
-
-let _driveToken=null,_driveTokenExpiry=0;
-let _gapiReady=false,_gisReady=false,_tokenClient=null;
-let _driveLoadStarted=false,_driveFolderId=null,_driveRetry=0;
-
-function driveEnabled(){return!!(GDRIVE_CLIENT_ID&&GDRIVE_API_KEY);}
-
-function _driveLoadAPIs(){
-  if(_driveLoadStarted)return;
-  _driveLoadStarted=true;
-
-  const s1=document.createElement('script');
-  s1.src='https://apis.google.com/js/api.js';
-  s1.onerror=()=>driveSetStatus('err','Falha ao carregar apis.google.com — verifique sua conexão.');
-  s1.onload=()=>{
-    /* Carrega APENAS o Picker — sem módulo client, sem auth2 iframe */
-    gapi.load('picker',{
-      callback:()=>{ _gapiReady=true; },
-      onerror:()=>driveSetStatus('err','Falha ao carregar Google Picker.')
-    });
-  };
-  document.head.appendChild(s1);
-
-  const s2=document.createElement('script');
-  s2.src='https://accounts.google.com/gsi/client';
-  s2.onerror=()=>driveSetStatus('err','Falha ao carregar Google Identity Services.');
-  s2.onload=()=>{
+async function handleAnexoFiles(e){
+  const files=Array.from(e.target.files);
+  e.target.value='';
+  const erros=[];
+  for(const f of files){
+    if(f.size>ANX_MAX){erros.push('"'+f.name+'" excede 5 MB.');continue;}
+    if(mAnexos.find(a=>a.nome===f.name&&a.size===f.size))continue;
     try{
-      _tokenClient=google.accounts.oauth2.initTokenClient({
-        client_id:GDRIVE_CLIENT_ID,
-        scope:'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
-        callback:resp=>{
-          if(resp.error){driveSetStatus('err','Autenticação falhou: '+resp.error);return;}
-          _driveToken=resp.access_token;
-          _driveTokenExpiry=Date.now()+(resp.expires_in-60)*1000;
-          driveSetStatus('ok','Drive conectado.');
-          setTimeout(()=>driveSetStatus('',''),2500);
-          _driveOpenPicker();
-        }
-      });
-      _gisReady=true;
-    }catch(e){driveSetStatus('err','Erro GIS: '+e.message);}
-  };
-  document.head.appendChild(s2);
-}
-
-function drivePickForModal(){
-  if(!driveEnabled()){driveSetStatus('err','Credenciais não configuradas.');return;}
-  if(!_driveLoadStarted)_driveLoadAPIs();
-  if(!_gapiReady||!_gisReady){
-    _driveRetry++;
-    if(_driveRetry>20){
-      _driveRetry=0;
-      driveSetStatus('err','Tempo esgotado. Recarregue a página e tente novamente.');
-      return;
-    }
-    driveSetStatus('','Carregando APIs Google… ('+_driveRetry+'/20)');
-    setTimeout(drivePickForModal,800);
-    return;
+      const data=await _readBase64(f);
+      mAnexos.push({id:uid(),nome:f.name,mimeType:f.type||'',size:f.size,data,addedAt:Date.now()});
+    }catch{erros.push('Erro ao ler "'+f.name+'".');}
   }
-  _driveRetry=0;
-  driveSetStatus('','');
-  const tokenOk=_driveToken&&Date.now()<_driveTokenExpiry;
-  if(!tokenOk){_tokenClient.requestAccessToken({prompt:_driveToken?'':'consent'});}
-  else{_driveOpenPicker();}
-}
-
-async function _driveFetch(q){
-  /* Chama Drive REST API diretamente via fetch — sem precisar de discovery docs */
-  const url='https://www.googleapis.com/drive/v3/files?'+new URLSearchParams(q);
-  const r=await fetch(url,{headers:{Authorization:'Bearer '+_driveToken}});
-  if(!r.ok)throw new Error('Drive API '+r.status);
-  return r.json();
-}
-
-async function _driveOpenPicker(){
-  const b=editId?DATA.find(x=>x.id===editId):null;
-  const nomePasta=b?.nome||'';
-
-  if(!_driveFolderId){
-    try{
-      const d=await _driveFetch({
-        q:"name='FLORELLE - NOIVAS' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-        fields:'files(id)',pageSize:'1'
-      });
-      _driveFolderId=d.files?.[0]?.id||null;
-    }catch{}
-  }
-
-  let brideFolder=null;
-  if(_driveFolderId&&nomePasta){
-    try{
-      const first=nomePasta.split(' ')[0].replace(/'/g,"\\'");
-      const d=await _driveFetch({
-        q:`name contains '${first}' and mimeType='application/vnd.google-apps.folder' and '${_driveFolderId}' in parents and trashed=false`,
-        fields:'files(id,name)',pageSize:'5'
-      });
-      brideFolder=d.files?.[0]?.id||null;
-    }catch{}
-  }
-
-  const rootFolder=brideFolder||_driveFolderId||null;
-
-  const docsView=new google.picker.DocsView()
-    .setIncludeFolders(true)
-    .setMode(google.picker.DocsViewMode.LIST);
-  if(rootFolder)docsView.setParent(rootFolder);
-
-  const uploadView=new google.picker.DocsUploadView();
-  if(rootFolder)uploadView.setParent(rootFolder);
-
-  const picker=new google.picker.PickerBuilder()
-    .addView(docsView)
-    .addView(uploadView)
-    .setOAuthToken(_driveToken)
-    .setDeveloperKey(GDRIVE_API_KEY)
-    .setCallback(_pickerCallback)
-    .setTitle(nomePasta?'Arquivos — '+nomePasta:'Selecionar arquivo')
-    .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-    .build();
-  picker.setVisible(true);
-}
-
-function _pickerCallback(data){
-  if(data[google.picker.Response.ACTION]!==google.picker.Action.PICKED)return;
-  const docs=data[google.picker.Response.DOCUMENTS]||[];
-  let added=0;
-  docs.forEach(doc=>{
-    if(mAnexos.find(a=>a.fileId===doc.id))return;
-    mAnexos.push({id:uid(),nome:doc.name,fileId:doc.id,url:doc.url,mimeType:doc.mimeType||'',addedAt:Date.now()});
-    added++;
-  });
   renderAnexos();
-  if(added){
-    driveSetStatus('ok',added+' arquivo'+(added>1?'s':'')+' anexado'+(added>1?'s':'')+'.');
-    setTimeout(()=>driveSetStatus('',''),3000);
-  }
+  if(erros.length)alert(erros.join('\n'));
+}
+
+function _readBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function _fmtSize(b){
+  if(!b)return'';
+  if(b<1024)return b+'B';
+  if(b<1048576)return Math.round(b/1024)+'KB';
+  return(b/1048576).toFixed(1)+'MB';
 }
 
 /* ── MOBILE ──────────────────────────────────── */
