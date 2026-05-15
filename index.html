@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Florelle — Gestão de Noivas</title>
+<link rel="manifest" href="/florelle-app/manifest.json">
+<meta name="theme-color" content="#5a7a5c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Florelle">
+<link rel="apple-touch-icon" href="/florelle-app/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
@@ -2127,6 +2134,10 @@ document.addEventListener('keydown',e=>{
 /* ── INIT ────────────────────────────────────── */
 load();loadInv();renderAll();updInvBadge();
 syncInit(); // auto-sync on load (silent if already consented)
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/florelle-app/sw.js').catch(()=>{});
+}
 </script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
