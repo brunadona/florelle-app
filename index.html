@@ -332,6 +332,24 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .spin{display:inline-block;animation:sp .75s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 
+/* ── DRIVE ANEXOS ── */
+.anx-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.anx-empty{font-size:12px;color:var(--txl);padding:2px 0}
+.anx-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;border:1px solid var(--bdl);background:var(--cbg)}
+.anx-ico{font-size:13px;flex-shrink:0;line-height:1}
+.anx-name{flex:1;font-size:12.5px;color:var(--sd);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.anx-name:hover{text-decoration:underline}
+.anx-del{background:none;border:none;cursor:pointer;color:var(--txl);padding:3px;border-radius:4px;display:flex;align-items:center;transition:color .16s,background .16s;flex-shrink:0}
+.anx-del:hover{color:#B03420;background:#FEEDEA}
+.anx-badge{display:flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;color:var(--sd);background:#EDF4EB;padding:2px 5px;border-radius:7px}
+.drv-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.drv-btn{height:35px;padding:0 14px;background:transparent;color:var(--txm);border:1.5px solid var(--bd);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .16s;white-space:nowrap}
+.drv-btn:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
+.drv-btn:disabled{opacity:.5;cursor:not-allowed}
+.drv-st{font-size:11px;color:var(--txl);transition:color .2s}
+.drv-st.ok{color:var(--sd)}.drv-st.err{color:#B03420}
+@media(max-width:640px){.drv-btn{height:44px!important}}
+
 /* ── HAMBURGER MENU ── */
 #hbtn{display:none;width:40px;height:40px;border-radius:9px;border:1.5px solid var(--bd);background:transparent;cursor:pointer;align-items:center;justify-content:center;color:var(--txm);flex-shrink:0;transition:background .18s,border-color .18s}
 #hbtn:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
@@ -764,6 +782,19 @@ body{display:flex;flex-direction:column;overflow:hidden}
       </div>
     </div>
 
+    <!-- 9. Anexos Drive -->
+    <div class="fsec">
+      <div class="sttl">Anexos</div>
+      <div id="m-anx-list" class="anx-list"></div>
+      <div class="drv-row">
+        <button class="drv-btn" id="drv-pick-btn" onclick="drivePickForModal()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          Anexar do Drive
+        </button>
+        <span id="drv-modal-st" class="drv-st"></span>
+      </div>
+    </div>
+
   </div><!-- /mbdy -->
 
   <!-- Modal footer -->
@@ -859,7 +890,7 @@ const EMBLABEL={naoEncomendada:'Não encomendada',encomendada:'Encomendada',emMa
 const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
 
 /* ── STATE ───────────────────────────────────── */
-let DATA=[], editId=null, mRem=[], dragId=null, srch='', rpOpen=false, curTab='kb';
+let DATA=[], editId=null, mRem=[], mAnexos=[], dragId=null, srch='', rpOpen=false, curTab='kb';
 let INV=[];
 
 /* ── STORAGE ─────────────────────────────────── */
@@ -987,6 +1018,7 @@ function buildCard(b,acc){
   }
 
   const due=(b.lembretes||[]).filter(r=>!r.done&&r.data&&daysTo(r.data)<=0).length;
+  const anx=(b.anexos||[]).length;
   const emb=b.statusEmbalagem||'naoEncomendada';
   const plb=PLABEL[b.produto]||'';
   const palb=PAGLABEL[b.formaPagamento]||'';
@@ -1004,7 +1036,10 @@ function buildCard(b,acc){
     </div>
     <div class="cft">
       <div class="pks"><div class="pkd ${EMBDOT[emb]}"></div>${esc(EMBLABEL[emb])}</div>
-      ${due?`<div class="rbadge">${icn('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',10,10)} ${due}</div>`:''}
+      <div style="display:flex;gap:5px;align-items:center">
+        ${anx?`<div class="anx-badge">${icn('<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',10,10)} ${anx}</div>`:''}
+        ${due?`<div class="rbadge">${icn('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',10,10)} ${due}</div>`:''}
+      </div>
     </div>
   `;
   return el;
@@ -1015,7 +1050,7 @@ function doSearch(q){srch=q.trim();renderAll();}
 
 /* ── MODAL OPEN ──────────────────────────────── */
 function openNew(col){
-  editId=null;mRem=[];
+  editId=null;mRem=[];mAnexos=[];
   fillForm({etapa:col||'lead'});
   g('bdel').classList.add('hidden');
   g('ov').classList.remove('hidden');
@@ -1023,7 +1058,7 @@ function openNew(col){
 
 function openModal(id){
   const b=DATA.find(x=>x.id===id);if(!b)return;
-  editId=id;mRem=JSON.parse(JSON.stringify(b.lembretes||[]));
+  editId=id;mRem=JSON.parse(JSON.stringify(b.lembretes||[]));mAnexos=JSON.parse(JSON.stringify(b.anexos||[]));
   fillForm(b);
   g('bdel').classList.remove('hidden');
   g('ov').classList.remove('hidden');
@@ -1068,6 +1103,8 @@ function fillForm(b){
   pagChg();
   pecaVis();
   renderRL();
+  renderAnexos();
+  driveSetStatus('','');
 }
 
 function syncName(){
@@ -1184,6 +1221,7 @@ function saveModal(){
     embPrevisao:    gv('m-emb-prev'),
     valorTotal:     gv('m-valor').trim(),
     dataPagamento:  gv('m-pag-dt'),
+    anexos:         mAnexos,
     upd:            Date.now(),
   };
 
@@ -1600,6 +1638,166 @@ function renderSummary(){
       `<div class="sum-bar-wrap"><div class="sum-bar" style="width:${Math.round(n/max*100)}%;background:${col.color}"></div></div>`;
     body.appendChild(el);
   });
+}
+
+/* ── ANEXOS ──────────────────────────────────── */
+function renderAnexos(){
+  const list=g('m-anx-list');if(!list)return;
+  list.innerHTML='';
+  if(!mAnexos.length){list.innerHTML='<div class="anx-empty">Nenhum arquivo anexado ainda.</div>';return;}
+  mAnexos.forEach(a=>{
+    const div=document.createElement('div');div.className='anx-item';
+    div.innerHTML=
+      `<span class="anx-ico">${_mimeIcon(a.mimeType)}</span>`+
+      `<a class="anx-name" href="${a.url}" target="_blank" rel="noopener" title="${esc(a.nome)}">${esc(a.nome)}</a>`+
+      `<button class="anx-del" onclick="delAnexo('${a.id}')" title="Remover">${icn('<path d="M1 1l10 10M11 1L1 11"/>',10,10)}</button>`;
+    list.appendChild(div);
+  });
+}
+function delAnexo(id){mAnexos=mAnexos.filter(a=>a.id!==id);renderAnexos();}
+function _mimeIcon(mt){
+  if(!mt)return'📄';
+  if(mt.includes('pdf'))return'📋';
+  if(mt.includes('image'))return'🖼️';
+  if(mt.includes('spreadsheet')||mt.includes('excel'))return'📊';
+  if(mt.includes('document')||mt.includes('word'))return'📝';
+  if(mt.includes('video'))return'🎥';
+  if(mt.includes('folder'))return'📁';
+  return'📄';
+}
+function driveSetStatus(type,msg){
+  const el=g('drv-modal-st');if(!el)return;
+  el.className='drv-st'+(type?' '+type:'');el.textContent=msg;
+}
+
+/* ── GOOGLE DRIVE ────────────────────────────── */
+/* Preencha após criar o projeto no Google Cloud Console: */
+const GDRIVE_CLIENT_ID=''; // ex: '123456789-abc.apps.googleusercontent.com'
+const GDRIVE_API_KEY='';   // ex: 'AIzaSy...'
+
+let _driveToken=null,_driveTokenExpiry=0;
+let _gapiReady=false,_gisReady=false,_tokenClient=null;
+let _driveLoadStarted=false,_driveFolderId=null;
+
+function driveEnabled(){return!!(GDRIVE_CLIENT_ID&&GDRIVE_API_KEY);}
+
+function _driveLoadAPIs(){
+  if(_driveLoadStarted)return;
+  _driveLoadStarted=true;
+  const s1=document.createElement('script');
+  s1.src='https://apis.google.com/js/api.js';
+  s1.onload=()=>{
+    gapi.load('client:picker',async()=>{
+      try{
+        await gapi.client.init({
+          apiKey:GDRIVE_API_KEY,
+          discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+        });
+        _gapiReady=true;
+      }catch(e){driveSetStatus('err','Erro ao inicializar gapi: '+e.message);}
+    });
+  };
+  document.head.appendChild(s1);
+
+  const s2=document.createElement('script');
+  s2.src='https://accounts.google.com/gsi/client';
+  s2.onload=()=>{
+    _tokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:GDRIVE_CLIENT_ID,
+      scope:'https://www.googleapis.com/auth/drive',
+      callback:resp=>{
+        if(resp.error){driveSetStatus('err','Autenticação falhou: '+resp.error);return;}
+        _driveToken=resp.access_token;
+        _driveTokenExpiry=Date.now()+(resp.expires_in-60)*1000;
+        driveSetStatus('ok','Conectado ao Drive.');
+        setTimeout(()=>driveSetStatus('',''),2500);
+        _driveOpenPicker();
+      }
+    });
+    _gisReady=true;
+  };
+  document.head.appendChild(s2);
+}
+
+function drivePickForModal(){
+  if(!driveEnabled()){
+    driveSetStatus('err','Configure GDRIVE_CLIENT_ID e GDRIVE_API_KEY no código.');
+    return;
+  }
+  if(!_driveLoadStarted)_driveLoadAPIs();
+  if(!_gapiReady||!_gisReady){
+    driveSetStatus('','Carregando APIs Google…');
+    setTimeout(drivePickForModal,1400);
+    return;
+  }
+  driveSetStatus('','');
+  const tokenOk=_driveToken&&Date.now()<_driveTokenExpiry;
+  if(!tokenOk){_tokenClient.requestAccessToken({prompt:_driveToken?'':'consent'});}
+  else{_driveOpenPicker();}
+}
+
+async function _driveOpenPicker(){
+  const b=editId?DATA.find(x=>x.id===editId):null;
+  const nomePasta=b?.nome||'';
+
+  if(!_driveFolderId){
+    try{
+      const r=await gapi.client.drive.files.list({
+        q:"name='FLORELLE - NOIVAS' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        fields:'files(id)',pageSize:1
+      });
+      _driveFolderId=r.result.files?.[0]?.id||null;
+    }catch{}
+  }
+
+  let brideFolder=null;
+  if(_driveFolderId&&nomePasta){
+    try{
+      const first=nomePasta.split(' ')[0].replace(/'/g,"\\'");
+      const r=await gapi.client.drive.files.list({
+        q:`name contains '${first}' and mimeType='application/vnd.google-apps.folder' and '${_driveFolderId}' in parents and trashed=false`,
+        fields:'files(id,name)',pageSize:5
+      });
+      brideFolder=r.result.files?.[0]?.id||null;
+    }catch{}
+  }
+
+  const rootFolder=brideFolder||_driveFolderId||null;
+
+  const docsView=new google.picker.DocsView()
+    .setIncludeFolders(true)
+    .setMode(google.picker.DocsViewMode.LIST);
+  if(rootFolder)docsView.setParent(rootFolder);
+
+  const uploadView=new google.picker.DocsUploadView();
+  if(rootFolder)uploadView.setParent(rootFolder);
+
+  const picker=new google.picker.PickerBuilder()
+    .addView(docsView)
+    .addView(uploadView)
+    .setOAuthToken(_driveToken)
+    .setDeveloperKey(GDRIVE_API_KEY)
+    .setCallback(_pickerCallback)
+    .setTitle(nomePasta?'Arquivos — '+nomePasta:'Selecionar arquivo')
+    .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+    .build();
+  picker.setVisible(true);
+}
+
+function _pickerCallback(data){
+  if(data[google.picker.Response.ACTION]!==google.picker.Action.PICKED)return;
+  const docs=data[google.picker.Response.DOCUMENTS]||[];
+  let added=0;
+  docs.forEach(doc=>{
+    if(mAnexos.find(a=>a.fileId===doc.id))return;
+    mAnexos.push({id:uid(),nome:doc.name,fileId:doc.id,url:doc.url,mimeType:doc.mimeType||'',addedAt:Date.now()});
+    added++;
+  });
+  renderAnexos();
+  if(added){
+    driveSetStatus('ok',added+' arquivo'+(added>1?'s':'')+' anexado'+(added>1?'s':'')+'.');
+    setTimeout(()=>driveSetStatus('',''),3000);
+  }
 }
 
 /* ── MOBILE ──────────────────────────────────── */
