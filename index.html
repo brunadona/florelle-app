@@ -287,9 +287,15 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .b-io:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
 
 /* ── SYNC / DRIVE ── */
-#drv-btn{position:relative}
-.sdot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;border:2px solid var(--wh)}
-.sd-ok{background:#58B06A}.sd-spin{background:#D4B830;animation:sdp .9s ease infinite}.sd-err{background:#E08080}
+#sync-btn{display:flex;align-items:center;gap:5px;height:32px;padding:0 10px;background:none;border:1.5px solid var(--bd);border-radius:17px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--txm);cursor:pointer;transition:all .16s;white-space:nowrap}
+#sync-btn:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.sdot-idle{background:#C0C5C0}
+.sdot-syncing{background:#D4B830;animation:sdp .9s ease infinite}
+.sdot-ok{background:#58B06A}
+.sdot-err{background:#E08080}
+.sdot-offline{background:#D4B830}
+.sync-lbl{white-space:nowrap}
 @keyframes sdp{0%,100%{opacity:1}50%{opacity:.35}}
 #login-ov{position:fixed;inset:0;background:rgba(44,40,37,.65);z-index:3000;display:flex;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);animation:fu .22s ease}
 #lbox{background:var(--wh);border-radius:18px;width:100%;max-width:390px;padding:36px 32px;box-shadow:var(--sh3);text-align:center}
@@ -377,6 +383,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
 @media(max-width:640px){
   /* header */
   .b-io,.ha .hsep{display:none!important}
+  .sync-lbl{display:none}
+  #sync-btn{height:36px;padding:0 9px}
   #hbtn{display:flex}
   #hd{padding:0 12px;gap:8px}
   .srch{max-width:none;flex:1}
@@ -475,6 +483,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Importar do WhatsApp
     </button>
+    <button id="sync-btn" onclick="syncLogin()" title="Clique para conectar ao Google Drive">
+      <span id="sync-dot" class="sync-dot sdot-idle"></span>
+      <span class="sync-lbl">Drive</span>
+    </button>
     <button class="bprim" onclick="openNew('lead')">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       Nova Noiva
@@ -487,6 +499,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 <!-- HAMBURGER DROPDOWN -->
 <div id="hmenu" onclick="event.stopPropagation()">
+  <button class="hmi" id="hm-sync" onclick="syncLogin();closeHMenu()">
+    <span id="hm-sync-dot" class="sync-dot sdot-idle" style="flex-shrink:0"></span>
+    <span id="hm-sync-lbl">Conectar ao Google Drive</span>
+  </button>
+  <div class="hmi-sep"></div>
   <button class="hmi hmi-wa" onclick="openWaImport();closeHMenu()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     Importar do WhatsApp
@@ -901,6 +918,9 @@ const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
 let DATA=[], editId=null, mRem=[], mAnexos=[], dragId=null, srch='', rpOpen=false, curTab='kb';
 let INV=[];
 let _mDriveFolder=''; // Drive folder ID for current bride being edited
+let _syncFileId=localStorage.getItem('florelle_sync_fid')||null;
+let _syncSt='idle'; // 'idle'|'syncing'|'ok'|'error'|'offline'
+let _syncTimer=null, _syncPending=false;
 
 /* ── STORAGE ─────────────────────────────────── */
 function migrateOld(){
@@ -949,6 +969,7 @@ function load(){
 function save(){
   try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}
   catch(e){if(e.name==='QuotaExceededError')alert('Armazenamento local cheio. Remova alguns anexos para continuar salvando.');}
+  _queueDriveSync();
 }
 
 /* ── UTILS ───────────────────────────────────── */
@@ -1787,6 +1808,147 @@ function syncDriveBtn(){
   }
 }
 
+/* ── DRIVE DATA SYNC ─────────────────────────── */
+function setSyncStatus(s){
+  _syncSt=s;
+  const dot=g('sync-dot'),lbl=g('sync-lbl');
+  const hdot=g('hm-sync-dot'),hlbl=g('hm-sync-lbl');
+  const cls='sync-dot sdot-'+s;
+  if(dot)dot.className=cls;
+  if(hdot)hdot.className=cls;
+  const lblMap={idle:'Drive',syncing:'Salvando…',ok:'Sincronizado',error:'Erro no Drive',offline:'Offline'};
+  const hmMap={idle:'Conectar ao Google Drive',syncing:'Salvando no Drive…',ok:'Drive sincronizado ✓',error:'Erro — tentar novamente',offline:'Offline — sem conexão'};
+  const titleMap={idle:'Clique para conectar ao Google Drive',syncing:'Salvando no Drive…',ok:'Dados sincronizados com Google Drive',error:'Erro ao sincronizar — clique para tentar novamente',offline:'Sem conexão — dados salvos localmente'};
+  if(lbl)lbl.textContent=lblMap[s]||'Drive';
+  if(hlbl)hlbl.textContent=hmMap[s]||'Drive';
+  const btn=g('sync-btn');if(btn)btn.title=titleMap[s]||'Google Drive';
+}
+
+async function syncInit(){
+  if(!navigator.onLine){setSyncStatus('offline');return;}
+  // Wait for GIS to load (it's async)
+  await new Promise(res=>{
+    const check=()=>window.google?.accounts?.oauth2?res():setTimeout(check,300);
+    check();
+  });
+  try{
+    _initGClient();
+    await _requestToken(''); // silent — works if user previously consented in this browser
+    setSyncStatus('syncing');
+    await _loadFromDrive();
+  }catch{
+    setSyncStatus('idle'); // not signed in yet, wait for user to click
+  }
+}
+
+async function syncLogin(){
+  if(_syncSt==='syncing')return;
+  try{
+    setSyncStatus('syncing');
+    if(!_gToken)await _requestToken('select_account');
+    await _loadFromDrive();
+  }catch(e){
+    const ignored=['popup_closed_by_user','access_denied'];
+    setSyncStatus('idle');
+    if(!ignored.some(s=>e.message.includes(s)))
+      alert('Erro ao conectar ao Drive:\n'+e.message);
+  }
+}
+
+async function _syncFetch(method,path,body,ct){
+  const h={'Authorization':'Bearer '+_gToken};
+  if(ct)h['Content-Type']=ct;
+  return fetch('https://www.googleapis.com/drive/v3'+path,{method,headers:h,body});
+}
+
+async function _findSyncFile(){
+  if(_syncFileId){
+    const r=await _syncFetch('GET',`/files/${_syncFileId}?fields=id`);
+    if(r.ok)return _syncFileId;
+    _syncFileId=null;localStorage.removeItem('florelle_sync_fid');
+  }
+  const q="name='florelle-data.json' and trashed=false";
+  const r=await _syncFetch('GET',`/files?q=${encodeURIComponent(q)}&fields=files(id)&spaces=drive`);
+  const d=await r.json();
+  if(d.files?.length){
+    _syncFileId=d.files[0].id;
+    localStorage.setItem('florelle_sync_fid',_syncFileId);
+    return _syncFileId;
+  }
+  // Create new empty file
+  const cr=await _syncFetch('POST','/files',JSON.stringify({name:'florelle-data.json',mimeType:'application/json'}),'application/json');
+  const cd=await cr.json();
+  if(!cd.id)throw new Error('Não foi possível criar o arquivo de sync no Drive.');
+  _syncFileId=cd.id;
+  localStorage.setItem('florelle_sync_fid',_syncFileId);
+  return _syncFileId;
+}
+
+async function _loadFromDrive(){
+  if(!_gToken)return;
+  const fid=await _findSyncFile();
+  const r=await _syncFetch('GET',`/files/${fid}?alt=media`);
+  if(r.status===401){_gToken=null;setSyncStatus('idle');return;}
+  if(!r.ok){setSyncStatus('error');return;}
+  const txt=await r.text().catch(()=>'');
+  if(!txt.trim()){
+    // First time: Drive file is empty, push local data up
+    await _saveToDrive();
+    return;
+  }
+  let driveData;
+  try{driveData=JSON.parse(txt);}catch{setSyncStatus('error');return;}
+  if(!Array.isArray(driveData)){setSyncStatus('error');return;}
+  if(driveData.length===0&&DATA.length>0){
+    // Drive empty but we have local data → push local up
+    await _saveToDrive();
+    return;
+  }
+  // Drive always wins: replace local data
+  DATA=driveData;
+  try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
+  renderAll();
+  setSyncStatus('ok');
+}
+
+async function _saveToDrive(){
+  if(!_gToken){_syncPending=true;return;}
+  if(!navigator.onLine){_syncPending=true;setSyncStatus('offline');return;}
+  setSyncStatus('syncing');
+  try{
+    const fid=await _findSyncFile();
+    const content=JSON.stringify(DATA);
+    const boundary='flrl_'+Date.now();
+    const meta=JSON.stringify({name:'florelle-data.json',mimeType:'application/json'});
+    const body=`--${boundary}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;
+    const r=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=multipart`,{
+      method:'PATCH',
+      headers:{'Authorization':'Bearer '+_gToken,'Content-Type':`multipart/related; boundary="${boundary}"`},
+      body,
+    });
+    if(r.status===401){_gToken=null;_syncPending=true;setSyncStatus('idle');return;}
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    _syncPending=false;
+    setSyncStatus('ok');
+  }catch{
+    _syncPending=true;
+    setSyncStatus('error');
+    setTimeout(()=>{if(_syncSt==='error')setSyncStatus(navigator.onLine?'idle':'offline');},5000);
+  }
+}
+
+function _queueDriveSync(){
+  if(!_gToken)return;
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(_saveToDrive,2000);
+}
+
+window.addEventListener('offline',()=>setSyncStatus('offline'));
+window.addEventListener('online',()=>{
+  if(_syncPending&&_gToken)_saveToDrive();
+  else if(_syncSt==='offline')setSyncStatus(_gToken?'ok':'idle');
+});
+
 /* ── MOBILE ──────────────────────────────────── */
 let mobileColIdx=0;
 function isMobile(){return window.innerWidth<=640;}
@@ -1964,6 +2126,7 @@ document.addEventListener('keydown',e=>{
 
 /* ── INIT ────────────────────────────────────── */
 load();loadInv();renderAll();updInvBadge();
+syncInit(); // auto-sync on load (silent if already consented)
 </script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
