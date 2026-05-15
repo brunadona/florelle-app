@@ -469,7 +469,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div class="hsep"></div>
   <div class="srch">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-    <input id="si" type="text" placeholder="Buscar noiva…" oninput="doSearch(this.value)">
+    <input id="si" type="text" placeholder="Buscar noiva…" oninput="_srchQ(this.value)">
   </div>
   <div class="ha">
     <button class="b-io" onclick="exportData()" title="Exportar dados JSON">
@@ -981,9 +981,10 @@ function save(){
 
 /* ── UTILS ───────────────────────────────────── */
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,9);}
-function today(){return new Date().toISOString().slice(0,10);}
+function today(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function fmt(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}
-function addDays(s,n){if(!s)return'';const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function addDays(s,n){if(!s)return'';const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
 function daysTo(s){if(!s)return null;const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(s+'T00:00:00')-t)/86400000);}
 function g(id){return document.getElementById(id);}
 function gv(id){const e=g(id);return e?e.value:'';}
@@ -1087,6 +1088,8 @@ function buildCard(b,acc){
 
 /* ── SEARCH ──────────────────────────────────── */
 function doSearch(q){srch=q.trim();renderAll();}
+let _srchTimer=null;
+function _srchQ(q){clearTimeout(_srchTimer);_srchTimer=setTimeout(()=>doSearch(q),120);}
 
 /* ── MODAL OPEN ──────────────────────────────── */
 function openNew(col){
