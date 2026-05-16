@@ -1549,24 +1549,30 @@ function pagCalc(preload){
 
   let rows=[];
   if(fp==='pixAVista'||fp==='cartao'){
-    const lbl=fp==='pixAVista'?'Saldo restante':'Total a pagar';
-    rows=[{lbl,valor:useCalc?_centsStr(saldo):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago)}];
+    const hasRes=reservaAtiva;
+    rows=[{
+      lbl:hasRes?'Saldo restante':'',
+      showValor:hasRes,
+      valor:hasRes?(useCalc?_centsStr(saldo):prev[0]?.valor||''):'',
+      data:prev[0]?.data||'',
+      pago:!!(prev[0]?.pago),
+    }];
   } else if(fp==='pix3x'){
     const resto=saldo%3;
     const p1=Math.floor(saldo/3)+resto;
     const p23=Math.floor(saldo/3);
     rows=[
-      {lbl:'1ª parcela',valor:useCalc?_centsStr(p1):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago)},
-      {lbl:'2ª parcela',valor:useCalc?_centsStr(p23):prev[1]?.valor||'',data:prev[1]?.data||'',pago:!!(prev[1]?.pago)},
-      {lbl:'3ª parcela',valor:useCalc?_centsStr(p23):prev[2]?.valor||'',data:prev[2]?.data||'',pago:!!(prev[2]?.pago)},
+      {lbl:'1ª parcela',showValor:true,valor:useCalc?_centsStr(p1):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago)},
+      {lbl:'2ª parcela',showValor:true,valor:useCalc?_centsStr(p23):prev[1]?.valor||'',data:prev[1]?.data||'',pago:!!(prev[1]?.pago)},
+      {lbl:'3ª parcela',showValor:true,valor:useCalc?_centsStr(p23):prev[2]?.valor||'',data:prev[2]?.data||'',pago:!!(prev[2]?.pago)},
     ];
   }
 
   container.innerHTML=rows.map((r,i)=>
     `<div class="parc-row">`+
-    `<span class="parc-lbl">${r.lbl}</span>`+
-    `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00">`+
-    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}">`+
+    (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
+    (r.showValor?`<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00">`:'')+
+    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px">`+
     `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> Pago</label>`+
     `</div>`
   ).join('');
