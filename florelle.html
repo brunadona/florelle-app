@@ -781,13 +781,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label class="to tn"><input type="radio" name="reservaAtiva" value="nao" onchange="reservaChg()"><span class="tl">✗ Não</span></label>
         </div>
       </div>
-      <div id="reserva-row" class="parc-row hidden">
-        <span class="parc-lbl">Valor (R$)</span>
-        <input type="text" id="reserva-valor" class="fi parc-val" placeholder="200,00" oninput="pagCalc()">
-        <input type="date" id="reserva-data" class="fi" style="flex:1;min-width:130px">
-        <label class="parc-chk"><input type="checkbox" id="reserva-paga" onchange="pagCalc()"> Paga</label>
-      </div>
-
       <!-- Forma de pagamento -->
       <div class="fg" style="margin-bottom:11px;margin-top:16px">
         <label class="fl">Forma de pagamento</label>
@@ -1220,11 +1213,9 @@ function fillForm(b){
   // Reserva de data
   const res=b.reserva||{};
   setRad('reservaAtiva',res.ativa?'sim':'nao');
-  const resRow=g('reserva-row');
-  if(resRow)resRow.classList.toggle('hidden',!res.ativa);
-  sv2('reserva-valor',res.valor||'');
-  sv2('reserva-data', res.data||'');
-  const resPg=g('reserva-paga');if(resPg)resPg.checked=!!(res.paga);
+  const allPagRows=[];
+  if(res.ativa)allPagRows.push({valor:res.valor||'200,00',data:res.data||'',pago:!!(res.paga)});
+  (b.pagamentos||[]).forEach(p=>allPagRows.push(p));
 
   const pc=b.pecasAdicionais||[];
   document.querySelectorAll('input[name="pecas"]').forEach(c=>c.checked=pc.includes(c.value));
@@ -1236,7 +1227,7 @@ function fillForm(b){
   buqueDisp(b.dataBuque||'');
   redomaChg();
   embPedidaChg();
-  pagCalc(b.pagamentos&&b.pagamentos.length?b.pagamentos:null);
+  pagCalc(allPagRows.length?allPagRows:null);
   pecaVis();
   renderRL();
   renderAnexos();
@@ -1356,13 +1347,18 @@ async function saveModal(){
     embPedida:      radVal('embPedida'),
     embPrevisao:    gv('m-emb-prev'),
     valorTotal:     gv('m-valor').trim(),
-    reserva:{
-      ativa:radVal('reservaAtiva')==='sim',
-      valor:gv('reserva-valor').trim(),
-      data:gv('reserva-data'),
-      paga:!!(g('reserva-paga')?.checked),
-    },
-    pagamentos:     _getPagRows(),
+    reserva:(()=>{
+      const resAtiva=radVal('reservaAtiva')==='sim';
+      const rows=_getPagRows();
+      return resAtiva
+        ?{ativa:true,valor:(rows[0]?.valor||'').trim(),data:rows[0]?.data||'',paga:!!(rows[0]?.pago)}
+        :{ativa:false,valor:'',data:'',paga:false};
+    })(),
+    pagamentos:(()=>{
+      const resAtiva=radVal('reservaAtiva')==='sim';
+      const rows=_getPagRows();
+      return resAtiva?rows.slice(1):rows;
+    })(),
     anexos:         mAnexos,
     driveFolder:    _mDriveFolder,
     upd:            Date.now(),
@@ -1510,11 +1506,22 @@ function embPedidaChg(){
 
 /* ── PAGAMENTO ───────────────────────────────── */
 function reservaChg(){
-  const ativa=radVal('reservaAtiva')==='sim';
-  g('reserva-row').classList.toggle('hidden',!ativa);
+  g('pag-rows').innerHTML='';
   pagCalc();
 }
-function pagChg(){pagCalc();}
+function pagChg(){
+  const reservaAtiva=radVal('reservaAtiva')==='sim';
+  if(reservaAtiva){
+    // preserve reserva row, clear installment rows
+    const rows=_getPagRows();
+    const reservaRow=rows[0]||null;
+    g('pag-rows').innerHTML='';
+    pagCalc(reservaRow?[reservaRow]:[]);
+  } else {
+    g('pag-rows').innerHTML='';
+    pagCalc();
+  }
+}
 
 function _parseBRL(s){
   if(!s)return 0;
@@ -1541,39 +1548,46 @@ function pagCalc(preload){
   const container=g('pag-rows');if(!container)return;
   const prev=preload||_getPagRows();
   const useCalc=!preload;
-
-  const totalCents=_parseBRL(gv('m-valor'));
   const reservaAtiva=radVal('reservaAtiva')==='sim';
-  const reservaCents=reservaAtiva?_parseBRL(gv('reserva-valor')):0;
-  const saldo=Math.max(0,totalCents-reservaCents);
+  const totalCents=_parseBRL(gv('m-valor'));
 
   let rows=[];
-  if(fp==='pixAVista'||fp==='cartao'){
-    const hasRes=reservaAtiva;
-    rows=[{
-      lbl:hasRes?'Saldo restante':'',
-      showValor:hasRes,
-      valor:hasRes?(useCalc?_centsStr(saldo):prev[0]?.valor||''):'',
-      data:prev[0]?.data||'',
-      pago:!!(prev[0]?.pago),
-    }];
-  } else if(fp==='pix3x'){
-    const resto=saldo%3;
-    const p1=Math.floor(saldo/3)+resto;
-    const p23=Math.floor(saldo/3);
-    rows=[
-      {lbl:'1ª parcela',showValor:true,valor:useCalc?_centsStr(p1):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago)},
-      {lbl:'2ª parcela',showValor:true,valor:useCalc?_centsStr(p23):prev[1]?.valor||'',data:prev[1]?.data||'',pago:!!(prev[1]?.pago)},
-      {lbl:'3ª parcela',showValor:true,valor:useCalc?_centsStr(p23):prev[2]?.valor||'',data:prev[2]?.data||'',pago:!!(prev[2]?.pago)},
-    ];
+
+  if(reservaAtiva){
+    // Row 0: Reserva (always preserve entered value, default 200,00)
+    const resValor=prev[0]?.valor||'200,00';
+    const resCents=_parseBRL(resValor);
+    const saldo=Math.max(0,totalCents-resCents);
+    rows.push({lbl:'Reserva',valor:resValor,data:prev[0]?.data||'',pago:!!(prev[0]?.pago),chkLabel:'Paga'});
+    // Installment rows (offset 1)
+    const o=1;
+    if(fp==='pixAVista'||fp==='cartao'){
+      rows.push({lbl:'Saldo restante',valor:useCalc?_centsStr(saldo):prev[o]?.valor||'',data:prev[o]?.data||'',pago:!!(prev[o]?.pago),chkLabel:'Pago'});
+    } else if(fp==='pix3x'){
+      const resto=saldo%3;const p1=Math.floor(saldo/3)+resto;const p23=Math.floor(saldo/3);
+      rows.push({lbl:'1ª parcela',valor:useCalc?_centsStr(p1):prev[o]?.valor||'',data:prev[o]?.data||'',pago:!!(prev[o]?.pago),chkLabel:'Pago'});
+      rows.push({lbl:'2ª parcela',valor:useCalc?_centsStr(p23):prev[o+1]?.valor||'',data:prev[o+1]?.data||'',pago:!!(prev[o+1]?.pago),chkLabel:'Pago'});
+      rows.push({lbl:'3ª parcela',valor:useCalc?_centsStr(p23):prev[o+2]?.valor||'',data:prev[o+2]?.data||'',pago:!!(prev[o+2]?.pago),chkLabel:'Pago'});
+    }
+  } else {
+    // No reserva: all rows use full total
+    const saldo=totalCents;
+    if(fp==='pixAVista'||fp==='cartao'){
+      rows.push({lbl:'',valor:useCalc?_centsStr(saldo):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago),chkLabel:'Pago'});
+    } else if(fp==='pix3x'){
+      const resto=saldo%3;const p1=Math.floor(saldo/3)+resto;const p23=Math.floor(saldo/3);
+      rows.push({lbl:'1ª parcela',valor:useCalc?_centsStr(p1):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago),chkLabel:'Pago'});
+      rows.push({lbl:'2ª parcela',valor:useCalc?_centsStr(p23):prev[1]?.valor||'',data:prev[1]?.data||'',pago:!!(prev[1]?.pago),chkLabel:'Pago'});
+      rows.push({lbl:'3ª parcela',valor:useCalc?_centsStr(p23):prev[2]?.valor||'',data:prev[2]?.data||'',pago:!!(prev[2]?.pago),chkLabel:'Pago'});
+    }
   }
 
   container.innerHTML=rows.map((r,i)=>
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
-    (r.showValor?`<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00">`:'')+
+    `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="pagCalc()">`+
     `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px">`+
-    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> Pago</label>`+
+    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
     `</div>`
   ).join('');
 }
