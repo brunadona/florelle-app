@@ -193,6 +193,13 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .ar-row .fi{flex:1}
 .ar-row .fi.dt{width:148px;flex:none}
 
+/* parcela rows */
+.parc-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.parc-lbl{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--txm);flex-shrink:0;min-width:95px}
+.parc-chk{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txm);flex-shrink:0;cursor:pointer;white-space:nowrap;user-select:none}
+.parc-chk input[type=checkbox]{accent-color:var(--sd);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.parc-val{width:110px!important;flex-shrink:0!important}
+
 /* modal footer */
 .mft{padding:13px 24px;border-top:1px solid var(--bdl);display:flex;align-items:center;gap:9px;flex-shrink:0}
 .bdng{height:35px;padding:0 14px;background:transparent;color:#B03420;border:1.5px solid #F0B8B0;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .16s}
@@ -765,7 +772,24 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <!-- 4. Pagamento -->
     <div class="fsec">
       <div class="sttl">Pagamento</div>
-      <div class="fg" style="margin-bottom:11px">
+
+      <!-- Reserva de data -->
+      <div class="fg" style="margin-bottom:8px">
+        <label class="fl">Reserva de data</label>
+        <div class="tg">
+          <label class="to ty"><input type="radio" name="reservaAtiva" value="sim" onchange="reservaChg()"><span class="tl">✓ Sim</span></label>
+          <label class="to tn"><input type="radio" name="reservaAtiva" value="nao" onchange="reservaChg()"><span class="tl">✗ Não</span></label>
+        </div>
+      </div>
+      <div id="reserva-row" class="parc-row hidden">
+        <span class="parc-lbl">Valor (R$)</span>
+        <input type="text" id="reserva-valor" class="fi parc-val" placeholder="200,00" oninput="pagCalc()">
+        <input type="date" id="reserva-data" class="fi" style="flex:1;min-width:130px">
+        <label class="parc-chk"><input type="checkbox" id="reserva-paga" onchange="pagCalc()"> Paga</label>
+      </div>
+
+      <!-- Forma de pagamento -->
+      <div class="fg" style="margin-bottom:11px;margin-top:16px">
         <label class="fl">Forma de pagamento</label>
         <div class="rg">
           <label class="ro"><input type="radio" name="pag" value="pixAVista" onchange="pagChg()"><span class="rl">Pix à vista</span></label>
@@ -773,11 +797,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label class="ro"><input type="radio" name="pag" value="cartao" onchange="pagChg()"><span class="rl">Cartão</span></label>
         </div>
       </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" placeholder="Ex: 1.290,00"></div>
-        <div class="fg"><label class="fl" id="pag-date-lbl">Data do pagamento</label><input id="m-pag-dt" type="date" class="fi"></div>
+
+      <!-- Valor total -->
+      <div class="frow f1" style="margin-bottom:8px">
+        <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" placeholder="Ex: 1.290,00" oninput="pagCalc()"></div>
       </div>
-      <p class="hint hidden" id="pag-hint">Pix 3×: lembretes para 1ª parcela (+0 dias), 2ª (+30 dias) e 3ª (+60 dias).</p>
+
+      <!-- Linhas de parcela (renderizadas por pagCalc) -->
+      <div id="pag-rows"></div>
     </div>
 
     <!-- 5. Sílica -->
@@ -1100,8 +1127,21 @@ function buildCard(b,acc){
   const redomaLabel=b.redomaPedida==='sim'?'Em mãos':'À encomendar';
   let pagLine='';
   if(b.formaPagamento){
-    const vencido=b.dataPagamento&&b.dataPagamento<today();
-    pagLine=`<div class="pks"><span class="cflbl">Pagamento:</span><div class="pkd ${vencido?'pk-no':'pk-ok'}"></div>${vencido?'Em atraso':'Em dia'}</div>`;
+    const allItems=[];
+    if(b.reserva?.ativa)allItems.push({pago:b.reserva.paga,data:b.reserva.data||''});
+    (b.pagamentos||[]).forEach(p=>allItems.push({pago:p.pago,data:p.data||''}));
+    let pagStatus,pagDot;
+    if(!allItems.length){
+      const vencido=b.dataPagamento&&b.dataPagamento<today();
+      pagStatus=vencido?'Em atraso':'Em dia';pagDot=vencido?'pk-no':'pk-ok';
+    } else if(allItems.every(p=>p.pago)){
+      pagStatus='Pago';pagDot='pk-ok';
+    } else if(allItems.some(p=>!p.pago&&p.data&&p.data<today())){
+      pagStatus='Em atraso';pagDot='pk-no';
+    } else {
+      pagStatus='Em dia';pagDot='pk-or';
+    }
+    pagLine=`<div class="pks"><span class="cflbl">Pagamento:</span><div class="pkd ${pagDot}"></div>${pagStatus}</div>`;
   }
 
   el.innerHTML=`
@@ -1169,7 +1209,6 @@ function fillForm(b){
   sv2('m-redoma-dt',  b.redomaDataPedido||'');
   sv2('m-emb-prev',   b.embPrevisao||'');
   sv2('m-valor',      b.valorTotal||'');
-  sv2('m-pag-dt',     b.dataPagamento||'');
 
   setRad('prod',      b.produto||'');
   setRad('emb',       b.statusEmbalagem||'naoEncomendada');
@@ -1177,6 +1216,15 @@ function fillForm(b){
   setRad('rep',       b.autorizaReposicao||'');
   setRad('redoma',    b.redomaPedida||'');
   setRad('embPedida', b.embPedida||'');
+
+  // Reserva de data
+  const res=b.reserva||{};
+  setRad('reservaAtiva',res.ativa?'sim':'nao');
+  const resRow=g('reserva-row');
+  if(resRow)resRow.classList.toggle('hidden',!res.ativa);
+  sv2('reserva-valor',res.valor||'');
+  sv2('reserva-data', res.data||'');
+  const resPg=g('reserva-paga');if(resPg)resPg.checked=!!(res.paga);
 
   const pc=b.pecasAdicionais||[];
   document.querySelectorAll('input[name="pecas"]').forEach(c=>c.checked=pc.includes(c.value));
@@ -1188,7 +1236,7 @@ function fillForm(b){
   buqueDisp(b.dataBuque||'');
   redomaChg();
   embPedidaChg();
-  pagChg();
+  pagCalc(b.pagamentos&&b.pagamentos.length?b.pagamentos:null);
   pecaVis();
   renderRL();
   renderAnexos();
@@ -1308,7 +1356,13 @@ async function saveModal(){
     embPedida:      radVal('embPedida'),
     embPrevisao:    gv('m-emb-prev'),
     valorTotal:     gv('m-valor').trim(),
-    dataPagamento:  gv('m-pag-dt'),
+    reserva:{
+      ativa:radVal('reservaAtiva')==='sim',
+      valor:gv('reserva-valor').trim(),
+      data:gv('reserva-data'),
+      paga:!!(g('reserva-paga')?.checked),
+    },
+    pagamentos:     _getPagRows(),
     anexos:         mAnexos,
     driveFolder:    _mDriveFolder,
     upd:            Date.now(),
@@ -1454,13 +1508,68 @@ function embPedidaChg(){
   g('emb-nao-hint').classList.toggle('hidden',v!=='nao');
 }
 
-/* ── PAGAMENTO HINT ──────────────────────────── */
-function pagChg(){
-  const v=radVal('pag');
-  const lbl=g('pag-date-lbl');
-  if(lbl)lbl.textContent=v==='pix3x'?'Data da 1ª parcela':'Data do pagamento';
-  const hint=g('pag-hint');
-  if(hint)hint.classList.toggle('hidden',v!=='pix3x');
+/* ── PAGAMENTO ───────────────────────────────── */
+function reservaChg(){
+  const ativa=radVal('reservaAtiva')==='sim';
+  g('reserva-row').classList.toggle('hidden',!ativa);
+  pagCalc();
+}
+function pagChg(){pagCalc();}
+
+function _parseBRL(s){
+  if(!s)return 0;
+  const n=parseFloat((s+'').replace(/\./g,'').replace(',','.'));
+  return Number.isFinite(n)?Math.round(n*100):0;
+}
+function _centsStr(c){
+  if(!c&&c!==0)return'';
+  return(c/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function _getPagRows(){
+  const rows=[];
+  document.querySelectorAll('#pag-rows .parc-row').forEach(row=>{
+    const vEl=row.querySelector('.parc-val');
+    const dEl=row.querySelector('.parc-dt');
+    const pEl=row.querySelector('.parc-pg');
+    rows.push({valor:vEl?vEl.value:'',data:dEl?dEl.value:'',pago:pEl?pEl.checked:false});
+  });
+  return rows;
+}
+
+function pagCalc(preload){
+  const fp=radVal('pag');
+  const container=g('pag-rows');if(!container)return;
+  const prev=preload||_getPagRows();
+  const useCalc=!preload;
+
+  const totalCents=_parseBRL(gv('m-valor'));
+  const reservaAtiva=radVal('reservaAtiva')==='sim';
+  const reservaCents=reservaAtiva?_parseBRL(gv('reserva-valor')):0;
+  const saldo=Math.max(0,totalCents-reservaCents);
+
+  let rows=[];
+  if(fp==='pixAVista'||fp==='cartao'){
+    const lbl=fp==='pixAVista'?'Saldo restante':'Total a pagar';
+    rows=[{lbl,valor:useCalc?_centsStr(saldo):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago)}];
+  } else if(fp==='pix3x'){
+    const resto=saldo%3;
+    const p1=Math.floor(saldo/3)+resto;
+    const p23=Math.floor(saldo/3);
+    rows=[
+      {lbl:'1ª parcela',valor:useCalc?_centsStr(p1):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago)},
+      {lbl:'2ª parcela',valor:useCalc?_centsStr(p23):prev[1]?.valor||'',data:prev[1]?.data||'',pago:!!(prev[1]?.pago)},
+      {lbl:'3ª parcela',valor:useCalc?_centsStr(p23):prev[2]?.valor||'',data:prev[2]?.data||'',pago:!!(prev[2]?.pago)},
+    ];
+  }
+
+  container.innerHTML=rows.map((r,i)=>
+    `<div class="parc-row">`+
+    `<span class="parc-lbl">${r.lbl}</span>`+
+    `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00">`+
+    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}">`+
+    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> Pago</label>`+
+    `</div>`
+  ).join('');
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
@@ -1485,18 +1594,33 @@ function buildCalEvents(rec){
     evs.push({title:'Encomendar embalagem — '+nm, date:today()});
   else if(rec.embPedida==='sim'&&rec.embPrevisao)
     evs.push({title:'Embalagem chega — '+nm, date:rec.embPrevisao});
-  if(rec.dataPagamento&&rec.valorTotal){
-    const v=rec.valorTotal;
-    if(rec.formaPagamento==='pixAVista'){
-      evs.push({title:'Cobrar Pix à vista — '+nm+' (R$ '+v+')', date:rec.dataPagamento});
-    }else if(rec.formaPagamento==='pix3x'){
-      const num=parseFloat(v.replace(/\./g,'').replace(',','.'));
-      const pf=Number.isFinite(num)&&num>0?(num/3).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):v;
-      evs.push({title:'1ª parcela Pix — '+nm+' (R$ '+pf+')', date:rec.dataPagamento});
-      evs.push({title:'2ª parcela Pix — '+nm+' (R$ '+pf+')', date:addDays(rec.dataPagamento,30)});
-      evs.push({title:'3ª parcela Pix — '+nm+' (R$ '+pf+')', date:addDays(rec.dataPagamento,60)});
-    }else if(rec.formaPagamento==='cartao'){
-      evs.push({title:'Verificar pagamento cartão — '+nm+' (R$ '+v+')', date:rec.dataPagamento});
+  // Pagamento — usa pagamentos[] novo ou dataPagamento legado
+  if(rec.formaPagamento){
+    const pags=rec.pagamentos||[];
+    const res=rec.reserva||{};
+    if(pags.length){
+      if(res.ativa&&res.data&&!res.paga)
+        evs.push({title:'Reserva de data — '+nm+(res.valor?' (R$ '+res.valor+')':''),date:res.data});
+      const lbPix=['1ª parcela','2ª parcela','3ª parcela'];
+      pags.forEach((p,i)=>{
+        if(p.data&&!p.pago){
+          const lbl=rec.formaPagamento==='pix3x'?(lbPix[i]||('Parcela '+(i+1)))+' Pix':'Cobrar pagamento';
+          evs.push({title:lbl+' — '+nm+(p.valor?' (R$ '+p.valor+')':''),date:p.data});
+        }
+      });
+    } else if(rec.dataPagamento&&rec.valorTotal){
+      const v=rec.valorTotal;
+      if(rec.formaPagamento==='pixAVista'){
+        evs.push({title:'Cobrar Pix à vista — '+nm+' (R$ '+v+')',date:rec.dataPagamento});
+      }else if(rec.formaPagamento==='pix3x'){
+        const num=parseFloat(v.replace(/\./g,'').replace(',','.'));
+        const pf=Number.isFinite(num)&&num>0?(num/3).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):v;
+        evs.push({title:'1ª parcela Pix — '+nm+' (R$ '+pf+')',date:rec.dataPagamento});
+        evs.push({title:'2ª parcela Pix — '+nm+' (R$ '+pf+')',date:addDays(rec.dataPagamento,30)});
+        evs.push({title:'3ª parcela Pix — '+nm+' (R$ '+pf+')',date:addDays(rec.dataPagamento,60)});
+      }else if(rec.formaPagamento==='cartao'){
+        evs.push({title:'Verificar pagamento cartão — '+nm+' (R$ '+v+')',date:rec.dataPagamento});
+      }
     }
   }
   return evs.filter(e=>e.date);
@@ -1675,21 +1799,44 @@ function fmtBRL(n){return'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2
 
 function renderReports(){renderFinancial();renderMaterial();renderSummary();}
 
+/* ── helpers pagamento ── */
+function _pagNextDate(b){
+  const pags=b.pagamentos||[];
+  if(pags.length){
+    const res=b.reserva||{};
+    const candidates=[];
+    if(res.ativa&&!res.paga&&res.data)candidates.push(res.data);
+    pags.forEach(p=>{if(!p.pago&&p.data)candidates.push(p.data);});
+    candidates.sort();
+    return candidates[0]||null;
+  }
+  return b.dataPagamento||null;
+}
+function _pagAllPaid(b){
+  const pags=b.pagamentos||[];
+  if(!pags.length)return false;
+  const res=b.reserva||{};
+  if(res.ativa&&!res.paga)return false;
+  return pags.every(p=>p.pago);
+}
+
 function renderFinancial(){
   const body=g('fin-bdy');if(!body)return;body.innerHTML='';
   const t=today();
   const rows=DATA.filter(b=>b.etapa!=='cancelado').map(b=>{
     let lbl='Não definido',cls='r-nd',ord=4;
-    if(b.formaPagamento&&b.dataPagamento){
-      const last=b.formaPagamento==='pix3x'?addDays(b.dataPagamento,60):b.dataPagamento;
-      const d=daysTo(last);
+    if(!b.formaPagamento){return{b,lbl,cls,ord};}
+    if(_pagAllPaid(b)){lbl='Pago';cls='r-ok';ord=5;return{b,lbl,cls,ord};}
+    const nextDt=_pagNextDate(b);
+    if(nextDt){
+      const d=daysTo(nextDt);
       if(d<0){lbl='Vencido '+Math.abs(d)+'d';cls='r-late';ord=0;}
       else if(d===0){lbl='Vence hoje';cls='r-warn';ord=1;}
       else if(d<=14){lbl='Em '+d+'d';cls='r-warn';ord=2;}
       else{lbl='Em '+d+'d';cls='r-ok';ord=3;}
-    }else if(b.formaPagamento){lbl='Sem data';cls='r-nd';ord=4;}
+    }else{lbl='Sem data';cls='r-nd';ord=4;}
     return{b,lbl,cls,ord};
-  }).sort((a,bx)=>a.ord-bx.ord||(a.b.dataPagamento||'').localeCompare(bx.b.dataPagamento||''));
+  }).sort((a,bx)=>a.ord-bx.ord||(_pagNextDate(a.b)||'').localeCompare(_pagNextDate(bx.b)||''));
   const venc=rows.filter(r=>r.ord===0).length;
   const ct=g('fin-ct');if(ct){ct.textContent=venc?venc+' vencido'+(venc>1?'s':''):rows.length;ct.classList.toggle('al',venc>0);}
   if(!rows.length){body.innerHTML='<div class="r-emp">Nenhuma noiva ativa.</div>';return;}
@@ -1698,7 +1845,8 @@ function renderFinancial(){
   body.appendChild(hd);
   rows.forEach(({b,lbl,cls})=>{
     const pag=b.formaPagamento==='pix3x'?'Pix 3×':b.formaPagamento==='pixAVista'?'Pix à vista':b.formaPagamento==='cartao'?'Cartão':'—';
-    const dt=b.dataPagamento?(b.formaPagamento==='pix3x'?'1ª '+fmt(b.dataPagamento):fmt(b.dataPagamento)):'—';
+    const nextDt=_pagNextDate(b);
+    const dt=nextDt?fmt(nextDt):'—';
     const el=document.createElement('div');el.className='rtr fin';
     el.onclick=()=>{showTab('kb');openModal(b.id);};
     el.innerHTML=
@@ -1749,9 +1897,10 @@ function renderSummary(){
   let totPrev=0,totVenc=0,totPend=0,totIndef=0;
   ativos.forEach(b=>{
     const v=calcValor(b);totPrev+=v;
-    if(!b.dataPagamento){totIndef+=v;return;}
-    const last=b.formaPagamento==='pix3x'?addDays(b.dataPagamento,60):b.dataPagamento;
-    if(last<t)totVenc+=v;else totPend+=v;
+    if(_pagAllPaid(b)){totVenc+=v;return;}
+    const nextDt=_pagNextDate(b);
+    if(!nextDt){totIndef+=v;return;}
+    if(nextDt<t)totVenc+=v;else totPend+=v;
   });
   const fat=document.createElement('div');fat.className='fat-grid';
   [
