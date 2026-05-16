@@ -90,7 +90,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .t-pr{background:var(--cdark);color:var(--txm)}
 .t-px{background:#EAF2E6;color:#4A7A50}
 .t-ct{background:#EAE8F4;color:#4A487A}
-.cft{display:flex;align-items:center;justify-content:space-between}
+.cft{display:flex;align-items:flex-start;justify-content:space-between}
+.cftstatus{display:flex;flex-direction:column;gap:3px}
+.cflbl{margin-right:2px}
 .pks{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--txl)}
 .pkd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .pk-no{background:#E08080}.pk-or{background:#D4B830}.pk-ok{background:#58B06A}
@@ -737,7 +739,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="fg" style="margin-bottom:11px">
         <label class="fl">Status da embalagem</label>
         <div class="rg">
-          <label class="ro"><input type="radio" name="emb" value="naoEncomendada" checked onchange="embChg()"><span class="rl">Não encomendada</span></label>
+          <label class="ro"><input type="radio" name="emb" value="naoEncomendada" checked onchange="embChg()"><span class="rl">À encomendar</span></label>
           <label class="ro"><input type="radio" name="emb" value="encomendada" onchange="embChg()"><span class="rl">Encomendada</span></label>
           <label class="ro"><input type="radio" name="emb" value="emMaos" onchange="embChg()"><span class="rl">Já em mãos</span></label>
         </div>
@@ -947,7 +949,7 @@ const COLS=[
 
 const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G',cupulaM:'Cúpula M',multiplos:'Múltiplos'};
 const PAGLABEL={pixAVista:'Pix à vista',pix3x:'Pix 3×',cartao:'Cartão'};
-const EMBLABEL={naoEncomendada:'Não encomendada',encomendada:'Encomendada',emMaos:'Em mãos'};
+const EMBLABEL={naoEncomendada:'À encomendar',encomendada:'Encomendada',emMaos:'Em mãos'};
 const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
 
 /* ── STATE ───────────────────────────────────── */
@@ -1094,6 +1096,14 @@ function buildCard(b,acc){
   const palb=PAGLABEL[b.formaPagamento]||'';
   const pcls=b.formaPagamento==='cartao'?'t-ct':b.formaPagamento?'t-px':'';
 
+  const redomaDot=b.redomaPedida==='sim'?'pk-ok':'pk-no';
+  const redomaLabel=b.redomaPedida==='sim'?'Em mãos':'À encomendar';
+  let pagLine='';
+  if(b.formaPagamento){
+    const vencido=b.dataPagamento&&b.dataPagamento<today();
+    pagLine=`<div class="pks"><span class="cflbl">Pagamento:</span><div class="pkd ${vencido?'pk-no':'pk-ok'}"></div>${vencido?'Em atraso':'Em dia'}</div>`;
+  }
+
   el.innerHTML=`
     <div class="cacc" style="background:${acc}"></div>
     <div class="cname">${esc(b.nome)||'(sem nome)'}</div>
@@ -1105,8 +1115,12 @@ function buildCard(b,acc){
       ${palb?`<span class="tag ${pcls}">${esc(palb)}</span>`:''}
     </div>
     <div class="cft">
-      <div class="pks"><div class="pkd ${EMBDOT[emb]}"></div>${esc(EMBLABEL[emb])}</div>
-      <div style="display:flex;gap:5px;align-items:center">
+      <div class="cftstatus">
+        <div class="pks"><span class="cflbl">Embalagem:</span><div class="pkd ${EMBDOT[emb]}"></div>${esc(EMBLABEL[emb])}</div>
+        <div class="pks"><span class="cflbl">Redoma:</span><div class="pkd ${redomaDot}"></div>${redomaLabel}</div>
+        ${pagLine}
+      </div>
+      <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
         ${anx?`<div class="anx-badge">${icn('<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',10,10)} ${anx}</div>`:''}
         ${due?`<div class="rbadge">${icn('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',10,10)} ${due}</div>`:''}
       </div>
