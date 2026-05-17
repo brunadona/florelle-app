@@ -1794,9 +1794,11 @@ async function calOpenAll(){
           summary:ev.title,
           start:{date:start},
           end:{date:end},
-          colorId:'10',
+          colorId:'2',
         })
       });
+      const result=await resp.json();
+      if(ok===0)console.log('Calendar first event:',resp.status,JSON.stringify(result));
       if(resp.ok)ok++;else fail++;
     }catch(e){fail++;}
   }
