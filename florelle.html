@@ -1685,36 +1685,39 @@ function calUrl(title,dateStr){
 }
 let _calEvs=[];
 function buildCalEvents(rec){
-  const nm=rec.nome||'Noiva';
   const evs=[];
+  const nome=rec.nome||'';
 
-  // 1. Buquê → sílica / montagem / entrega
-  if(rec.dataBuque){
-    evs.push({title:'Colocar na sílica — '+nm,  date:addDays(rec.dataBuque,2)});
-    evs.push({title:'Retirar da sílica — '+nm,   date:addDays(rec.dataBuque,30)});
-    evs.push({title:'Início da montagem — '+nm,  date:addDays(rec.dataBuque,50)});
-    evs.push({title:'Entrega — '+nm,             date:addDays(rec.dataBuque,60)});
+  // Sílica
+  if(rec.dataSilica){
+    evs.push({title:'Colocar na sílica — '+nome, date:rec.dataSilica});
+    evs.push({title:'Retirar da sílica — '+nome,  date:addDays(rec.dataSilica,30)});
+    evs.push({title:'Início da montagem — '+nome, date:addDays(rec.dataSilica,50)});
   }
 
-  // 2. Redoma
+  // Entrega
+  if(rec.dataCasamento)
+    evs.push({title:'Entrega — '+nome, date:rec.dataCasamento});
+
+  // Redoma
   if((rec.redomaStatus||'naoEncomendada')==='naoEncomendada')
-    evs.push({title:'Encomendar redoma — '+nm, date:addDays(today(),3)});
+    evs.push({title:'Encomendar redoma — '+nome, date:addDays(today(),3)});
 
-  // 3. Embalagem
+  // Embalagem
   if((rec.statusEmbalagem||'naoEncomendada')==='naoEncomendada'&&rec.embPedida==='nao')
-    evs.push({title:'Encomendar embalagem — '+nm, date:addDays(today(),3)});
+    evs.push({title:'Encomendar embalagem — '+nome, date:addDays(today(),3)});
 
-  // 4. Reserva
+  // Reserva
   const res=rec.reserva||{};
   if(res.ativa&&!res.paga&&res.data)
-    evs.push({title:'Cobrança Reserva — '+nm, date:res.data});
+    evs.push({title:'Cobrança Reserva — '+nome, date:res.data});
 
-  // 5. Parcelas
+  // Parcelas
   const PIX3_LBLS=['1ª parcela','2ª parcela','3ª parcela'];
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
       const lbl=rec.formaPagamento==='pix3x'?(PIX3_LBLS[i]||'Parcela '+(i+1)):'Pagamento';
-      evs.push({title:'Cobrança '+lbl+' — '+nm, date:p.data});
+      evs.push({title:'Cobrança '+lbl+' — '+nome, date:p.data});
     }
   });
 
