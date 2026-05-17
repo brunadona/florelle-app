@@ -788,7 +788,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1 hidden" id="redoma-dt-row">
         <div class="fg"><label class="fl">Data do pedido</label><input id="m-redoma-dt" type="date" class="fi"></div>
       </div>
-      <p class="hint hint-warn hidden" id="redoma-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar redoma — [nome]"</strong> para hoje.</p>
+      <p class="hint hint-warn hidden" id="redoma-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar redoma — [nome]"</strong> para daqui 3 dias.</p>
     </div>
 
     <!-- 3. Embalagem -->
@@ -816,7 +816,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <div class="frow f1 hidden" id="emb-prev-row">
           <div class="fg"><label class="fl">Previsão de chegada</label><input id="m-emb-prev" type="date" class="fi"></div>
         </div>
-        <p class="hint hint-warn hidden" id="emb-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar embalagem — [nome]"</strong> para hoje.</p>
+        <p class="hint hint-warn hidden" id="emb-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar embalagem — [nome]"</strong> para daqui 3 dias.</p>
       </div>
     </div>
 
@@ -1660,15 +1660,16 @@ let _calEvs=[];
 function buildCalEvents(rec){
   const nm=rec.nome||'Noiva';
   const evs=[];
-  if(rec.dataBuque){
-    evs.push({title:'Colocar buquê na sílica — '+nm, date:addDays(rec.dataBuque,2)});
-    evs.push({title:'Retirar da sílica — '+nm,        date:addDays(rec.dataBuque,32)});
-    evs.push({title:'Iniciar montagem — '+nm,          date:addDays(rec.dataBuque,47)});
+  const silBase=rec.dataSilica||(rec.dataBuque?addDays(rec.dataBuque,2):'');
+  if(silBase){
+    evs.push({title:'Colocar buquê na sílica — '+nm, date:silBase});
+    evs.push({title:'Retirar da sílica — '+nm,        date:addDays(silBase,30)});
+    evs.push({title:'Iniciar montagem — '+nm,          date:addDays(silBase,45)});
   }
   if((rec.redomaStatus||(rec.redomaPedida==='sim'?'emMaos':'naoEncomendada'))==='naoEncomendada')
-    evs.push({title:'Encomendar redoma — '+nm, date:today()});
+    evs.push({title:'Encomendar redoma — '+nm, date:addDays(today(),3)});
   if(rec.embPedida==='nao')
-    evs.push({title:'Encomendar embalagem — '+nm, date:today()});
+    evs.push({title:'Encomendar embalagem — '+nm, date:addDays(today(),3)});
   else if(rec.embPedida==='sim'&&rec.embPrevisao)
     evs.push({title:'Embalagem chega — '+nm, date:rec.embPrevisao});
   // Pagamento — usa pagamentos[] novo ou dataPagamento legado
