@@ -1798,8 +1798,8 @@ async function calOpenAll(){
       });
       const result=await resp.json();
       console.log('Calendar API response:',resp.status,JSON.stringify(result));
-      ok++;
-    }catch(e){console.error('Calendar API error:',e);fail++;}
+      if(resp.ok)ok++;else fail++;
+    }catch(e){fail++;}
   }
   if(btn){btn.disabled=false;btn.textContent='Criar todos →';}
   g('cal-ov').classList.add('hidden');
