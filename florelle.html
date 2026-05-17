@@ -615,7 +615,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <span class="tnbdg hidden" id="iv-bdg">0</span>
   </button>
   <button class="tni" id="tab-tv" onclick="showTab('tv')">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     Tarefas
     <span class="tnbdg hidden" id="tv-bdg">0</span>
   </button>
@@ -676,13 +676,13 @@ body{display:flex;flex-direction:column;overflow:hidden}
 <!-- TASKS VIEW -->
 <div id="tv" class="hidden">
   <div class="tv-filters">
-    <button class="tv-filter act" data-tf="todas" onclick="tvFilter(this)">Todas</button>
-    <button class="tv-filter" data-tf="late" onclick="tvFilter(this)">Atrasadas</button>
-    <button class="tv-filter" data-tf="today" onclick="tvFilter(this)">Hoje</button>
-    <button class="tv-filter" data-tf="week" onclick="tvFilter(this)">Esta semana</button>
-    <button class="tv-filter" data-tf="done" onclick="tvFilter(this)">Concluídas</button>
+    <button class="tv-filter act" id="tvf-all" onclick="tvFilter('all')">Todas</button>
+    <button class="tv-filter" id="tvf-hoje" onclick="tvFilter('hoje')">Hoje</button>
+    <button class="tv-filter" id="tvf-semana" onclick="tvFilter('semana')">Esta semana</button>
+    <button class="tv-filter" id="tvf-atraso" onclick="tvFilter('atraso')">Em atraso</button>
+    <button class="tv-filter" id="tvf-pend" onclick="tvFilter('pend')">Pendentes</button>
   </div>
-  <div id="tv-body"></div>
+  <div id="tv-bdy"></div>
 </div>
 
 <!-- REMINDERS PANEL -->
@@ -1101,8 +1101,10 @@ function renderAll(){
   const board=g('kb');board.innerHTML='';
   COLS.forEach(c=>board.appendChild(buildCol(c)));
   bellUpdate();
+  updTvBadge();
   if(curTab==='rv')renderReports();
   if(curTab==='iv')renderInv();
+  if(curTab==='tv')renderTasks();
   if(isMobile())applyMobileCol();
 }
 
@@ -1737,7 +1739,7 @@ function showTab(t){
   const cn=g('col-nav');if(cn)cn.classList.toggle('cn-off',t!=='kb');
   if(t==='rv')renderReports();
   if(t==='iv')renderInv();
-  if(t==='tv')renderTV();
+  if(t==='tv')renderTasks();
 }
 
 /* ── EXPORT / IMPORT ─────────────────────────── */
@@ -1866,124 +1868,181 @@ function renderInv(){
 }
 
 /* ── TASKS VIEW ──────────────────────────────── */
-let _tvFilter='todas';
+let _tvFilter='all';
 
-function tvFilter(btn){
-  _tvFilter=btn.dataset.tf;
-  document.querySelectorAll('.tv-filter').forEach(b=>b.classList.toggle('act',b===btn));
-  renderTV();
-}
+const TASK_TYPES={
+  silicaIn: {ico:'🌿',label:'Colocar na sílica',  bg:'#EDF4EB'},
+  silicaOut:{ico:'✨',label:'Retirar da sílica',   bg:'#EDF4EB'},
+  montagem: {ico:'🖼️',label:'Início da montagem', bg:'#EEF0F8'},
+  entrega:  {ico:'📦',label:'Entrega / Coleta',    bg:'#FEF8EE'},
+  cobranca: {ico:'💰',label:'Cobrança',            bg:'#FEF4EA'},
+  lembrete: {ico:'🔔',label:'Lembrete',            bg:'#F8F4EF'},
+};
 
-function _tvDateClass(dateStr,done){
-  if(done)return'future';
-  if(!dateStr)return'future';
-  const d=daysTo(dateStr);
-  if(d<0)return'late';
-  if(d===0)return'today';
-  if(d<=7)return'soon';
-  return'future';
-}
-function _tvDateLabel(dateStr){
-  if(!dateStr)return'';
-  const d=daysTo(dateStr);
-  if(d<0)return'Há '+(Math.abs(d))+'d';
-  if(d===0)return'Hoje';
-  if(d===1)return'Amanhã';
-  return fmt(dateStr);
-}
+const TV_DONE_KEY='florelle_tv_done';
+function _tvDoneLoad(){try{return JSON.parse(localStorage.getItem(TV_DONE_KEY)||'{}')}catch{return{};}}
+function _tvDoneSave(obj){localStorage.setItem(TV_DONE_KEY,JSON.stringify(obj));}
 
-function renderTV(){
-  const body=g('tv-body');if(!body)return;
+function buildTasks(){
+  const tasks=[];
+  const done=_tvDoneLoad();
+  const PAG_LBLS={pix3x:['1ª parcela','2ª parcela','3ª parcela'],pixAVista:['Saldo restante'],cartao:['Saldo restante']};
 
-  // Collect all tasks from all active brides
-  const all=[];
   DATA.forEach(b=>{
-    if(b.etapa==='cancelado'||b.etapa==='entregue')return;
+    if(b.etapa==='cancelado')return;
+    const bid=b.id,nome=b.nome||'Noiva',fp=b.formaPagamento||'';
+
+    // Sílica / montagem
+    if(b.dataSilica){
+      tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:b.dataSilica,           done:false,auto:true});
+      tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataSilica,30),done:false,auto:true});
+      tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataSilica,45),done:false,auto:true});
+    } else if(b.dataBuque){
+      tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:addDays(b.dataBuque,2), done:false,auto:true});
+      tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataBuque,32),done:false,auto:true});
+      tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataBuque,47),done:false,auto:true});
+    }
+
+    // Entrega
+    if(b.dataCasamento)
+      tasks.push({id:'entrega-'+bid,bid,nome,type:'entrega',date:b.dataCasamento,done:false,auto:true});
+
+    // Pagamentos
+    if(fp&&b.reserva?.ativa&&b.reserva.data)
+      tasks.push({id:'cob-'+bid+'-reserva',bid,nome,type:'cobranca',date:b.reserva.data,label:'Reserva',done:false,auto:true});
+    if(fp&&b.pagamentos?.length){
+      const lbls=PAG_LBLS[fp]||[];
+      b.pagamentos.forEach((p,i)=>{
+        if(!p.data)return;
+        tasks.push({id:'cob-'+bid+'-p'+i,bid,nome,type:'cobranca',date:p.data,label:lbls[i]||('Parcela '+(i+1)),done:false,auto:true});
+      });
+    }
+
+    // Lembretes
     (b.lembretes||[]).forEach(r=>{
-      all.push({bid:b.id,bNome:b.nome||'Noiva',rid:r.id,text:r.text,data:r.data||'',done:!!r.done,auto:!!r.auto});
+      if(!r.data)return;
+      tasks.push({id:'lem-'+r.id,bid,nome,type:'lembrete',date:r.data,label:r.text,done:!!r.done,auto:false});
     });
   });
 
-  // Update tab badge (late + today, not done)
-  const urgent=all.filter(t=>!t.done&&t.data&&daysTo(t.data)<=0).length;
+  // Override done from localStorage
+  tasks.forEach(t=>{if(t.id in done)t.done=done[t.id];});
+
+  // Sort by date, then nome
+  tasks.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.nome||'').localeCompare(b.nome||''));
+  return tasks;
+}
+
+function tvToggleDone(taskId){
+  const done=_tvDoneLoad();
+  done[taskId]=!done[taskId];
+  _tvDoneSave(done);
+  updTvBadge();
+  renderTasks();
+}
+
+function tvFilter(f){
+  _tvFilter=f;
+  ['all','hoje','semana','atraso','pend'].forEach(k=>{
+    const el=g('tvf-'+k);if(el)el.classList.toggle('act',k===f);
+  });
+  renderTasks();
+}
+
+function _tvApplyFilter(tasks,f){
+  const td=today(),w=addDays(td,7);
+  if(f==='hoje')   return tasks.filter(t=>t.date===td);
+  if(f==='semana') return tasks.filter(t=>t.date>=td&&t.date<=w);
+  if(f==='atraso') return tasks.filter(t=>!t.done&&t.date<td);
+  if(f==='pend')   return tasks.filter(t=>!t.done);
+  return tasks;
+}
+
+const _MONTH_ABREV=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+function _tvGroupLabel(date){
+  if(!date)return'Sem data';
+  const d=daysTo(date);
+  if(d<0)return'Em atraso';
+  if(d===0)return'Hoje';
+  if(d===1)return'Amanhã';
+  if(d<=7)return'Esta semana';
+  if(d<=30)return'Este mês';
+  const[y,m]=date.split('-');
+  return _MONTH_ABREV[parseInt(m,10)-1]+' '+y;
+}
+function _tvGroupOrder(date){
+  if(!date)return'9999-99';
+  const d=daysTo(date);
+  if(d<0)return'0000-atraso';
+  if(d===0)return'0001-hoje';
+  if(d===1)return'0002-amanha';
+  if(d<=7)return'0003-semana';
+  if(d<=30)return'0004-mes';
+  return date.slice(0,7);
+}
+
+function updTvBadge(){
+  const tasks=buildTasks(),td=today();
+  const count=tasks.filter(t=>!t.done&&t.date&&t.date<=td).length;
   const bdg=g('tv-bdg');
-  if(bdg){bdg.textContent=urgent;bdg.classList.toggle('hidden',urgent===0);}
+  if(bdg){bdg.textContent=count;bdg.classList.toggle('hidden',count===0);}
+}
 
-  // Filter
-  let items=all;
-  if(_tvFilter==='late') items=all.filter(t=>!t.done&&t.data&&daysTo(t.data)<0);
-  else if(_tvFilter==='today') items=all.filter(t=>!t.done&&t.data&&daysTo(t.data)===0);
-  else if(_tvFilter==='week') items=all.filter(t=>!t.done&&t.data&&daysTo(t.data)>=0&&daysTo(t.data)<=7);
-  else if(_tvFilter==='done') items=all.filter(t=>t.done);
-  else items=all.filter(t=>!t.done); // 'todas' = pendentes
+const _TV_EMPTY_MSG={all:'Nenhuma tarefa cadastrada.',hoje:'Nenhuma tarefa para hoje.',semana:'Nenhuma tarefa para esta semana.',atraso:'Nenhuma tarefa em atraso.',pend:'Todas as tarefas estão concluídas!'};
 
-  if(!items.length){
-    body.innerHTML='<div class="tv-empty">Nenhuma tarefa aqui.</div>';
+function renderTasks(){
+  const body=g('tv-bdy');if(!body)return;
+  body.innerHTML='';
+  const tasks=buildTasks();
+  const filtered=_tvApplyFilter(tasks,_tvFilter);
+
+  if(!filtered.length){
+    body.innerHTML=`<div class="tv-empty">${_TV_EMPTY_MSG[_tvFilter]||'Nenhuma tarefa aqui.'}</div>`;
     return;
   }
 
-  // Group
-  const groups=[];
-  if(_tvFilter==='todas'){
-    const late=items.filter(t=>t.data&&daysTo(t.data)<0);
-    const tod=items.filter(t=>t.data&&daysTo(t.data)===0);
-    const week=items.filter(t=>t.data&&daysTo(t.data)>0&&daysTo(t.data)<=7);
-    const fut=items.filter(t=>!t.data||(t.data&&daysTo(t.data)>7));
-    if(late.length)groups.push({lbl:'Atrasadas',items:late,alert:true});
-    if(tod.length)groups.push({lbl:'Hoje',items:tod,alert:false});
-    if(week.length)groups.push({lbl:'Esta semana',items:week,alert:false});
-    if(fut.length)groups.push({lbl:'Futuras',items:fut,alert:false});
-  } else if(_tvFilter==='done'){
-    groups.push({lbl:'Concluídas',items,alert:false});
-  } else {
-    const lbl={late:'Atrasadas',today:'Hoje',week:'Esta semana'}[_tvFilter]||'';
-    groups.push({lbl,items,alert:_tvFilter==='late'});
-  }
+  // Group by order key
+  const groupMap={};
+  filtered.forEach(t=>{
+    const key=_tvGroupOrder(t.date);
+    if(!groupMap[key])groupMap[key]=[];
+    groupMap[key].push(t);
+  });
 
-  body.innerHTML=groups.map(grp=>{
-    const rows=grp.items.map(t=>{
-      const dcls=_tvDateClass(t.data,t.done);
-      const dlbl=_tvDateLabel(t.data);
-      const ico=t.bNome.trim().charAt(0).toUpperCase();
-      const bgMap={A:'#FDE9D4',B:'#EDF4EB',C:'#E8F0FD',D:'#FEF4EA',E:'#EDF4EB',F:'#FDE9D4'};
-      const ibg=bgMap[ico]||'#F3F0EC';
-      return `<div class="tv-item${t.done?' done-item':''}" onclick="tvOpenBride('${t.bid}',event)">
-        <input type="checkbox" class="tv-chk"${t.done?' checked':''} onclick="tvToggle('${t.bid}','${t.rid}',event)">
-        <div class="tv-ico" style="background:${ibg}">${ico}</div>
+  body.innerHTML=Object.keys(groupMap).sort().map(key=>{
+    const items=groupMap[key];
+    const lbl=_tvGroupLabel(items[0].date);
+    const isLate=key==='0000-atraso';
+    const pending=items.filter(t=>!t.done).length;
+
+    const rows=items.map(t=>{
+      const tt=TASK_TYPES[t.type]||TASK_TYPES.lembrete;
+      const d=t.date?daysTo(t.date):null;
+      let dcls='future';
+      if(d!==null){if(d<0)dcls='late';else if(d===0)dcls='today';else if(d<=7)dcls='soon';}
+      let dlbl='';
+      if(t.date&&d!==null){if(d<0)dlbl='Há '+Math.abs(d)+'d';else if(d===0)dlbl='Hoje';else if(d===1)dlbl='Amanhã';else dlbl=fmt(t.date);}
+      return `<div class="tv-item${t.done?' done-item':''}" onclick="openModal('${t.bid}')">
+        <input type="checkbox" class="tv-chk"${t.done?' checked':''} onclick="event.stopPropagation();tvToggleDone('${t.id}')">
+        <div class="tv-ico" style="background:${tt.bg}">${tt.ico}</div>
         <div class="tv-info">
-          <div class="tv-task${t.done?' dn':''}">${esc(t.text)}</div>
-          <div class="tv-noiva">${esc(t.bNome)}</div>
+          <div class="tv-task${t.done?' dn':''}">${esc(t.label||tt.label)}</div>
+          <div class="tv-noiva">${esc(t.nome)}</div>
         </div>
-        ${dlbl?`<div class="tv-date ${dcls}">${dlbl}</div>`:''}
-        <svg class="tv-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        ${dlbl?`<span class="tv-date ${dcls}">${dlbl}</span>`:''}
+        <svg class="tv-open" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </div>`;
     }).join('');
+
     return `<div class="tv-group">
       <div class="tv-group-hd">
-        <span class="tv-group-lbl">${grp.lbl}</span>
-        <span class="tv-group-ct${grp.alert?' al':''}">${grp.items.length}</span>
-        <div class="tv-group-line"></div>
+        <span class="tv-group-lbl">${lbl}</span>
+        <span class="tv-group-ct${isLate&&pending>0?' al':''}">${pending>0?pending:'✓'}</span>
+        <span class="tv-group-line"></span>
       </div>
       ${rows}
     </div>`;
   }).join('');
-}
-
-function tvToggle(bid,rid,e){
-  e.stopPropagation();
-  const b=DATA.find(x=>x.id===bid);if(!b)return;
-  const r=(b.lembretes||[]).find(x=>x.id===rid);if(!r)return;
-  r.done=!r.done;
-  r.upd=Date.now();
-  b.upd=Date.now();
-  save();
-  renderTV();
-  renderAll();
-}
-
-function tvOpenBride(bid,e){
-  const b=DATA.find(x=>x.id===bid);if(!b)return;
-  openModal(b.id);
 }
 
 /* ── REPORTS ─────────────────────────────────── */
@@ -2601,7 +2660,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ── INIT ────────────────────────────────────── */
-load();loadInv();renderAll();updInvBadge();
+load();loadInv();renderAll();updInvBadge();updTvBadge();
 syncInit(); // auto-sync on load (silent if already consented)
 
 if('serviceWorker' in navigator){
