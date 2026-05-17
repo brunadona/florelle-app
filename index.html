@@ -728,13 +728,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <div class="fsec">
       <div class="sttl">Redoma</div>
       <div class="fg" style="margin-bottom:11px">
-        <label class="fl">Redoma já foi pedida?</label>
-        <div class="tg">
-          <label class="to ty"><input type="radio" name="redoma" value="sim" onchange="redomaChg()"><span class="tl">✓ Sim</span></label>
-          <label class="to tn"><input type="radio" name="redoma" value="nao" onchange="redomaChg()"><span class="tl">✗ Não</span></label>
+        <label class="fl">Status da redoma</label>
+        <div class="rg">
+          <label class="ro"><input type="radio" name="redomaStatus" value="naoEncomendada" checked onchange="redomaChg()"><span class="rl">À encomendar</span></label>
+          <label class="ro"><input type="radio" name="redomaStatus" value="encomendada" onchange="redomaChg()"><span class="rl">Encomendada</span></label>
+          <label class="ro"><input type="radio" name="redomaStatus" value="emMaos" onchange="redomaChg()"><span class="rl">Já em mãos</span></label>
         </div>
       </div>
-      <div class="frow f1 hidden" id="redoma-sim-row">
+      <div class="frow f1 hidden" id="redoma-dt-row">
         <div class="fg"><label class="fl">Data do pedido</label><input id="m-redoma-dt" type="date" class="fi"></div>
       </div>
       <p class="hint hint-warn hidden" id="redoma-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar redoma — [nome]"</strong> para hoje.</p>
@@ -754,7 +755,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1 hidden" id="emb-dr">
         <div class="fg"><label class="fl">Data de entrega prevista</label><input id="m-emb-d" type="date" class="fi"></div>
       </div>
-      <div style="margin-top:14px">
+      <div id="emb-pedida-section" style="margin-top:14px">
         <div class="fg" style="margin-bottom:11px">
           <label class="fl">Embalagem já foi pedida?</label>
           <div class="tg">
@@ -1116,8 +1117,11 @@ function buildCard(b,acc){
   const palb=PAGLABEL[b.formaPagamento]||'';
   const pcls=b.formaPagamento==='cartao'?'t-ct':b.formaPagamento?'t-px':'';
 
-  const redomaDot=b.redomaPedida==='sim'?'pk-ok':'pk-no';
-  const redomaLabel=b.redomaPedida==='sim'?'Em mãos':'À encomendar';
+  const rsv=b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':'naoEncomendada');
+  const RDOT={emMaos:'pk-ok',encomendada:'pk-or',naoEncomendada:'pk-no'};
+  const RLBL={emMaos:'Em mãos',encomendada:'Encomendada',naoEncomendada:'À encomendar'};
+  const redomaDot=RDOT[rsv]||'pk-no';
+  const redomaLabel=RLBL[rsv]||'À encomendar';
   let pagLine='';
   if(b.formaPagamento){
     const allItems=[];
@@ -1207,7 +1211,7 @@ function fillForm(b){
   setRad('emb',       b.statusEmbalagem||'naoEncomendada');
   setRad('pag',       b.formaPagamento||'');
   setRad('rep',       b.autorizaReposicao||'');
-  setRad('redoma',    b.redomaPedida||'');
+  setRad('redomaStatus', b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':b.redomaPedida==='nao'?'naoEncomendada':''));
   setRad('embPedida', b.embPedida||'');
 
   // Reserva de data
@@ -1243,7 +1247,8 @@ function syncName(){
 
 function embChg(){
   const v=radVal('emb');
-  g('emb-dr').classList.toggle('hidden',!v||v==='naoEncomendada');
+  g('emb-dr').classList.toggle('hidden',v!=='encomendada');
+  g('emb-pedida-section').classList.toggle('hidden',v==='emMaos');
 }
 
 function pecaChg(el){
@@ -1342,7 +1347,7 @@ async function saveModal(){
     lembretes:      mRem,
     anotacoes:      gv('m-notas').trim(),
     dataBuque:      gv('m-buque'),
-    redomaPedida:   radVal('redoma'),
+    redomaStatus:   radVal('redomaStatus'),
     redomaDataPedido:gv('m-redoma-dt'),
     embPedida:      radVal('embPedida'),
     embPrevisao:    gv('m-emb-prev'),
@@ -1492,9 +1497,9 @@ function buqueDisp(v){
 
 /* ── REDOMA ──────────────────────────────────── */
 function redomaChg(){
-  const v=radVal('redoma');
-  g('redoma-sim-row').classList.toggle('hidden',v!=='sim');
-  g('redoma-nao-hint').classList.toggle('hidden',v!=='nao');
+  const v=radVal('redomaStatus');
+  g('redoma-dt-row').classList.toggle('hidden',v!=='encomendada');
+  g('redoma-nao-hint').classList.toggle('hidden',v!=='naoEncomendada');
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
@@ -1608,7 +1613,7 @@ function buildCalEvents(rec){
     evs.push({title:'Retirar da sílica — '+nm,        date:addDays(rec.dataBuque,32)});
     evs.push({title:'Iniciar montagem — '+nm,          date:addDays(rec.dataBuque,47)});
   }
-  if(rec.redomaPedida==='nao')
+  if((rec.redomaStatus||(rec.redomaPedida==='sim'?'emMaos':'naoEncomendada'))==='naoEncomendada')
     evs.push({title:'Encomendar redoma — '+nm, date:today()});
   if(rec.embPedida==='nao')
     evs.push({title:'Encomendar embalagem — '+nm, date:today()});
@@ -1881,7 +1886,7 @@ function renderFinancial(){
 function renderMaterial(){
   const body=g('mat-bdy');if(!body)return;body.innerHTML='';
   const ativas=DATA.filter(b=>b.etapa!=='cancelado'&&b.etapa!=='entregue');
-  const semRedoma=ativas.filter(b=>b.redomaPedida==='nao');
+  const semRedoma=ativas.filter(b=>(b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':'naoEncomendada'))==='naoEncomendada');
   const semEmb=ativas.filter(b=>b.embPedida==='nao');
   const silVenc=ativas.filter(b=>b.dataSilica&&addDays(b.dataSilica,30)<today()&&b.etapa==='secagem');
   const total=semRedoma.length+semEmb.length+silVenc.length;
