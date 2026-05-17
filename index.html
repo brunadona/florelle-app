@@ -1660,47 +1660,51 @@ let _calEvs=[];
 function buildCalEvents(rec){
   const nm=rec.nome||'Noiva';
   const evs=[];
+
+  // Sílica / montagem
   const silBase=rec.dataSilica||(rec.dataBuque?addDays(rec.dataBuque,2):'');
   if(silBase){
-    evs.push({title:'Colocar buquê na sílica — '+nm, date:silBase});
-    evs.push({title:'Retirar da sílica — '+nm,        date:addDays(silBase,30)});
-    evs.push({title:'Iniciar montagem — '+nm,          date:addDays(silBase,45)});
+    evs.push({title:'Colocar na sílica — '+nm,  date:silBase});
+    evs.push({title:'Retirar da sílica — '+nm,   date:addDays(silBase,30)});
+    evs.push({title:'Início da montagem — '+nm,  date:addDays(silBase,45)});
   }
+
+  // Entrega
+  if(rec.dataCasamento)
+    evs.push({title:'Entrega — '+nm, date:rec.dataCasamento});
+
+  // Redoma / Embalagem
   if((rec.redomaStatus||(rec.redomaPedida==='sim'?'emMaos':'naoEncomendada'))==='naoEncomendada')
     evs.push({title:'Encomendar redoma — '+nm, date:addDays(today(),3)});
   if(rec.embPedida==='nao')
     evs.push({title:'Encomendar embalagem — '+nm, date:addDays(today(),3)});
   else if(rec.embPedida==='sim'&&rec.embPrevisao)
     evs.push({title:'Embalagem chega — '+nm, date:rec.embPrevisao});
-  // Pagamento — usa pagamentos[] novo ou dataPagamento legado
+
+  // Pagamentos (modelo novo)
   if(rec.formaPagamento){
     const pags=rec.pagamentos||[];
     const res=rec.reserva||{};
-    if(pags.length){
+    if(pags.length||res.ativa){
       if(res.ativa&&res.data&&!res.paga)
-        evs.push({title:'Reserva de data — '+nm+(res.valor?' (R$ '+res.valor+')':''),date:res.data});
-      const lbPix=['1ª parcela','2ª parcela','3ª parcela'];
+        evs.push({title:'Cobrança Reserva — '+nm, date:res.data});
+      const PAG_LBLS={pix3x:['1ª parcela','2ª parcela','3ª parcela'],pixAVista:['Saldo restante'],cartao:['Saldo restante']};
+      const lbls=PAG_LBLS[rec.formaPagamento]||[];
       pags.forEach((p,i)=>{
-        if(p.data&&!p.pago){
-          const lbl=rec.formaPagamento==='pix3x'?(lbPix[i]||('Parcela '+(i+1)))+' Pix':'Cobrar pagamento';
-          evs.push({title:lbl+' — '+nm+(p.valor?' (R$ '+p.valor+')':''),date:p.data});
-        }
+        if(p.data&&!p.pago)
+          evs.push({title:'Cobrança '+(lbls[i]||'Parcela '+(i+1))+' — '+nm, date:p.data});
       });
-    } else if(rec.dataPagamento&&rec.valorTotal){
-      const v=rec.valorTotal;
-      if(rec.formaPagamento==='pixAVista'){
-        evs.push({title:'Cobrar Pix à vista — '+nm+' (R$ '+v+')',date:rec.dataPagamento});
-      }else if(rec.formaPagamento==='pix3x'){
-        const num=parseFloat(v.replace(/\./g,'').replace(',','.'));
-        const pf=Number.isFinite(num)&&num>0?(num/3).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):v;
-        evs.push({title:'1ª parcela Pix — '+nm+' (R$ '+pf+')',date:rec.dataPagamento});
-        evs.push({title:'2ª parcela Pix — '+nm+' (R$ '+pf+')',date:addDays(rec.dataPagamento,30)});
-        evs.push({title:'3ª parcela Pix — '+nm+' (R$ '+pf+')',date:addDays(rec.dataPagamento,60)});
-      }else if(rec.formaPagamento==='cartao'){
-        evs.push({title:'Verificar pagamento cartão — '+nm+' (R$ '+v+')',date:rec.dataPagamento});
+    } else if(rec.dataPagamento){
+      // fallback legado
+      const lbLeg={pixAVista:'Cobrança',pix3x:'Cobrança 1ª parcela',cartao:'Cobrança'};
+      evs.push({title:(lbLeg[rec.formaPagamento]||'Cobrança')+' — '+nm, date:rec.dataPagamento});
+      if(rec.formaPagamento==='pix3x'){
+        evs.push({title:'Cobrança 2ª parcela — '+nm, date:addDays(rec.dataPagamento,30)});
+        evs.push({title:'Cobrança 3ª parcela — '+nm, date:addDays(rec.dataPagamento,60)});
       }
     }
   }
+
   return evs.filter(e=>e.date);
 }
 function showCalModal(nome,evs){
