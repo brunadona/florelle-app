@@ -695,7 +695,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 </div>
 
 <!-- MODAL -->
-<div id="ov" class="hidden" onclick="ovClick(event)">
+<div id="ov" class="hidden">
  <div id="mp" onclick="event.stopPropagation()">
 
   <!-- Modal header -->
@@ -1241,7 +1241,6 @@ function openModal(id){
 }
 
 function closeModal(){g('ov').classList.add('hidden');editId=null;mRem=[];}
-function ovClick(e){if(e.target===g('ov'))closeModal();}
 
 /* ── FORM FILL ───────────────────────────────── */
 function fillForm(b){
