@@ -1319,14 +1319,13 @@ function pecaVis(){
 /* ── SILICA ──────────────────────────────────── */
 function silChg(){
   const v=gv('m-silica');
-  const nm=gv('m-nome').trim();
   silDisp(v);
   mRem=mRem.filter(r=>!r.auto);
   if(v){
     mRem.unshift(
-      {id:uid(),text:'Início da montagem',                       data:addDays(v,50),auto:true,done:false},
-      {id:uid(),text:'Retirar da sílica',                        data:addDays(v,30),auto:true,done:false},
-      {id:uid(),text:'Colocar na sílica'+(nm?' — '+nm:''),       data:v,            auto:true,done:false}
+      {id:uid(),text:'Início da montagem',data:addDays(v,50),auto:true,done:false},
+      {id:uid(),text:'Retirar da sílica',data:addDays(v,30),auto:true,done:false},
+      {id:uid(),text:'Colocar na sílica',data:v,auto:true,done:false}
     );
   }
   renderRL();
@@ -1422,30 +1421,25 @@ async function saveModal(){
     upd:            Date.now(),
   };
 
-  // Inject auto-lembretes (no duplicates)
-  const _addLem=(text,date)=>{
-    if(!date)return;
-    if(!mRem.some(r=>r.text===text&&r.data===date))
-      mRem.push({id:uid(),text,data:date,auto:true,done:false});
-  };
-  const _PIX3L=['1ª parcela','2ª parcela','3ª parcela'];
-  const _fp=rec.formaPagamento||'';
-  // 1. Entrega
-  if(rec.dataCasamento) _addLem('Entrega',rec.dataCasamento);
-  // 2. Redoma
-  if(rec.redomaStatus==='naoEncomendada') _addLem('Pedir redoma',addDays(today(),3));
-  // 3. Embalagem
-  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao') _addLem('Pedir embalagem',addDays(today(),3));
-  // 4. Reserva
-  if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data) _addLem('Cobrança — Reserva',rec.reserva.data);
-  // 5. Parcelas
+  const _used=[];
+  function _addRem(text,data){
+    if(!data)return;
+    const key=text+'|'+data;
+    if(_used.includes(key))return;
+    if(rec.lembretes.some(r=>r.text===text&&r.data===data))return;
+    _used.push(key);
+    rec.lembretes.push({id:uid(),text,data,auto:true,done:false});
+  }
+  if(rec.dataCasamento)_addRem('Entrega',rec.dataCasamento);
+  if(rec.redomaStatus==='naoEncomendada')_addRem('Pedir redoma',addDays(today(),3));
+  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao')_addRem('Pedir embalagem',addDays(today(),3));
+  if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)_addRem('Cobrança — Reserva',rec.reserva.data);
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
-      const lbl=_fp==='pix3x'?(_PIX3L[i]||'Parcela '+(i+1)):'Pagamento';
-      _addLem('Cobrança — '+lbl,p.data);
+      const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      _addRem('Cobrança — '+lbl,p.data);
     }
   });
-  rec.lembretes=mRem;
 
   const isNew=!editId;
   let newId=null;
@@ -1686,40 +1680,29 @@ let _calEvs=[];
 function buildCalEvents(rec){
   const evs=[];
   const nome=rec.nome||'';
-
-  // Sílica
   if(rec.dataSilica){
-    evs.push({title:'Colocar na sílica — '+nome, date:rec.dataSilica});
-    evs.push({title:'Retirar da sílica — '+nome,  date:addDays(rec.dataSilica,30)});
-    evs.push({title:'Início da montagem — '+nome, date:addDays(rec.dataSilica,50)});
+    evs.push({title:'Colocar na sílica — '+nome,date:rec.dataSilica});
+    evs.push({title:'Retirar da sílica — '+nome,date:addDays(rec.dataSilica,30)});
+    evs.push({title:'Início da montagem — '+nome,date:addDays(rec.dataSilica,50)});
   }
-
-  // Entrega
-  if(rec.dataCasamento)
-    evs.push({title:'Entrega — '+nome, date:rec.dataCasamento});
-
-  // Redoma
-  if((rec.redomaStatus||'naoEncomendada')==='naoEncomendada')
-    evs.push({title:'Encomendar redoma — '+nome, date:addDays(today(),3)});
-
-  // Embalagem
-  if((rec.statusEmbalagem||'naoEncomendada')==='naoEncomendada'&&rec.embPedida==='nao')
-    evs.push({title:'Encomendar embalagem — '+nome, date:addDays(today(),3)});
-
-  // Reserva
-  const res=rec.reserva||{};
-  if(res.ativa&&!res.paga&&res.data)
-    evs.push({title:'Cobrança Reserva — '+nome, date:res.data});
-
-  // Parcelas
-  const PIX3_LBLS=['1ª parcela','2ª parcela','3ª parcela'];
+  if(rec.dataCasamento){
+    evs.push({title:'Entrega — '+nome,date:rec.dataCasamento});
+  }
+  if(rec.redomaStatus==='naoEncomendada'){
+    evs.push({title:'Encomendar redoma — '+nome,date:addDays(today(),3)});
+  }
+  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao'){
+    evs.push({title:'Encomendar embalagem — '+nome,date:addDays(today(),3)});
+  }
+  if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data){
+    evs.push({title:'Cobrança Reserva — '+nome,date:rec.reserva.data});
+  }
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
-      const lbl=rec.formaPagamento==='pix3x'?(PIX3_LBLS[i]||'Parcela '+(i+1)):'Pagamento';
-      evs.push({title:'Cobrança '+lbl+' — '+nome, date:p.data});
+      const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      evs.push({title:'Cobrança '+lbl+' — '+nome,date:p.data});
     }
   });
-
   return evs.filter(e=>e.date);
 }
 function showCalModal(nome,evs){
