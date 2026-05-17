@@ -1320,12 +1320,14 @@ function pecaVis(){
 /* ── SILICA ──────────────────────────────────── */
 function silChg(){
   const v=gv('m-silica');
+  const nm=gv('m-nome').trim();
   silDisp(v);
   mRem=mRem.filter(r=>!r.auto);
   if(v){
     mRem.unshift(
-      {id:uid(),text:'Início da montagem',data:addDays(v,45),auto:true,done:false},
-      {id:uid(),text:'Retirada da sílica', data:addDays(v,30),auto:true,done:false}
+      {id:uid(),text:'Início da montagem',                       data:addDays(v,50),auto:true,done:false},
+      {id:uid(),text:'Retirar da sílica',                        data:addDays(v,30),auto:true,done:false},
+      {id:uid(),text:'Colocar na sílica'+(nm?' — '+nm:''),       data:v,            auto:true,done:false}
     );
   }
   renderRL();
@@ -1420,6 +1422,24 @@ async function saveModal(){
     driveFolder:    _mDriveFolder,
     upd:            Date.now(),
   };
+
+  // Inject payment auto-lembretes (no duplicates)
+  const PIX3L=['1ª parcela','2ª parcela','3ª parcela'];
+  const fp2=rec.formaPagamento||'';
+  const addPayLem=(text,date)=>{
+    if(!date)return;
+    if(!mRem.some(r=>r.text===text&&r.data===date))
+      mRem.push({id:uid(),text,data:date,auto:true,done:false});
+  };
+  if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data)
+    addPayLem('Cobrança Reserva — '+nome, rec.reserva.data);
+  (rec.pagamentos||[]).forEach((p,i)=>{
+    if(!p.pago&&p.data){
+      const lbl=fp2==='pix3x'?(PIX3L[i]||'Parcela '+(i+1)):'Pagamento';
+      addPayLem('Cobrança '+lbl+' — '+nome, p.data);
+    }
+  });
+  rec.lembretes=mRem;
 
   const isNew=!editId;
   let newId=null;
