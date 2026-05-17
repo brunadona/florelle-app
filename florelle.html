@@ -858,10 +858,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1">
         <div class="fg"><label class="fl">Data de início na sílica</label><input id="m-silica" type="date" class="fi" onchange="silChg()"></div>
       </div>
-      <div id="silbox" class="silbox hidden">
-        <div class="sli"><div class="sll">Retirada (+30 dias)</div><div class="slv" id="sil-ret">—</div></div>
-        <div class="sli"><div class="sll">Montagem (+45 dias)</div><div class="slv" id="sil-mont">—</div></div>
-      </div>
     </div>
 
     <!-- 6. Flores & Extras -->
@@ -1279,7 +1275,6 @@ function fillForm(b){
   syncName();
   syncDriveBtn();
   embChg();
-  silDisp(b.dataSilica||'');
   buqueDisp(b.dataBuque||'');
   redomaChg();
   embPedidaChg();
@@ -1321,7 +1316,6 @@ function pecaVis(){
 /* ── SILICA ──────────────────────────────────── */
 function silChg(){
   const v=gv('m-silica');
-  silDisp(v);
   mRem=mRem.filter(r=>!r.auto);
   if(v){
     mRem.unshift(
@@ -1333,16 +1327,6 @@ function silChg(){
   renderRL();
 }
 
-function silDisp(v){
-  const box=g('silbox');
-  if(v){
-    g('sil-ret').textContent=fmt(addDays(v,30));
-    g('sil-mont').textContent=fmt(addDays(v,45));
-    box.classList.remove('hidden');
-  } else {
-    box.classList.add('hidden');
-  }
-}
 
 /* ── SYNC AUTO REMINDERS ─────────────────────── */
 function syncAutoRems(){
