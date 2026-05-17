@@ -1457,6 +1457,7 @@ async function saveModal(){
     })(),
     anexos:         mAnexos,
     driveFolder:    _mDriveFolder,
+    calEventIds:    editId ? (DATA.find(x=>x.id===editId)?.calEventIds||{}) : {},
     upd:            Date.now(),
   };
 
@@ -1495,7 +1496,7 @@ async function saveModal(){
   }
 
   save();closeModal();renderAll();
-  if(calEvs.length)setTimeout(()=>showCalModal(rec.nome,calEvs),80);
+  if(calEvs.length){_calBrideId=editId||newId;setTimeout(()=>showCalModal(rec.nome,calEvs),80);}
 
   // Auto-create Drive folder for new brides
   if(isNew&&newId){
@@ -1721,6 +1722,7 @@ function calUrl(title,dateStr){
   return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+s+'/'+e;
 }
 let _calEvs=[];
+let _calBrideId=null;
 function buildCalEvents(rec){
   const evs=[];
   const nome=rec.nome||'';
@@ -1778,6 +1780,9 @@ async function calOpenAll(){
   }
   const btn=g('cal-all');
   if(btn){btn.disabled=true;btn.textContent='Criando...';}
+  const brideIdx=_calBrideId?DATA.findIndex(x=>x.id===_calBrideId):-1;
+  const existingIds=brideIdx!==-1?(DATA[brideIdx].calEventIds||{}):{};
+  const updatedIds={...existingIds};
   let ok=0,fail=0;
   for(const ev of _calEvs){
     if(!ev.date)continue;
@@ -1785,12 +1790,12 @@ async function calOpenAll(){
       const start=ev.date;
       const startDt=start+'T09:00:00';
       const endDt=start+'T10:00:00';
-      const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
-        method:'POST',
-        headers:{
-          'Authorization':'Bearer '+_gToken,
-          'Content-Type':'application/json'
-        },
+      const existingId=existingIds[ev.title];
+      const method=existingId?'PATCH':'POST';
+      const url='https://www.googleapis.com/calendar/v3/calendars/primary/events'+(existingId?'/'+existingId:'');
+      const resp=await fetch(url,{
+        method,
+        headers:{'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'},
         body:JSON.stringify({
           summary:ev.title,
           start:{dateTime:startDt,timeZone:'America/Sao_Paulo'},
@@ -1800,10 +1805,11 @@ async function calOpenAll(){
         })
       });
       const result=await resp.json();
-      if(ok===0)console.log('Calendar first event:',resp.status,JSON.stringify(result));
-      if(resp.ok)ok++;else fail++;
+      if(resp.ok){ok++;if(result.id)updatedIds[ev.title]=result.id;}
+      else fail++;
     }catch(e){fail++;}
   }
+  if(brideIdx!==-1){DATA[brideIdx]={...DATA[brideIdx],calEventIds:updatedIds};save();}
   if(btn){btn.disabled=false;btn.textContent='Criar todos →';}
   g('cal-ov').classList.add('hidden');
   alert(ok+' evento(s) criado(s) no Google Calendar'+(fail?' ('+fail+' erro(s))':'')+'!');
