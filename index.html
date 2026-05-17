@@ -1796,8 +1796,6 @@ async function calOpenAll(){
           end:{date:end},
         })
       });
-      const result=await resp.json();
-      console.log('Calendar API response:',resp.status,JSON.stringify(result));
       if(resp.ok)ok++;else fail++;
     }catch(e){fail++;}
   }
