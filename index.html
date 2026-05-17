@@ -806,19 +806,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1 hidden" id="emb-dr">
         <div class="fg"><label class="fl">Data de entrega prevista</label><input id="m-emb-d" type="date" class="fi"></div>
       </div>
-      <div id="emb-pedida-section" style="margin-top:14px">
-        <div class="fg" style="margin-bottom:11px">
-          <label class="fl">Embalagem já foi pedida?</label>
-          <div class="tg">
-            <label class="to ty"><input type="radio" name="embPedida" value="sim" onchange="embPedidaChg()"><span class="tl">✓ Sim</span></label>
-            <label class="to tn"><input type="radio" name="embPedida" value="nao" onchange="embPedidaChg()"><span class="tl">✗ Não</span></label>
-          </div>
-        </div>
-        <div class="frow f1 hidden" id="emb-prev-row">
-          <div class="fg"><label class="fl">Previsão de chegada</label><input id="m-emb-prev" type="date" class="fi"></div>
-        </div>
-        <p class="hint hint-warn hidden" id="emb-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar embalagem — [nome]"</strong> para daqui 3 dias.</p>
-      </div>
     </div>
 
     <!-- 4. Pagamento -->
@@ -1252,7 +1239,6 @@ function fillForm(b){
   sv2('m-etapa',      b.etapa||'lead');
   sv2('m-buque',      b.dataBuque||'');
   sv2('m-redoma-dt',  b.redomaDataPedido||'');
-  sv2('m-emb-prev',   b.embPrevisao||'');
   sv2('m-valor',      b.valorTotal||'');
 
   setRad('prod',      b.produto||'');
@@ -1260,7 +1246,6 @@ function fillForm(b){
   setRad('pag',       b.formaPagamento||'');
   setRad('rep',       b.autorizaReposicao||'');
   setRad('redomaStatus', b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':b.redomaPedida==='nao'?'naoEncomendada':''));
-  setRad('embPedida', b.embPedida||'');
 
   // Reserva de data
   const res=b.reserva||{};
@@ -1277,7 +1262,6 @@ function fillForm(b){
   embChg();
   buqueDisp(b.dataBuque||'');
   redomaChg();
-  embPedidaChg();
   pagCalc(allPagRows.length?allPagRows:null);
   pecaVis();
   renderRL();
@@ -1295,7 +1279,6 @@ function syncName(){
 function embChg(){
   const v=radVal('emb');
   g('emb-dr').classList.toggle('hidden',v!=='encomendada');
-  g('emb-pedida-section').classList.toggle('hidden',v==='emMaos');
   syncAutoRems();
 }
 
@@ -1339,7 +1322,7 @@ function syncAutoRems(){
   const dataBuque=gv('m-buque');
   if(dataBuque) addAR('Entrega',addDays(dataBuque,60));
   if(radVal('redomaStatus')==='naoEncomendada') addAR('Pedir redoma',addDays(today(),3));
-  if(radVal('emb')==='naoEncomendada'&&radVal('embPedida')==='nao') addAR('Pedir embalagem',addDays(today(),3));
+  if(radVal('emb')==='naoEncomendada') addAR('Pedir embalagem',addDays(today(),3));
   const rows=_getPagRows();
   const reservaAtiva=radVal('reservaAtiva')==='sim';
   const fp=radVal('pag')||'';
@@ -1424,8 +1407,6 @@ async function saveModal(){
     dataBuque:      gv('m-buque'),
     redomaStatus:   radVal('redomaStatus'),
     redomaDataPedido:gv('m-redoma-dt'),
-    embPedida:      radVal('embPedida'),
-    embPrevisao:    gv('m-emb-prev'),
     valorTotal:     gv('m-valor').trim(),
     reserva:(()=>{
       const resAtiva=radVal('reservaAtiva')==='sim';
@@ -1457,7 +1438,7 @@ async function saveModal(){
   };
   if(rec.dataBuque)_ar('Entrega',addDays(rec.dataBuque,60));
   if(rec.redomaStatus==='naoEncomendada')_ar('Pedir redoma',addDays(today(),3));
-  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao')_ar('Pedir embalagem',addDays(today(),3));
+  if(rec.statusEmbalagem==='naoEncomendada')_ar('Pedir embalagem',addDays(today(),3));
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)_ar('Cobrança — Reserva',rec.reserva.data);
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
@@ -1602,12 +1583,6 @@ function redomaChg(){
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
-function embPedidaChg(){
-  const v=radVal('embPedida');
-  g('emb-prev-row').classList.toggle('hidden',v!=='sim');
-  g('emb-nao-hint').classList.toggle('hidden',v!=='nao');
-  syncAutoRems();
-}
 
 /* ── PAGAMENTO ───────────────────────────────── */
 function reservaChg(){
@@ -1736,7 +1711,7 @@ function buildCalEvents(rec){
   if(rec.redomaStatus==='naoEncomendada'){
     evs.push({title:'Encomendar redoma — '+nome,date:addDays(today(),3)});
   }
-  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao'){
+  if(rec.statusEmbalagem==='naoEncomendada'){
     evs.push({title:'Encomendar embalagem — '+nome,date:addDays(today(),3)});
   }
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data){
@@ -2213,7 +2188,7 @@ function renderMaterial(){
   const body=g('mat-bdy');if(!body)return;body.innerHTML='';
   const ativas=DATA.filter(b=>b.etapa!=='cancelado'&&b.etapa!=='entregue');
   const semRedoma=ativas.filter(b=>(b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':'naoEncomendada'))==='naoEncomendada');
-  const semEmb=ativas.filter(b=>b.embPedida==='nao');
+  const semEmb=ativas.filter(b=>b.statusEmbalagem==='naoEncomendada');
   const silVenc=ativas.filter(b=>b.dataSilica&&addDays(b.dataSilica,30)<today()&&b.etapa==='secagem');
   const total=semRedoma.length+semEmb.length+silVenc.length;
   const ct=g('mat-ct');if(ct){ct.textContent=total||'✓';ct.classList.toggle('al',total>0);}
