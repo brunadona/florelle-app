@@ -731,8 +731,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Dados da Noiva</div>
       <div class="frow">
         <div class="fg"><label class="fl">Nome</label><input id="m-nome" type="text" class="fi" placeholder="Nome completo" oninput="syncName()"></div>
-        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi"></div>
+        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi" onchange="syncAutoRems()"></div>
       </div>
+      <p class="hint" id="hint-entrega" style="display:none">Será criado no Google Calendar: <strong id="hint-entrega-txt">"Entrega — …"</strong> na data do casamento.</p>
       <div class="frow f1">
         <div class="fg"><label class="fl">Endereço</label><input id="m-end" type="text" class="fi" placeholder="Rua, número, cidade…"></div>
       </div>
@@ -1300,6 +1301,7 @@ function embChg(){
   const v=radVal('emb');
   g('emb-dr').classList.toggle('hidden',v!=='encomendada');
   g('emb-pedida-section').classList.toggle('hidden',v==='emMaos');
+  syncAutoRems();
 }
 
 function pecaChg(el){
@@ -1340,6 +1342,43 @@ function silDisp(v){
   } else {
     box.classList.add('hidden');
   }
+}
+
+/* ── SYNC AUTO REMINDERS ─────────────────────── */
+function syncAutoRems(){
+  const SILICA=['Colocar na sílica','Retirar da sílica','Início da montagem'];
+  mRem=mRem.filter(r=>!r.auto||SILICA.includes(r.text));
+  const addAR=(text,data)=>{
+    if(!data)return;
+    mRem.push({id:uid(),text,data,auto:true,done:false});
+  };
+  const cas=gv('m-cas');
+  if(cas) addAR('Entrega',cas);
+  if(radVal('redomaStatus')==='naoEncomendada') addAR('Pedir redoma',addDays(today(),3));
+  if(radVal('emb')==='naoEncomendada'&&radVal('embPedida')==='nao') addAR('Pedir embalagem',addDays(today(),3));
+  const rows=_getPagRows();
+  const reservaAtiva=radVal('reservaAtiva')==='sim';
+  const fp=radVal('pag')||'';
+  const PIX3=['1ª parcela','2ª parcela','3ª parcela'];
+  if(reservaAtiva){
+    const res=rows[0];
+    if(res&&res.data&&!res.pago) addAR('Cobrança — Reserva',res.data);
+    rows.slice(1).forEach((p,i)=>{
+      if(!p.pago&&p.data) addAR('Cobrança — '+(fp==='pix3x'?(PIX3[i]||'Parcela '+(i+1)):'Pagamento'),p.data);
+    });
+  } else {
+    rows.forEach((p,i)=>{
+      if(!p.pago&&p.data) addAR('Cobrança — '+(fp==='pix3x'?(PIX3[i]||'Parcela '+(i+1)):'Pagamento'),p.data);
+    });
+  }
+  const hintEl=g('hint-entrega');
+  if(hintEl){
+    const nome=gv('m-nome')||'…';
+    const txtEl=g('hint-entrega-txt');
+    if(txtEl) txtEl.textContent='"Entrega — '+nome+'"';
+    hintEl.style.display=cas?'':'none';
+  }
+  renderRL();
 }
 
 /* ── REMINDER LIST ───────────────────────────── */
@@ -1574,6 +1613,7 @@ function redomaChg(){
   const v=radVal('redomaStatus');
   g('redoma-dt-row').classList.toggle('hidden',v!=='encomendada');
   g('redoma-nao-hint').classList.toggle('hidden',v!=='naoEncomendada');
+  syncAutoRems();
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
@@ -1581,6 +1621,7 @@ function embPedidaChg(){
   const v=radVal('embPedida');
   g('emb-prev-row').classList.toggle('hidden',v!=='sim');
   g('emb-nao-hint').classList.toggle('hidden',v!=='nao');
+  syncAutoRems();
 }
 
 /* ── PAGAMENTO ───────────────────────────────── */
@@ -1665,10 +1706,11 @@ function pagCalc(preload){
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
     `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="pagCalc()">`+
-    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px">`+
-    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
+    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
+    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''} onchange="syncAutoRems()"> ${r.chkLabel}</label>`+
     `</div>`
   ).join('');
+  syncAutoRems();
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
