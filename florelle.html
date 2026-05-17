@@ -1396,7 +1396,7 @@ async function saveModal(){
     pecasAdicionais:pecas,
     pecasOutro:     gv('m-outro').trim(),
     dataSilica:     gv('m-silica'),
-    lembretes:      mRem,
+    lembretes:      [...mRem],
     anotacoes:      gv('m-notas').trim(),
     dataBuque:      gv('m-buque'),
     redomaStatus:   radVal('redomaStatus'),
