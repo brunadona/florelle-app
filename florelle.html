@@ -748,11 +748,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <input id="m-buque" type="date" class="fi" onchange="buqueChg()">
         </div>
       </div>
-      <div id="buq-box" class="buq-box hidden">
-        <div class="buq-item"><div class="buq-lbl">Colocar na sílica (+2d)</div><div class="buq-val" id="buq-sil">—</div></div>
-        <div class="buq-item"><div class="buq-lbl">Retirar da sílica (+32d)</div><div class="buq-val" id="buq-ret">—</div></div>
-        <div class="buq-item"><div class="buq-lbl">Iniciar montagem (+47d)</div><div class="buq-val" id="buq-mont">—</div></div>
-      </div>
       <p class="hint">Ao salvar, serão gerados lembretes no Google Calendar para essas três datas.</p>
     </div>
 
@@ -1260,7 +1255,6 @@ function fillForm(b){
   syncName();
   syncDriveBtn();
   embChg();
-  buqueDisp(b.dataBuque||'');
   redomaChg();
   pagCalc(allPagRows.length?allPagRows:null);
   pecaVis();
@@ -1561,17 +1555,8 @@ function renderRP(){
 /* ── BUQUÊ ───────────────────────────────────── */
 function buqueChg(){
   const v=gv('m-buque');
-  buqueDisp(v);
   if(v&&!gv('m-silica')){sv2('m-silica',addDays(v,2));silChg();}
-}
-function buqueDisp(v){
-  const box=g('buq-box');
-  if(v){
-    g('buq-sil').textContent=fmt(addDays(v,2));
-    g('buq-ret').textContent=fmt(addDays(v,32));
-    g('buq-mont').textContent=fmt(addDays(v,47));
-    box.classList.remove('hidden');
-  }else{box.classList.add('hidden');}
+  syncAutoRems();
 }
 
 /* ── REDOMA ──────────────────────────────────── */
