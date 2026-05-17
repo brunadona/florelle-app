@@ -1795,6 +1795,7 @@ async function calOpenAll(){
           start:{date:start},
           end:{date:end},
           colorId:'2',
+          reminders:{useDefault:false},
         })
       });
       const result=await resp.json();
