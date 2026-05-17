@@ -1423,20 +1423,27 @@ async function saveModal(){
     upd:            Date.now(),
   };
 
-  // Inject payment auto-lembretes (no duplicates)
-  const PIX3L=['1ª parcela','2ª parcela','3ª parcela'];
-  const fp2=rec.formaPagamento||'';
-  const addPayLem=(text,date)=>{
+  // Inject auto-lembretes (no duplicates)
+  const _addLem=(text,date)=>{
     if(!date)return;
     if(!mRem.some(r=>r.text===text&&r.data===date))
       mRem.push({id:uid(),text,data:date,auto:true,done:false});
   };
-  if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data)
-    addPayLem('Cobrança Reserva — '+nome, rec.reserva.data);
+  const _PIX3L=['1ª parcela','2ª parcela','3ª parcela'];
+  const _fp=rec.formaPagamento||'';
+  // 1. Entrega
+  if(rec.dataCasamento) _addLem('Entrega',rec.dataCasamento);
+  // 2. Redoma
+  if(rec.redomaStatus==='naoEncomendada') _addLem('Pedir redoma',addDays(today(),3));
+  // 3. Embalagem
+  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao') _addLem('Pedir embalagem',addDays(today(),3));
+  // 4. Reserva
+  if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data) _addLem('Cobrança — Reserva',rec.reserva.data);
+  // 5. Parcelas
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
-      const lbl=fp2==='pix3x'?(PIX3L[i]||'Parcela '+(i+1)):'Pagamento';
-      addPayLem('Cobrança '+lbl+' — '+nome, p.data);
+      const lbl=_fp==='pix3x'?(_PIX3L[i]||'Parcela '+(i+1)):'Pagamento';
+      _addLem('Cobrança — '+lbl,p.data);
     }
   });
   rec.lembretes=mRem;
