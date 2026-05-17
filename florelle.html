@@ -1723,6 +1723,21 @@ function calUrl(title,dateStr){
 }
 let _calEvs=[];
 let _calBrideId=null;
+let _flCalId=localStorage.getItem('florelle_cal_id')||null;
+async function getOrCreateFlCalendar(){
+  if(_flCalId)return _flCalId;
+  const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'},
+    body:JSON.stringify({summary:'Florelle',timeZone:'America/Sao_Paulo'})
+  });
+  const result=await resp.json();
+  if(resp.ok&&result.id){
+    _flCalId=result.id;
+    localStorage.setItem('florelle_cal_id',_flCalId);
+  }
+  return _flCalId;
+}
 function buildCalEvents(rec){
   const evs=[];
   const nome=rec.nome||'';
@@ -1780,12 +1795,13 @@ async function calOpenAll(){
   }
   const btn=g('cal-all');
   if(btn){btn.disabled=true;btn.textContent='Criando...';}
+  const calId=await getOrCreateFlCalendar()||'primary';
   const brideIdx=_calBrideId?DATA.findIndex(x=>x.id===_calBrideId):-1;
   const existingIds=(brideIdx!==-1?DATA[brideIdx].calEventIds:{})||{};
   // Deletar eventos existentes
   for(const [,evId] of Object.entries(existingIds)){
     try{
-      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/'+evId,{
+      await fetch('https://www.googleapis.com/calendar/v3/calendars/'+calId+'/events/'+evId,{
         method:'DELETE',
         headers:{'Authorization':'Bearer '+_gToken},
       });
@@ -1800,7 +1816,7 @@ async function calOpenAll(){
       const start=ev.date;
       const startDt=start+'T09:00:00';
       const endDt=start+'T10:00:00';
-      const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
+      const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars/'+calId+'/events',{
         method:'POST',
         headers:{'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'},
         body:JSON.stringify({
