@@ -1781,8 +1781,18 @@ async function calOpenAll(){
   const btn=g('cal-all');
   if(btn){btn.disabled=true;btn.textContent='Criando...';}
   const brideIdx=_calBrideId?DATA.findIndex(x=>x.id===_calBrideId):-1;
-  const existingIds=brideIdx!==-1?(DATA[brideIdx].calEventIds||{}):{};
-  const updatedIds={...existingIds};
+  const existingIds=(brideIdx!==-1?DATA[brideIdx].calEventIds:{})||{};
+  // Deletar eventos existentes
+  for(const [,evId] of Object.entries(existingIds)){
+    try{
+      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/'+evId,{
+        method:'DELETE',
+        headers:{'Authorization':'Bearer '+_gToken},
+      });
+    }catch(e){}
+  }
+  // Criar todos de novo via POST
+  const newIds={};
   let ok=0,fail=0;
   for(const ev of _calEvs){
     if(!ev.date)continue;
@@ -1790,11 +1800,8 @@ async function calOpenAll(){
       const start=ev.date;
       const startDt=start+'T09:00:00';
       const endDt=start+'T10:00:00';
-      const existingId=existingIds[ev.title];
-      const method=existingId?'PATCH':'POST';
-      const url='https://www.googleapis.com/calendar/v3/calendars/primary/events'+(existingId?'/'+existingId:'');
-      const resp=await fetch(url,{
-        method,
+      const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
+        method:'POST',
         headers:{'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'},
         body:JSON.stringify({
           summary:ev.title,
@@ -1805,11 +1812,11 @@ async function calOpenAll(){
         })
       });
       const result=await resp.json();
-      if(resp.ok){ok++;if(result.id)updatedIds[ev.title]=result.id;}
+      if(resp.ok){ok++;if(result.id)newIds[ev.title]=result.id;}
       else fail++;
     }catch(e){fail++;}
   }
-  if(brideIdx!==-1){DATA[brideIdx]={...DATA[brideIdx],calEventIds:updatedIds};save();}
+  if(brideIdx!==-1){DATA[brideIdx]={...DATA[brideIdx],calEventIds:newIds};save();}
   if(btn){btn.disabled=false;btn.textContent='Criar todos →';}
   g('cal-ov').classList.add('hidden');
   alert(ok+' evento(s) criado(s) no Google Calendar'+(fail?' ('+fail+' erro(s))':'')+'!');
