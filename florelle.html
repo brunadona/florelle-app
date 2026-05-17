@@ -747,11 +747,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <input id="m-buque" type="date" class="fi" onchange="buqueChg()">
         </div>
       </div>
-      <div id="buq-box" class="buq-box hidden">
-        <div class="buq-item"><div class="buq-lbl">Colocar na sílica (+2d)</div><div class="buq-val" id="buq-sil">—</div></div>
-        <div class="buq-item"><div class="buq-lbl">Retirar da sílica (+32d)</div><div class="buq-val" id="buq-ret">—</div></div>
-        <div class="buq-item"><div class="buq-lbl">Iniciar montagem (+47d)</div><div class="buq-val" id="buq-mont">—</div></div>
-      </div>
       <p class="hint">Ao salvar, serão gerados lembretes no Google Calendar para essas três datas.</p>
     </div>
 
@@ -856,10 +851,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Sílica</div>
       <div class="frow f1">
         <div class="fg"><label class="fl">Data de início na sílica</label><input id="m-silica" type="date" class="fi" onchange="silChg()"></div>
-      </div>
-      <div id="silbox" class="silbox hidden">
-        <div class="sli"><div class="sll">Retirada (+30 dias)</div><div class="slv" id="sil-ret">—</div></div>
-        <div class="sli"><div class="sll">Montagem (+45 dias)</div><div class="slv" id="sil-mont">—</div></div>
       </div>
     </div>
 
@@ -1278,8 +1269,6 @@ function fillForm(b){
   syncName();
   syncDriveBtn();
   embChg();
-  silDisp(b.dataSilica||'');
-  buqueDisp(b.dataBuque||'');
   redomaChg();
   embPedidaChg();
   pagCalc(allPagRows.length?allPagRows:null);
@@ -1319,7 +1308,6 @@ function pecaVis(){
 /* ── SILICA ──────────────────────────────────── */
 function silChg(){
   const v=gv('m-silica');
-  silDisp(v);
   mRem=mRem.filter(r=>!r.auto);
   if(v){
     mRem.unshift(
@@ -1331,16 +1319,6 @@ function silChg(){
   renderRL();
 }
 
-function silDisp(v){
-  const box=g('silbox');
-  if(v){
-    g('sil-ret').textContent=fmt(addDays(v,30));
-    g('sil-mont').textContent=fmt(addDays(v,45));
-    box.classList.remove('hidden');
-  } else {
-    box.classList.add('hidden');
-  }
-}
 
 /* ── REMINDER LIST ───────────────────────────── */
 function renderRL(){
@@ -1556,17 +1534,8 @@ function renderRP(){
 /* ── BUQUÊ ───────────────────────────────────── */
 function buqueChg(){
   const v=gv('m-buque');
-  buqueDisp(v);
   if(v&&!gv('m-silica')){sv2('m-silica',addDays(v,2));silChg();}
-}
-function buqueDisp(v){
-  const box=g('buq-box');
-  if(v){
-    g('buq-sil').textContent=fmt(addDays(v,2));
-    g('buq-ret').textContent=fmt(addDays(v,32));
-    g('buq-mont').textContent=fmt(addDays(v,47));
-    box.classList.remove('hidden');
-  }else{box.classList.add('hidden');}
+  syncAutoRems();
 }
 
 /* ── REDOMA ──────────────────────────────────── */
