@@ -1421,6 +1421,29 @@ async function saveModal(){
     upd:            Date.now(),
   };
 
+  // lembretes automáticos — antes de salvar no DATA
+  const _used2=[];
+  const _ar=(text,data)=>{
+    if(!data)return;
+    const key=text+'|'+data;
+    if(_used2.includes(key))return;
+    if(rec.lembretes.some(r=>r.text===text&&r.data===data))return;
+    _used2.push(key);
+    rec.lembretes.push({id:uid(),text,data,auto:true,done:false});
+  };
+  if(rec.dataCasamento)_ar('Entrega',rec.dataCasamento);
+  if(rec.redomaStatus==='naoEncomendada')_ar('Pedir redoma',addDays(today(),3));
+  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao')_ar('Pedir embalagem',addDays(today(),3));
+  if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)_ar('Cobrança — Reserva',rec.reserva.data);
+  (rec.pagamentos||[]).forEach((p,i)=>{
+    if(!p.pago&&p.data){
+      const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      _ar('Cobrança — '+lbl,p.data);
+    }
+  });
+
+  const calEvs=buildCalEvents(rec);
+
   const isNew=!editId;
   let newId=null;
 
@@ -1432,27 +1455,6 @@ async function saveModal(){
     DATA.push({id:newId,crd:Date.now(),...rec});
   }
 
-  // lembretes automáticos
-  const _used2=[];
-  function _ar(text,data){
-    if(!data)return;
-    const key=text+'|'+data;
-    if(_used2.includes(key))return;
-    if(rec.lembretes.some(r=>r.text===text&&r.data===data))return;
-    _used2.push(key);
-    rec.lembretes.push({id:uid(),text,data,auto:true,done:false});
-  }
-  if(rec.dataCasamento)_ar('Entrega',rec.dataCasamento);
-  if(rec.redomaStatus==='naoEncomendada')_ar('Pedir redoma',addDays(today(),3));
-  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao')_ar('Pedir embalagem',addDays(today(),3));
-  if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)_ar('Cobrança — Reserva',rec.reserva.data);
-  (rec.pagamentos||[]).forEach((p,i)=>{
-    if(!p.pago&&p.data){
-      const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
-      _ar('Cobrança — '+lbl,p.data);
-    }
-  });
-  const calEvs=buildCalEvents(rec);
   save();closeModal();renderAll();
   if(calEvs.length)setTimeout(()=>showCalModal(rec.nome,calEvs),80);
 
