@@ -1783,7 +1783,8 @@ async function calOpenAll(){
     if(!ev.date)continue;
     try{
       const start=ev.date;
-      const end=addDays(start,1);
+      const startDt=start+'T09:00:00';
+      const endDt=start+'T10:00:00';
       const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
         method:'POST',
         headers:{
@@ -1792,8 +1793,8 @@ async function calOpenAll(){
         },
         body:JSON.stringify({
           summary:ev.title,
-          start:{date:start},
-          end:{date:end},
+          start:{dateTime:startDt,timeZone:'America/Sao_Paulo'},
+          end:{dateTime:endDt,timeZone:'America/Sao_Paulo'},
           colorId:'2',
           reminders:{useDefault:false},
         })
