@@ -731,9 +731,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Dados da Noiva</div>
       <div class="frow">
         <div class="fg"><label class="fl">Nome</label><input id="m-nome" type="text" class="fi" placeholder="Nome completo" oninput="syncName()"></div>
-        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi" onchange="syncAutoRems()"></div>
+        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi"></div>
       </div>
-      <p class="hint" id="hint-entrega" style="display:none">Será criado no Google Calendar: <strong id="hint-entrega-txt">"Entrega — …"</strong> na data do casamento.</p>
       <div class="frow f1">
         <div class="fg"><label class="fl">Endereço</label><input id="m-end" type="text" class="fi" placeholder="Rua, número, cidade…"></div>
       </div>
@@ -747,6 +746,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label class="fl">Data que o buquê chegou</label>
           <input id="m-buque" type="date" class="fi" onchange="buqueChg()">
         </div>
+      </div>
+      <div id="buq-box" class="buq-box hidden">
+        <div class="buq-item"><div class="buq-lbl">Colocar na sílica (+2d)</div><div class="buq-val" id="buq-sil">—</div></div>
+        <div class="buq-item"><div class="buq-lbl">Retirar da sílica (+32d)</div><div class="buq-val" id="buq-ret">—</div></div>
+        <div class="buq-item"><div class="buq-lbl">Iniciar montagem (+47d)</div><div class="buq-val" id="buq-mont">—</div></div>
       </div>
       <p class="hint">Ao salvar, serão gerados lembretes no Google Calendar para essas três datas.</p>
     </div>
@@ -801,6 +805,19 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1 hidden" id="emb-dr">
         <div class="fg"><label class="fl">Data de entrega prevista</label><input id="m-emb-d" type="date" class="fi"></div>
       </div>
+      <div id="emb-pedida-section" style="margin-top:14px">
+        <div class="fg" style="margin-bottom:11px">
+          <label class="fl">Embalagem já foi pedida?</label>
+          <div class="tg">
+            <label class="to ty"><input type="radio" name="embPedida" value="sim" onchange="embPedidaChg()"><span class="tl">✓ Sim</span></label>
+            <label class="to tn"><input type="radio" name="embPedida" value="nao" onchange="embPedidaChg()"><span class="tl">✗ Não</span></label>
+          </div>
+        </div>
+        <div class="frow f1 hidden" id="emb-prev-row">
+          <div class="fg"><label class="fl">Previsão de chegada</label><input id="m-emb-prev" type="date" class="fi"></div>
+        </div>
+        <p class="hint hint-warn hidden" id="emb-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar embalagem — [nome]"</strong> para daqui 3 dias.</p>
+      </div>
     </div>
 
     <!-- 4. Pagamento -->
@@ -839,6 +856,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Sílica</div>
       <div class="frow f1">
         <div class="fg"><label class="fl">Data de início na sílica</label><input id="m-silica" type="date" class="fi" onchange="silChg()"></div>
+      </div>
+      <div id="silbox" class="silbox hidden">
+        <div class="sli"><div class="sll">Retirada (+30 dias)</div><div class="slv" id="sil-ret">—</div></div>
+        <div class="sli"><div class="sll">Montagem (+45 dias)</div><div class="slv" id="sil-mont">—</div></div>
       </div>
     </div>
 
@@ -1234,6 +1255,7 @@ function fillForm(b){
   sv2('m-etapa',      b.etapa||'lead');
   sv2('m-buque',      b.dataBuque||'');
   sv2('m-redoma-dt',  b.redomaDataPedido||'');
+  sv2('m-emb-prev',   b.embPrevisao||'');
   sv2('m-valor',      b.valorTotal||'');
 
   setRad('prod',      b.produto||'');
@@ -1241,6 +1263,7 @@ function fillForm(b){
   setRad('pag',       b.formaPagamento||'');
   setRad('rep',       b.autorizaReposicao||'');
   setRad('redomaStatus', b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':b.redomaPedida==='nao'?'naoEncomendada':''));
+  setRad('embPedida', b.embPedida||'');
 
   // Reserva de data
   const res=b.reserva||{};
@@ -1255,11 +1278,14 @@ function fillForm(b){
   syncName();
   syncDriveBtn();
   embChg();
+  silDisp(b.dataSilica||'');
+  buqueDisp(b.dataBuque||'');
   redomaChg();
+  embPedidaChg();
   pagCalc(allPagRows.length?allPagRows:null);
   pecaVis();
+  renderRL();
   renderAnexos();
-  syncAutoRems();
 }
 
 function syncName(){
@@ -1273,7 +1299,7 @@ function syncName(){
 function embChg(){
   const v=radVal('emb');
   g('emb-dr').classList.toggle('hidden',v!=='encomendada');
-  syncAutoRems();
+  g('emb-pedida-section').classList.toggle('hidden',v==='emMaos');
 }
 
 function pecaChg(el){
@@ -1293,6 +1319,7 @@ function pecaVis(){
 /* ── SILICA ──────────────────────────────────── */
 function silChg(){
   const v=gv('m-silica');
+  silDisp(v);
   mRem=mRem.filter(r=>!r.auto);
   if(v){
     mRem.unshift(
@@ -1304,42 +1331,15 @@ function silChg(){
   renderRL();
 }
 
-
-/* ── SYNC AUTO REMINDERS ─────────────────────── */
-function syncAutoRems(){
-  const SILICA=['Colocar na sílica','Retirar da sílica','Início da montagem'];
-  mRem=mRem.filter(r=>!r.auto||SILICA.includes(r.text));
-  const addAR=(text,data)=>{
-    if(!data)return;
-    mRem.push({id:uid(),text,data,auto:true,done:false});
-  };
-  const dataBuque=gv('m-buque');
-  if(dataBuque) addAR('Entrega',addDays(dataBuque,60));
-  if(radVal('redomaStatus')==='naoEncomendada') addAR('Pedir redoma',addDays(today(),3));
-  if(radVal('emb')==='naoEncomendada') addAR('Pedir embalagem',addDays(today(),3));
-  const rows=_getPagRows();
-  const reservaAtiva=radVal('reservaAtiva')==='sim';
-  const fp=radVal('pag')||'';
-  const PIX3=['1ª parcela','2ª parcela','3ª parcela'];
-  if(reservaAtiva){
-    const res=rows[0];
-    if(res&&res.data&&!res.pago) addAR('Cobrança — Reserva',res.data);
-    rows.slice(1).forEach((p,i)=>{
-      if(!p.pago&&p.data) addAR('Cobrança — '+(fp==='pix3x'?(PIX3[i]||'Parcela '+(i+1)):'Pagamento'),p.data);
-    });
+function silDisp(v){
+  const box=g('silbox');
+  if(v){
+    g('sil-ret').textContent=fmt(addDays(v,30));
+    g('sil-mont').textContent=fmt(addDays(v,45));
+    box.classList.remove('hidden');
   } else {
-    rows.forEach((p,i)=>{
-      if(!p.pago&&p.data) addAR('Cobrança — '+(fp==='pix3x'?(PIX3[i]||'Parcela '+(i+1)):'Pagamento'),p.data);
-    });
+    box.classList.add('hidden');
   }
-  const hintEl=g('hint-entrega');
-  if(hintEl){
-    const nome=gv('m-nome')||'…';
-    const txtEl=g('hint-entrega-txt');
-    if(txtEl) txtEl.textContent='"Entrega — '+nome+'"';
-    hintEl.style.display=dataBuque?'':'none';
-  }
-  renderRL();
 }
 
 /* ── REMINDER LIST ───────────────────────────── */
@@ -1401,6 +1401,8 @@ async function saveModal(){
     dataBuque:      gv('m-buque'),
     redomaStatus:   radVal('redomaStatus'),
     redomaDataPedido:gv('m-redoma-dt'),
+    embPedida:      radVal('embPedida'),
+    embPrevisao:    gv('m-emb-prev'),
     valorTotal:     gv('m-valor').trim(),
     reserva:(()=>{
       const resAtiva=radVal('reservaAtiva')==='sim';
@@ -1416,7 +1418,6 @@ async function saveModal(){
     })(),
     anexos:         mAnexos,
     driveFolder:    _mDriveFolder,
-    calEventIds:    editId ? (DATA.find(x=>x.id===editId)?.calEventIds||{}) : {},
     upd:            Date.now(),
   };
 
@@ -1430,9 +1431,9 @@ async function saveModal(){
     _used2.push(key);
     rec.lembretes.push({id:uid(),text,data,auto:true,done:false});
   };
-  if(rec.dataBuque)_ar('Entrega',addDays(rec.dataBuque,60));
+  if(rec.dataCasamento)_ar('Entrega',rec.dataCasamento);
   if(rec.redomaStatus==='naoEncomendada')_ar('Pedir redoma',addDays(today(),3));
-  if(rec.statusEmbalagem==='naoEncomendada')_ar('Pedir embalagem',addDays(today(),3));
+  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao')_ar('Pedir embalagem',addDays(today(),3));
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)_ar('Cobrança — Reserva',rec.reserva.data);
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
@@ -1455,7 +1456,7 @@ async function saveModal(){
   }
 
   save();closeModal();renderAll();
-  if(calEvs.length){_calBrideId=editId||newId;setTimeout(()=>showCalModal(rec.nome,calEvs),80);}
+  if(calEvs.length)setTimeout(()=>showCalModal(rec.nome,calEvs),80);
 
   // Auto-create Drive folder for new brides
   if(isNew&&newId){
@@ -1555,8 +1556,17 @@ function renderRP(){
 /* ── BUQUÊ ───────────────────────────────────── */
 function buqueChg(){
   const v=gv('m-buque');
+  buqueDisp(v);
   if(v&&!gv('m-silica')){sv2('m-silica',addDays(v,2));silChg();}
-  syncAutoRems();
+}
+function buqueDisp(v){
+  const box=g('buq-box');
+  if(v){
+    g('buq-sil').textContent=fmt(addDays(v,2));
+    g('buq-ret').textContent=fmt(addDays(v,32));
+    g('buq-mont').textContent=fmt(addDays(v,47));
+    box.classList.remove('hidden');
+  }else{box.classList.add('hidden');}
 }
 
 /* ── REDOMA ──────────────────────────────────── */
@@ -1564,10 +1574,14 @@ function redomaChg(){
   const v=radVal('redomaStatus');
   g('redoma-dt-row').classList.toggle('hidden',v!=='encomendada');
   g('redoma-nao-hint').classList.toggle('hidden',v!=='naoEncomendada');
-  syncAutoRems();
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
+function embPedidaChg(){
+  const v=radVal('embPedida');
+  g('emb-prev-row').classList.toggle('hidden',v!=='sim');
+  g('emb-nao-hint').classList.toggle('hidden',v!=='nao');
+}
 
 /* ── PAGAMENTO ───────────────────────────────── */
 function reservaChg(){
@@ -1651,11 +1665,10 @@ function pagCalc(preload){
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
     `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="pagCalc()">`+
-    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
-    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''} onchange="syncAutoRems()"> ${r.chkLabel}</label>`+
+    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px">`+
+    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
     `</div>`
   ).join('');
-  syncAutoRems();
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
@@ -1666,22 +1679,6 @@ function calUrl(title,dateStr){
   return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+s+'/'+e;
 }
 let _calEvs=[];
-let _calBrideId=null;
-let _flCalId=localStorage.getItem('florelle_cal_id')||null;
-async function getOrCreateFlCalendar(){
-  if(_flCalId)return _flCalId;
-  const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars',{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'},
-    body:JSON.stringify({summary:'Florelle',timeZone:'America/Sao_Paulo'})
-  });
-  const result=await resp.json();
-  if(resp.ok&&result.id){
-    _flCalId=result.id;
-    localStorage.setItem('florelle_cal_id',_flCalId);
-  }
-  return _flCalId;
-}
 function buildCalEvents(rec){
   const evs=[];
   const nome=rec.nome||'';
@@ -1690,13 +1687,13 @@ function buildCalEvents(rec){
     evs.push({title:'Retirar da sílica — '+nome,date:addDays(rec.dataSilica,30)});
     evs.push({title:'Início da montagem — '+nome,date:addDays(rec.dataSilica,50)});
   }
-  if(rec.dataBuque){
-    evs.push({title:'Entrega — '+nome,date:addDays(rec.dataBuque,60)});
+  if(rec.dataCasamento){
+    evs.push({title:'Entrega — '+nome,date:rec.dataCasamento});
   }
   if(rec.redomaStatus==='naoEncomendada'){
     evs.push({title:'Encomendar redoma — '+nome,date:addDays(today(),3)});
   }
-  if(rec.statusEmbalagem==='naoEncomendada'){
+  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao'){
     evs.push({title:'Encomendar embalagem — '+nome,date:addDays(today(),3)});
   }
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data){
@@ -1729,57 +1726,11 @@ function showCalModal(nome,evs){
   g('cal-ov').classList.remove('hidden');
 }
 function calClose(){g('cal-ov').classList.add('hidden');}
-async function calOpenAll(){
-  if(!_gToken){
-    _calEvs.forEach((ev,i)=>{
-      const url=calUrl(ev.title,ev.date);
-      if(url)setTimeout(()=>window.open(url,'_blank'),i*380);
-    });
-    return;
-  }
-  const btn=g('cal-all');
-  if(btn){btn.disabled=true;btn.textContent='Criando...';}
-  const calId=await getOrCreateFlCalendar()||'primary';
-  const brideIdx=_calBrideId?DATA.findIndex(x=>x.id===_calBrideId):-1;
-  const existingIds=(brideIdx!==-1?DATA[brideIdx].calEventIds:{})||{};
-  // Deletar eventos existentes
-  for(const [,evId] of Object.entries(existingIds)){
-    try{
-      await fetch('https://www.googleapis.com/calendar/v3/calendars/'+calId+'/events/'+evId,{
-        method:'DELETE',
-        headers:{'Authorization':'Bearer '+_gToken},
-      });
-    }catch(e){}
-  }
-  // Criar todos de novo via POST
-  const newIds={};
-  let ok=0,fail=0;
-  for(const ev of _calEvs){
-    if(!ev.date)continue;
-    try{
-      const start=ev.date;
-      const startDt=start+'T09:00:00';
-      const endDt=start+'T10:00:00';
-      const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars/'+calId+'/events',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'},
-        body:JSON.stringify({
-          summary:ev.title,
-          start:{dateTime:startDt,timeZone:'America/Sao_Paulo'},
-          end:{dateTime:endDt,timeZone:'America/Sao_Paulo'},
-          colorId:'2',
-          reminders:{useDefault:false},
-        })
-      });
-      const result=await resp.json();
-      if(resp.ok){ok++;if(result.id)newIds[ev.title]=result.id;}
-      else fail++;
-    }catch(e){fail++;}
-  }
-  if(brideIdx!==-1){DATA[brideIdx]={...DATA[brideIdx],calEventIds:newIds};save();}
-  if(btn){btn.disabled=false;btn.textContent='Criar todos →';}
-  g('cal-ov').classList.add('hidden');
-  alert(ok+' evento(s) criado(s) no Google Calendar'+(fail?' ('+fail+' erro(s))':'')+'!');
+function calOpenAll(){
+  _calEvs.forEach((ev,i)=>{
+    const url=calUrl(ev.title,ev.date);
+    if(url)setTimeout(()=>window.open(url,'_blank'),i*380);
+  });
 }
 
 /* ── TABS ────────────────────────────────────── */
@@ -2173,7 +2124,7 @@ function renderMaterial(){
   const body=g('mat-bdy');if(!body)return;body.innerHTML='';
   const ativas=DATA.filter(b=>b.etapa!=='cancelado'&&b.etapa!=='entregue');
   const semRedoma=ativas.filter(b=>(b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':'naoEncomendada'))==='naoEncomendada');
-  const semEmb=ativas.filter(b=>b.statusEmbalagem==='naoEncomendada');
+  const semEmb=ativas.filter(b=>b.embPedida==='nao');
   const silVenc=ativas.filter(b=>b.dataSilica&&addDays(b.dataSilica,30)<today()&&b.etapa==='secagem');
   const total=semRedoma.length+semEmb.length+silVenc.length;
   const ct=g('mat-ct');if(ct){ct.textContent=total||'✓';ct.classList.toggle('al',total>0);}
@@ -2296,7 +2247,7 @@ function _mimeIcon(mt){
 }
 /* ── GOOGLE DRIVE UPLOAD (GIS popup mode) ────── */
 const GD_CLIENT_ID='232678212261-q2n2tjhc2dkhoj1njkdcp7femcrab3o4.apps.googleusercontent.com';
-const GD_SCOPE='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar';
+const GD_SCOPE='https://www.googleapis.com/auth/drive.file';
 const GD_ROOT='FLORELLE - NOIVAS';
 const GD_NOIVAS_ID='1cUGoU0TT-M01nIdUX5qCkxuSE2QUWr2o'; // pasta raiz FLORELLE - NOIVAS
 
