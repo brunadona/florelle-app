@@ -1352,8 +1352,8 @@ function syncAutoRems(){
     if(!data)return;
     mRem.push({id:uid(),text,data,auto:true,done:false});
   };
-  const cas=gv('m-cas');
-  if(cas) addAR('Entrega',cas);
+  const dataBuque=gv('m-buque');
+  if(dataBuque) addAR('Entrega',addDays(dataBuque,60));
   if(radVal('redomaStatus')==='naoEncomendada') addAR('Pedir redoma',addDays(today(),3));
   if(radVal('emb')==='naoEncomendada'&&radVal('embPedida')==='nao') addAR('Pedir embalagem',addDays(today(),3));
   const rows=_getPagRows();
@@ -1376,7 +1376,7 @@ function syncAutoRems(){
     const nome=gv('m-nome')||'…';
     const txtEl=g('hint-entrega-txt');
     if(txtEl) txtEl.textContent='"Entrega — '+nome+'"';
-    hintEl.style.display=cas?'':'none';
+    hintEl.style.display=dataBuque?'':'none';
   }
   renderRL();
 }
@@ -1470,7 +1470,7 @@ async function saveModal(){
     _used2.push(key);
     rec.lembretes.push({id:uid(),text,data,auto:true,done:false});
   };
-  if(rec.dataCasamento)_ar('Entrega',rec.dataCasamento);
+  if(rec.dataBuque)_ar('Entrega',addDays(rec.dataBuque,60));
   if(rec.redomaStatus==='naoEncomendada')_ar('Pedir redoma',addDays(today(),3));
   if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao')_ar('Pedir embalagem',addDays(today(),3));
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)_ar('Cobrança — Reserva',rec.reserva.data);
@@ -1729,8 +1729,8 @@ function buildCalEvents(rec){
     evs.push({title:'Retirar da sílica — '+nome,date:addDays(rec.dataSilica,30)});
     evs.push({title:'Início da montagem — '+nome,date:addDays(rec.dataSilica,50)});
   }
-  if(rec.dataCasamento){
-    evs.push({title:'Entrega — '+nome,date:rec.dataCasamento});
+  if(rec.dataBuque){
+    evs.push({title:'Entrega — '+nome,date:addDays(rec.dataBuque,60)});
   }
   if(rec.redomaStatus==='naoEncomendada'){
     evs.push({title:'Encomendar redoma — '+nome,date:addDays(today(),3)});
