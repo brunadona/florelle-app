@@ -1768,11 +1768,40 @@ function showCalModal(nome,evs){
   g('cal-ov').classList.remove('hidden');
 }
 function calClose(){g('cal-ov').classList.add('hidden');}
-function calOpenAll(){
-  _calEvs.forEach((ev,i)=>{
-    const url=calUrl(ev.title,ev.date);
-    if(url)setTimeout(()=>window.open(url,'_blank'),i*380);
-  });
+async function calOpenAll(){
+  if(!_gToken){
+    _calEvs.forEach((ev,i)=>{
+      const url=calUrl(ev.title,ev.date);
+      if(url)setTimeout(()=>window.open(url,'_blank'),i*380);
+    });
+    return;
+  }
+  const btn=g('cal-all');
+  if(btn){btn.disabled=true;btn.textContent='Criando...';}
+  let ok=0,fail=0;
+  for(const ev of _calEvs){
+    if(!ev.date)continue;
+    try{
+      const start=ev.date;
+      const end=addDays(start,1);
+      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
+        method:'POST',
+        headers:{
+          'Authorization':'Bearer '+_gToken,
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          summary:ev.title,
+          start:{date:start},
+          end:{date:end},
+        })
+      });
+      ok++;
+    }catch(e){fail++;}
+  }
+  if(btn){btn.disabled=false;btn.textContent='Criar todos →';}
+  g('cal-ov').classList.add('hidden');
+  alert(ok+' evento(s) criado(s) no Google Calendar'+(fail?' ('+fail+' erro(s))':'')+'!');
 }
 
 /* ── TABS ────────────────────────────────────── */
