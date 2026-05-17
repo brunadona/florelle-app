@@ -1784,7 +1784,7 @@ async function calOpenAll(){
     try{
       const start=ev.date;
       const end=addDays(start,1);
-      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
+      const resp=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
         method:'POST',
         headers:{
           'Authorization':'Bearer '+_gToken,
@@ -1796,8 +1796,10 @@ async function calOpenAll(){
           end:{date:end},
         })
       });
+      const result=await resp.json();
+      console.log('Calendar API response:',resp.status,JSON.stringify(result));
       ok++;
-    }catch(e){fail++;}
+    }catch(e){console.error('Calendar API error:',e);fail++;}
   }
   if(btn){btn.disabled=false;btn.textContent='Criar todos →';}
   g('cal-ov').classList.add('hidden');
