@@ -1,4 +1,4 @@
-const CACHE = 'florelle-v2';
+const CACHE = 'florelle-v3';
 const SHELL = [
   '/florelle-app/',
   '/florelle-app/index.html',
