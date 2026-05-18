@@ -1996,11 +1996,11 @@ async function syncCalendar(brideId,nome,calEvs,oldEventIds){
     console.log('[Cal] criados',newIds.length,'eventos, IDs:',newIds);
     const b=DATA.find(x=>x.id===brideId);
     if(b){b.calEventIds=newIds;save();}
-    _showCalToast('Calendário atualizado ✓');
+    setTimeout(()=>_showCalToast('Calendário atualizado ✓'),400);
     return newIds;
   }catch(e){
     console.error('[Cal] ERRO:',e);
-    _showCalToast('Erro no Calendar: '+e.message,'err');
+    setTimeout(()=>_showCalToast('Erro no Calendar: '+e.message,'err'),400);
     return [];
   }
 }
