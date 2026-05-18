@@ -1353,7 +1353,8 @@ function syncAutoRems(){
     add('Retirar da sílica',    addDays(dataBuque,32));
     add('Iniciar montagem',     addDays(dataBuque,47));
   }
-  if(dataCas) add('Entrega', dataCas);
+  if(dataBuque) add('Entrega', addDays(dataBuque,60));
+  if(dataCas)   add('Data do casamento', dataCas);
 
   // cobranças
   const resAtiva = radVal('reservaAtiva')==='sim';
@@ -1493,8 +1494,9 @@ async function saveModal(){
     _ar('Pedir embalagem',      addDays(rec.dataBuque,3));
     _ar('Retirar da sílica',    addDays(rec.dataBuque,32));
     _ar('Iniciar montagem',     addDays(rec.dataBuque,47));
+    _ar('Entrega',              addDays(rec.dataBuque,60));
   }
-  if(rec.dataCasamento)_ar('Entrega',rec.dataCasamento);
+  if(rec.dataCasamento)_ar('Data do casamento',rec.dataCasamento);
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)
     _ar('Cobrança — Reserva',rec.reserva.data);
   (rec.pagamentos||[]).forEach((p,i)=>{
@@ -1938,9 +1940,10 @@ function buildCalEvents(rec){
     evs.push({title:'Pedir embalagem — '+nome,     date:addDays(rec.dataBuque,3)});
     evs.push({title:'Retirar da sílica — '+nome,   date:addDays(rec.dataBuque,32)});
     evs.push({title:'Iniciar montagem — '+nome,    date:addDays(rec.dataBuque,47)});
+    evs.push({title:'Entrega — '+nome,             date:addDays(rec.dataBuque,60)});
   }
   if(rec.dataCasamento){
-    evs.push({title:'Entrega — '+nome,date:rec.dataCasamento});
+    evs.push({title:'Data do casamento — '+nome,   date:rec.dataCasamento});
   }
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data){
     evs.push({title:'Cobrança Reserva — '+nome,date:rec.reserva.data});
