@@ -1682,10 +1682,10 @@ function buildCalEvents(rec){
     evs.push({key:'sil_retirar',title:'Retirar da sílica — '+n,date:addDays(buq,32)});
     evs.push({key:'sil_montagem',title:'Iniciar montagem — '+n,date:addDays(buq,47)});
     evs.push({key:'entrega',title:'Entrega — '+n,date:addDays(buq,60)});
+    const base=buq;
+    if(rec.redomaStatus==='naoEncomendada')evs.push({key:'redoma',title:'Pedir redoma — '+n,date:addDays(base,3)});
+    if(rec.statusEmbalagem==='naoEncomendada')evs.push({key:'embalagem',title:'Pedir embalagem — '+n,date:addDays(base,3)});
   }
-  const base=buq||today();
-  if(rec.redomaStatus==='naoEncomendada')evs.push({key:'redoma',title:'Pedir redoma — '+n,date:addDays(base,3)});
-  if(rec.statusEmbalagem==='naoEncomendada')evs.push({key:'embalagem',title:'Pedir embalagem — '+n,date:addDays(base,3)});
   if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data)evs.push({key:'reserva',title:'Cobrança Reserva — '+n,date:rec.reserva.data});
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
