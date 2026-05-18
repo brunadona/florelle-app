@@ -1,5 +1,4 @@
-const CACHE = 'florelle-v5';
-const SHELL = [
+const CACHE = 'florelle-v8';  
   '/florelle-app/',
   '/florelle-app/index.html',
 ];
