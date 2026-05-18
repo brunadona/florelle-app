@@ -857,6 +857,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1">
         <div class="fg"><label class="fl">Data de início na sílica</label><input id="m-silica" type="date" class="fi" onchange="silChg()"></div>
       </div>
+      <div id="silbox" class="silbox hidden">
+        <div class="sli"><div class="sll">Retirada (+30 dias)</div><div class="slv" id="sil-ret">—</div></div>
+        <div class="sli"><div class="sll">Montagem (+45 dias)</div><div class="slv" id="sil-mont">—</div></div>
+      </div>
     </div>
 
     <!-- 6. Flores & Extras -->
@@ -1330,6 +1334,8 @@ function silChg(){
 function silDisp(v){
   const box=g('silbox');
   if(v){
+    g('sil-ret').textContent=fmt(addDays(v,30));
+    g('sil-mont').textContent=fmt(addDays(v,45));
     box.classList.remove('hidden');
   } else {
     box.classList.add('hidden');
@@ -1895,6 +1901,7 @@ function buildTasks(){
     if(b.dataSilica){
       tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:b.dataSilica,           done:false,auto:true});
       tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataSilica,30),done:false,auto:true});
+      tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataSilica,45),done:false,auto:true});
     } else if(b.dataBuque){
       tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:addDays(b.dataBuque,2), done:false,auto:true});
       tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataBuque,32),done:false,auto:true});
@@ -2142,6 +2149,7 @@ function renderMaterial(){
   body.appendChild(hd);
   sec('Redoma não pedida',semRedoma,'Encomendar redoma','r-warn');
   sec('Embalagem não pedida',semEmb,'Encomendar embalagem','r-warn');
+  sec('Sílica vencida — retirada pendente',silVenc,'Retirar da sílica!','r-late');
 }
 
 function renderSummary(){
