@@ -1527,7 +1527,13 @@ async function saveModal(){
     if(_gToken){
       syncCalendar(brideIdForCal, rec.nome, calEvs, oldCalIds);
     } else {
-      _ensureToken().then(()=>syncCalendar(brideIdForCal, rec.nome, calEvs, oldCalIds)).catch(()=>{});
+      // Sem token — tenta silencioso primeiro, se falhar mostra botão
+      _ensureToken().then(()=>{
+        syncCalendar(brideIdForCal, rec.nome, calEvs, oldCalIds);
+      }).catch(()=>{
+        _showReconnectBtn();
+        setTimeout(()=>_showCalToast('Reconecte ao Google para sincronizar o Calendar','err'),200);
+      });
     }
   }
 
