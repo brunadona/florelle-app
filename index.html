@@ -1533,193 +1533,189 @@ async function saveModal(){
 }
 
 function gerarContrato(){
-  // Coleta dados do formulário aberto
-  const nome      = gv('m-nome').trim()||'___________________';
-  const cpf       = gv('m-cpf').trim()||'___________________';
-  const rg        = gv('m-rg').trim()||'___________________';
-  const endereco  = gv('m-end').trim()||'___________________';
-  const cidade    = gv('m-cidade').trim()||'___________________';
-  const cep       = gv('m-cep').trim()||'___________________';
-  const telefone  = gv('m-tel').trim()||'___________________';
-  const flores    = gv('m-flores').trim()||'___________________';
-  const cerimNome = gv('m-cerim-nome').trim()||'___________________';
-  const cerimTel  = gv('m-cerim-tel').trim()||'___________________';
-  const valor     = gv('m-valor').trim()||'___________________';
+  const nome      = gv('m-nome').trim()||'';
+  const cpf       = gv('m-cpf').trim()||'';
+  const rg        = gv('m-rg').trim()||'';
+  const endereco  = gv('m-end').trim()||'';
+  const cidade    = gv('m-cidade').trim()||'';
+  const cep       = gv('m-cep').trim()||'';
+  const telefone  = gv('m-tel').trim()||'';
+  const flores    = gv('m-flores').trim()||'';
+  const cerimNome = gv('m-cerim-nome').trim()||'';
+  const cerimTel  = gv('m-cerim-tel').trim()||'';
+  const valor     = gv('m-valor').trim()||'';
   const rep       = radVal('rep');
-  const retirada  = radVal('retiradaBuque');
   const produto   = radVal('prod');
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
 
-  // Produto
-  const prodMap={'cupula':'Cúpula','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×42 cm'};
-  const modeloTxt = prodMap[produto]||produto||'___________________';
+  const prodMap={'cupula':'Cúpula G','cupolam':'Cúpula M','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×42 cm','multiplos':'Múltiplos'};
+  const modeloTxt = prodMap[produto]||produto||'';
 
-  // Itens adicionais
-  const itens=[];
-  if(pecas.includes('convite'))itens.push('Convite de casamento');
-  if(pecas.includes('terco'))itens.push('Terço');
-  if(pecas.includes('outro')&&pecasOutro)itens.push(pecasOutro);
-  const itensTxt = itens.length?itens.join(', '):'Não';
+  const chkSim    = rep==='sim';
+  const chkNao    = rep==='nao';
+  const chkConvite= pecas.includes('convite');
+  const chkTerco  = pecas.includes('terco');
+  const outroTxt  = pecas.includes('outro')&&pecasOutro ? pecasOutro : 'não';
 
-  // Reposição
-  const repTxt = rep==='sim'
-    ? 'Autoriza a reposição de flores, se tecnicamente necessária, mediante cobrança adicional, informada no dia da retirada do buquê no evento.'
-    : rep==='nao'
-    ? 'Não autoriza reposição de flores.'
-    : '___________________';
-
-  // Retirada
-  let retiradaTxt='';
-  if(retirada==='florelle') retiradaTxt='Florelle responsável pela busca do buquê junto à noiva — taxa de <strong>R$ 30,00</strong> dentro de Cascavel.';
-  else if(retirada==='sedex') retiradaTxt='Noiva envia o buquê via Sedex, arcando com os custos de entrega e devolução.';
-  else retiradaTxt='___________________';
-
-  // Forma de pagamento e parcelas
-  const pagRows=_getPagRows();
-  const resAtiva=radVal('reservaAtiva')==='sim';
-  let pagTxt='';
+  const pagRows  = _getPagRows();
+  const resAtiva = radVal('reservaAtiva')==='sim';
+  const pagLinhas=[];
   if(resAtiva&&pagRows.length){
-    const reserva=pagRows[0];
-    const parcelas=pagRows.slice(1);
-    const linhas=[];
-    if(reserva.valor)linhas.push(`Reserva: R$ ${reserva.valor}${reserva.data?' — '+fmt(reserva.data):''}${reserva.pago?' (pago)':''}`);
-    parcelas.forEach((p,i)=>{
-      if(p.valor)linhas.push(`${i+1}ª parcela: R$ ${p.valor}${p.data?' — '+fmt(p.data):''}${p.pago?' (pago)':''}`);
-    });
-    pagTxt=linhas.join('<br>');
-  } else if(pagRows.length){
-    pagTxt=pagRows.filter(p=>p.valor).map((p,i)=>`${i+1}ª parcela: R$ ${p.valor}${p.data?' — '+fmt(p.data):''}${p.pago?' (pago)':''}`).join('<br>');
+    const res=pagRows[0];
+    if(res.valor)pagLinhas.push('Reserva: R$ '+res.valor+(res.data?' — '+fmt(res.data):'')+(res.pago?' ✓':''));
+    pagRows.slice(1).forEach((p,i)=>{if(p.valor)pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
+  } else {
+    pagRows.filter(p=>p.valor).forEach((p,i)=>{pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
   }
-  if(!pagTxt)pagTxt='___________________';
+  const fpMap={'pix3x':'Pix parcelado','pixvista':'Pix à vista','cartao':'Cartão'};
+  const fpTxt = fpMap[radVal('pag')]||radVal('pag')||'';
+  const pagHTML = (fpTxt?fpTxt+'<br>':'')+pagLinhas.join('<br>');
 
-  // Data de hoje
   const hoje=new Date();
-  const dataHoje=`${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+  const dataHoje=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
+  const f=v=>v||'___________________________';
+  const cb=checked=>checked?'(X)':'( )';
 
-  const html=`<!DOCTYPE html>
+  const assBruna=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="44" viewBox="0 0 120 44"><path d="M4 34 C8 22 12 32 16 24 C18 18 20 30 24 22 C26 16 30 28 36 20 C40 14 44 26 50 18 C54 12 58 24 64 16 C68 10 72 22 78 16 C82 10 88 20 94 14 C98 10 104 18 110 14 C113 12 116 16 118 14" fill="none" stroke="#111" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 34 C5 38 7 36 8 34" fill="none" stroke="#111" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+
+  const pageHTML=`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Contrato — ${nome}</title>
+<title>Contrato — `+f(nome)+`</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'EB Garamond',Georgia,serif;font-size:13.5pt;line-height:1.75;color:#1a1a1a;background:#f5f2ee}
-  .page{max-width:680px;margin:0 auto;background:#fff;padding:60px 64px 70px;min-height:100vh}
-  h1{font-family:'Cormorant Garamond',serif;font-size:22pt;font-weight:600;text-align:center;margin-bottom:4px;letter-spacing:.01em}
-  .sub{text-align:center;font-size:12pt;color:#555;margin-bottom:44px;font-style:italic}
-  h2{font-family:'Cormorant Garamond',serif;font-size:13.5pt;font-weight:600;text-decoration:underline;text-underline-offset:3px;margin:32px 0 10px}
-  p{margin-bottom:8px}
-  .field{display:inline-block;min-width:180px;border-bottom:1px solid #999;padding:0 2px}
-  .campo-bloco{margin-bottom:6px}
-  .campo-bloco strong{min-width:130px;display:inline-block;color:#444}
-  ul{margin:6px 0 10px 22px}
-  ul li{margin-bottom:3px}
-  .ass-row{display:flex;gap:60px;margin-top:48px;flex-wrap:wrap}
-  .ass-col{flex:1;min-width:220px}
-  .ass-col .linha{border-top:1px solid #555;margin-top:48px;padding-top:6px;font-size:11pt;color:#444}
-  .ass-col .ass-img{margin-top:8px}
-  .ass-col .ass-img img{max-height:52px;opacity:.85}
-  .print-btn{position:fixed;bottom:24px;right:24px;background:#5a7a52;color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:13px;font-family:sans-serif;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.22);z-index:999}
-  .print-btn:hover{background:#4a6a42}
-  @media print{
-    body{background:#fff}
-    .page{padding:30px 40px;box-shadow:none}
-    .print-btn{display:none}
-    h2{page-break-after:avoid}
-  }
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#b8b0a4}
+body{font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-size:11.5pt;line-height:1.72;color:#111}
+.page{max-width:700px;margin:0 auto;background:#e4dcd0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");padding:66px 70px 78px;min-height:100vh}
+h1{font-size:15pt;font-weight:500;text-align:center;margin-bottom:1px}
+.sub{text-align:center;font-size:14pt;margin-bottom:38px}
+.sec{margin-top:24px;margin-bottom:4px}
+.sec-t{font-size:11.5pt;font-weight:700;text-decoration:underline;text-underline-offset:2px;text-transform:uppercase;letter-spacing:.02em;margin-bottom:5px}
+p{margin-bottom:4px;text-align:justify}
+.c{margin-bottom:2px}
+.ass-bloco{margin-top:50px}
+.ass-row{display:flex;gap:70px;margin-top:10px;flex-wrap:wrap}
+.ass-col{flex:1;min-width:190px}
+.ass-line{border-top:1px solid #444;margin-top:52px;padding-top:4px;font-size:10.5pt}
+.pbt{position:fixed;bottom:20px;right:20px;background:#5a7a52;color:#fff;border:none;border-radius:7px;padding:10px 20px;font-size:12px;font-family:sans-serif;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25);z-index:999}
+.pbt:hover{background:#4a6a42}
+@media print{html{background:#e4dcd0}.page{padding:38px 50px}.pbt{display:none}.sec{page-break-inside:avoid}}
 </style>
 </head>
 <body>
-<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+<button class="pbt" onclick="window.print()">&#128424; Imprimir / Salvar PDF</button>
 <div class="page">
+<h1>Contrato de prestação de serviços</h1>
+<div class="sub">Florelle Atelier - Buquê eternizado</div>
 
-<h1>Contrato de Prestação de Serviços</h1>
-<div class="sub">Florelle Atelier — Buquê Eternizado</div>
-
-<h2>1. IDENTIFICAÇÃO DAS PARTES</h2>
-<p><strong>CONTRATADA:</strong><br>
-Bruna Alice Puerari Dona, brasileira, CPF nº 096.664.579-03, responsável pela prestação dos serviços artesanais de eternização de buquê, doravante denominada <strong>FLORELLE ATELIER</strong>.</p>
-
-<p><strong>CONTRATANTE:</strong></p>
-<div class="campo-bloco"><strong>Nome completo:</strong> ${nome}</div>
-<div class="campo-bloco"><strong>CPF:</strong> ${cpf}</div>
-<div class="campo-bloco"><strong>RG:</strong> ${rg}</div>
-<div class="campo-bloco"><strong>Endereço:</strong> ${endereco}</div>
-<div class="campo-bloco"><strong>Cidade/UF:</strong> ${cidade}</div>
-<div class="campo-bloco"><strong>CEP:</strong> ${cep}</div>
-<div class="campo-bloco"><strong>Telefone:</strong> ${telefone}</div>
-
-<h2>2. OBJETO DO CONTRATO</h2>
-<p>O presente contrato tem por objeto a prestação de serviços artesanais de eternização de buquê de noiva, incluindo secagem, preservação estética e montagem estrutural do buquê entregue pela CONTRATANTE.</p>
-
-<h2>3. NATUREZA DO BUQUÊ ETERNIZADO</h2>
-<p>A CONTRATANTE declara estar ciente e de acordo que:</p>
-<ul>
-  <li>O buquê é composto por flores naturais, sujeitas a alterações de cor e tonalidade decorrentes do processo de secagem e da ação do tempo;</li>
-  <li>Flores originalmente claras ou brancas podem evoluir para tons off-white, bege, champagne ou vintage; rosas vermelhas podem evoluir para vinho; assim como todas as cores podem ter evolução;</li>
-  <li>Tais alterações são naturais do material orgânico e não configuram defeito, vício ou falha na prestação do serviço;</li>
-  <li>A estrutura do buquê será preservada, desde que respeitadas as orientações de conservação.</li>
-</ul>
-
-<h2>4. MODELO DO BUQUÊ</h2>
-<div class="campo-bloco"><strong>Modelo contratado:</strong> ${modeloTxt}</div>
-
-<h2>5. FLORES UTILIZADAS</h2>
-<div class="campo-bloco"><strong>Flores que compõem o buquê:</strong> ${flores}</div>
-
-<h2>6. ITENS ADICIONAIS INCORPORADOS</h2>
-<div class="campo-bloco"><strong>Itens:</strong> ${itensTxt}</div>
-
-<h2>7. REPOSIÇÃO DE FLORES</h2>
-<p>A CONTRATANTE declara que: ${repTxt}</p>
-
-<h2>8. RETIRADA DO BUQUÊ NO EVENTO</h2>
-<p>${retiradaTxt}</p>
-<p>Caso o buquê precise ser enviado de outra cidade ou estado, a noiva se encarrega de enviar via Sedex arcando com os custos de entrega e devolução. Para devolução do buquê via Sedex saindo de Cascavel, o valor será enviado para reembolso.</p>
-
-<h2>9. CERIMONIALISTA</h2>
-<div class="campo-bloco"><strong>Nome:</strong> ${cerimNome}</div>
-<div class="campo-bloco"><strong>Telefone:</strong> ${cerimTel}</div>
-
-<h2>10. VALOR E FORMA DE PAGAMENTO</h2>
-<div class="campo-bloco"><strong>Valor total do serviço:</strong> R$ ${valor}</div>
-<div class="campo-bloco" style="margin-top:8px"><strong>Forma(s) de pagamento:</strong><br>${pagTxt}</div>
-
-<h2>11. DESISTÊNCIA</h2>
-<p>Em caso de desistência por parte da CONTRATANTE, os valores pagos até a data da retirada do buquê não serão reembolsados, por destinarem-se ao custeio de materiais, insumos e mão de obra já empregados.</p>
-
-<h2>12. PRAZO PARA RETIRADA DO BUQUÊ FINALIZADO</h2>
-<p>O buquê eternizado deverá ser retirado no prazo máximo de 120 (cento e vinte) dias após a conclusão do serviço.</p>
-<p>O descumprimento deste prazo autoriza a FLORELLE a descartar o buquê, sem aviso prévio e sem direito a indenização ou restituição de valores.</p>
-
-<h2>13. ACEITE E ASSINATURA ELETRÔNICA</h2>
-<p>As partes declaram que leram, compreenderam e concordam integralmente com os termos deste contrato, reconhecendo sua validade mediante assinatura eletrônica simples, inclusive com inserção de assinatura digitalizada ou imagem da assinatura manuscrita.</p>
-
-<p style="margin-top:24px"><strong>Local e data:</strong> Cascavel/PR, ${dataHoje}</p>
-
-<div class="ass-row">
-  <div class="ass-col">
-    <p><strong>CONTRATADA:</strong></p>
-    <p>Bruna Alice Puerari Dona<br>CPF nº 096.664.579-03</p>
-    <div class="ass-img"><img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMTIwIDUwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xMCA0MiBRMjUgMTAgNDAgMzAgUTU1IDQ4IDcwIDI4IFE4NSA4IDEwMCAzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" alt="assinatura"></div>
-    <div class="linha">Assinatura</div>
-  </div>
-  <div class="ass-col">
-    <p><strong>CONTRATANTE:</strong></p>
-    <p>${nome}<br>CPF: ${cpf}</p>
-    <div class="linha">Assinatura</div>
-  </div>
+<div class="sec">
+<div class="sec-t">1. Identificação das Partes</div>
+<p><b>CONTRATADA:</b><br>Bruna Alice Puerari Dona, brasileira, CPF nº 096.664.579-03, responsável pela prestação dos serviços artesanais de eternização de buquê, doravante denominada FLORELLE ATELIER.</p>
+<br>
+<p><b>CONTRATANTE:</b></p>
+<div class="c">Nome completo: `+f(nome)+`</div>
+<div class="c">CPF: `+f(cpf)+`</div>
+<div class="c">RG: `+f(rg)+`</div>
+<div class="c">Endereço completo: `+f(endereco)+`</div>
+<div class="c">Cidade/UF: `+f(cidade)+`</div>
+<div class="c">CEP: `+f(cep)+`</div>
+<div class="c">Telefone: `+f(telefone)+`</div>
 </div>
 
-</div><!-- /page -->
-</body>
-</html>`;
+<div class="sec">
+<div class="sec-t">2. Objeto do Contrato</div>
+<p>O presente contrato tem por objeto a prestação de serviços artesanais de eternização de buquê de noiva, incluindo secagem, preservação estética e montagem estrutural do buquê entregue pela CONTRATANTE.</p>
+</div>
+
+<div class="sec">
+<div class="sec-t">3. Natureza do Buquê Eternizado</div>
+<p>A CONTRATANTE declara estar ciente e de acordo que:</p>
+<p>a) O buquê é composto por flores naturais, sujeitas a alterações de cor e tonalidade decorrentes do processo de secagem e da ação do tempo;</p>
+<p>b) Flores originalmente claras ou brancas podem evoluir para tons off-white, bege, champagne ou vintage; rosas vermelhas podem evoluir para vinho; assim como todas as cores podem ter evolução</p>
+<p>c) Tais alterações são naturais do material orgânico e não configuram defeito, vício ou falha na prestação do serviço;</p>
+<p>d) A estrutura do buquê será preservada, desde que respeitadas as orientações de conservação.</p>
+</div>
+
+<div class="sec">
+<div class="sec-t">4. Modelo do Buquê</div>
+<div class="c">Modelo contratado: `+f(modeloTxt)+`</div>
+</div>
+
+<div class="sec">
+<div class="sec-t">5. Flores Utilizadas</div>
+<div class="c">Flores que compõem o buquê: `+f(flores)+`</div>
+</div>
+
+<div class="sec">
+<div class="sec-t">6. Itens Adicionais Incorporados (se houver)</div>
+<div class="c">`+cb(chkConvite)+` Convite de casamento</div>
+<div class="c">`+cb(chkTerco)+` Terço</div>
+<div class="c">( ) Outros: `+outroTxt+`</div>
+</div>
+
+<div class="sec">
+<div class="sec-t">7. Reposição de Flores</div>
+<p>A CONTRATANTE declara que:</p>
+<div class="c">`+cb(chkSim)+` Autoriza a reposição de flores, se tecnicamente necessária, mediante cobrança adicional, informada no dia da retirada do buquê no evento.</div>
+<div class="c">`+cb(chkNao)+` Não autoriza reposição de flores.</div>
+</div>
+
+<div class="sec">
+<div class="sec-t">8. Retirada do Buquê no Evento</div>
+<p>Caso a FLORELLE seja responsável pela busca do buquê junto à noiva, madrinha ou mãe, será cobrada taxa fixa de R$ 30,00 (trinta reais) dentro de Cascavel, sendo em outra cidade ou estado, a noiva se encarrega de enviar o buquê via Sedex arcando com os custos de entrega e também devolução. Para devolução do buquê via Sedex saindo de Cascavel, o valor será enviado para reembolso</p>
+</div>
+
+<div class="sec">
+<div class="sec-t">9. Cerimonialista</div>
+<div class="c">Nome: `+f(cerimNome)+`</div>
+<div class="c">Telefone: `+f(cerimTel)+`</div>
+</div>
+
+<div class="sec">
+<div class="sec-t">10. Valor e Forma de Pagamento</div>
+<div class="c">Valor total do serviço: `+(valor?'R$ '+valor:f(''))+`</div>
+<br>
+<div class="c">Forma(s) de pagamento: `+pagHTML+`</div>
+</div>
+
+<div class="sec">
+<div class="sec-t">11. Desistência</div>
+<p>Em caso de desistência por parte da CONTRATANTE, os valores pagos até a data da retirada do buquê não serão reembolsados, por destinarem-se ao custeio de materiais, insumos e mão de obra já empregados.</p>
+</div>
+
+<div class="sec">
+<div class="sec-t">12. Prazo para Retirada do Buquê Finalizado</div>
+<p>O buquê eternizado deverá ser retirado no prazo máximo de 120 (cento e vinte) dias após a conclusão do serviço.</p>
+<p>O descumprimento deste prazo autoriza a FLORELLE a descartar o buquê, sem aviso prévio e sem direito a indenização ou restituição de valores.</p>
+</div>
+
+<div class="sec">
+<div class="sec-t">13. Aceite e Assinatura Eletrônica</div>
+<p>As partes declaram que leram, compreenderam e concordam integralmente com os termos deste contrato, reconhecendo sua validade mediante assinatura eletrônica simples, inclusive com inserção de assinatura digitalizada ou imagem da assinatura manuscrita.</p>
+</div>
+
+<div class="ass-bloco">
+<p>Local e data: Cascavel/PR, `+dataHoje+`</p>
+<div class="ass-row">
+<div class="ass-col">
+<p><b>CONTRATADA:</b><br>Bruna Alice Puerari Dona<br>CPF nº 096.664.579-03<br>Assinatura:</p>
+<div style="margin-top:6px">`+assBruna+`</div>
+</div>
+<div class="ass-col">
+<p><b>CONTRATANTE:</b><br>Assinatura:</p>
+<div class="ass-line">___________________________<br>`+f(nome)+`<br>CPF: `+f(cpf)+`</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>`;
 
   const w=window.open('','_blank');
-  if(w){w.document.write(html);w.document.close();}
+  if(w){w.document.write(pageHTML);w.document.close();}
   else{alert('Pop-up bloqueado. Permita pop-ups para este site e tente novamente.');}
 }
 
