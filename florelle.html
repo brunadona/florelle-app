@@ -731,7 +731,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Dados da Noiva</div>
       <div class="frow">
         <div class="fg"><label class="fl">Nome</label><input id="m-nome" type="text" class="fi" placeholder="Nome completo" oninput="syncName()"></div>
-        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi"></div>
+        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi" onchange="syncAutoRems()"></div>
       </div>
       <div class="frow f1">
         <div class="fg"><label class="fl">Endereço</label><input id="m-end" type="text" class="fi" placeholder="Rua, número, cidade…"></div>
@@ -1001,8 +1001,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 <script>
 'use strict';
-// Safety guard for cached versions
-if(typeof syncAutoRems==='undefined'){window.syncAutoRems=function(){};}
+
 
 /* ── COLUMNS ─────────────────────────────────── */
 const COLS=[
@@ -1299,7 +1298,7 @@ function syncName(){
 function embChg(){
   const v=radVal('emb');
   g('emb-dr').classList.toggle('hidden',v!=='encomendada');
-  
+  syncAutoRems();
 }
 
 function pecaChg(el){
@@ -1317,19 +1316,7 @@ function pecaVis(){
 }
 
 /* ── SILICA ──────────────────────────────────── */
-function silChg(){
-  const v=gv('m-silica');
-  silDisp(v);
-  mRem=mRem.filter(r=>!r.auto);
-  if(v){
-    mRem.unshift(
-      {id:uid(),text:'Início da montagem',data:addDays(v,50),auto:true,done:false},
-      {id:uid(),text:'Retirar da sílica',data:addDays(v,30),auto:true,done:false},
-      {id:uid(),text:'Colocar na sílica',data:v,auto:true,done:false}
-    );
-  }
-  renderRL();
-}
+function silChg(){silDisp(gv('m-silica'));syncAutoRems();}
 
 function silDisp(v){}
 
@@ -1366,6 +1353,43 @@ function addRem(){
   sv2('nr-txt','');sv2('nr-dt','');
   renderRL();
 }
+/* ── SYNC AUTO REMINDERS ─────────────────────── */
+function syncAutoRems(){
+  mRem=mRem.filter(r=>!r.auto);
+  const add=(text,data)=>{
+    if(!data||mRem.some(r=>r.auto&&r.text===text&&r.data===data))return;
+    mRem.push({id:uid(),text,data,auto:true,done:false});
+  };
+  // Sílica (from buque date)
+  const buq=gv('m-buque');
+  if(buq){
+    add('Colocar na sílica',addDays(buq,2));
+    add('Retirar da sílica',addDays(buq,32));
+    add('Iniciar montagem',addDays(buq,47));
+  }
+  // Entrega
+  const cas=gv('m-cas');
+  if(cas)add('Entrega',cas);
+  // Redoma
+  if(radVal('redomaStatus')==='naoEncomendada')add('Pedir redoma',addDays(today(),3));
+  // Embalagem
+  if(radVal('emb')==='naoEncomendada')add('Pedir embalagem',addDays(today(),3));
+  // Pagamentos
+  const reservaAtiva=radVal('reservaAtiva')==='sim';
+  const fp=radVal('pag');
+  const rows=_getPagRows();
+  const pagRows=reservaAtiva?rows.slice(1):rows;
+  if(reservaAtiva&&rows[0]&&!rows[0].pago&&rows[0].data)add('Cobrança — Reserva',rows[0].data);
+  pagRows.forEach((p,i)=>{
+    if(!p.pago&&p.data){
+      const lbl=fp==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      add('Cobrança — '+lbl,p.data);
+    }
+  });
+  // Data casamento lembrete
+  renderRL();
+}
+
 
 /* ── SAVE / DELETE ───────────────────────────── */
 async function saveModal(){
@@ -1551,7 +1575,7 @@ function renderRP(){
 function buqueChg(){
   const v=gv('m-buque');
   buqueDisp(v);
-  if(v&&!gv('m-silica')){sv2('m-silica',addDays(v,2));silChg();}
+  syncAutoRems();
 }
 function buqueDisp(v){
   const box=g('buq-box');
@@ -1568,10 +1592,11 @@ function redomaChg(){
   const v=radVal('redomaStatus');
   g('redoma-dt-row').classList.toggle('hidden',v!=='encomendada');
   g('redoma-nao-hint').classList.toggle('hidden',v!=='naoEncomendada');
+  syncAutoRems();
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
-function embPedidaChg(){ if(typeof syncAutoRems==='function')syncAutoRems(); }
+function embPedidaChg(){ syncAutoRems(); }
 
 /* ── PAGAMENTO ───────────────────────────────── */
 function reservaChg(){
@@ -1655,10 +1680,11 @@ function pagCalc(preload){
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
     `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="pagCalc()">`+
-    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px">`+
-    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
+    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
+    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''} onchange="syncAutoRems()"> ${r.chkLabel}</label>`+
     `</div>`
   ).join('');
+  syncAutoRems();
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
