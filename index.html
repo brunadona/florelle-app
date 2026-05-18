@@ -209,6 +209,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .bsec:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
 .bsav{height:35px;padding:0 20px;background:var(--sd);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .16s}
 .bsav:hover{background:var(--smd)}
+.bctrt{height:35px;padding:0 14px;background:transparent;color:var(--sd);border:1.5px solid var(--sl);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .16s}
+.bctrt:hover{background:var(--ccol);border-color:var(--sd)}
 
 /* reminders panel */
 #rp{position:fixed;top:65px;right:16px;width:318px;max-height:calc(100vh - 85px);background:var(--wh);border-radius:11px;border:1px solid var(--bd);box-shadow:var(--sh3);z-index:500;display:flex;flex-direction:column;animation:fu .18s ease}
@@ -448,7 +450,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
   /* 44px touch targets */
   .bprim{height:44px!important;padding:0 20px!important}
-  .bsec,.bsav,.bdng,.bwa,.b-io,.gbtn{height:44px!important}
+  .bsec,.bsav,.bdng,.bwa,.b-io,.gbtn,.bctrt{height:44px!important}
   .bbel{width:44px!important;height:44px!important}
   .bcls{width:44px!important;height:44px!important}
   .fi,.fs{height:44px!important}
@@ -731,10 +733,22 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Dados da Noiva</div>
       <div class="frow">
         <div class="fg"><label class="fl">Nome</label><input id="m-nome" type="text" class="fi" placeholder="Nome completo" oninput="syncName()"></div>
-        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi" onchange="syncAutoRems()"></div>
+        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">CPF</label><input id="m-cpf" type="text" class="fi" placeholder="000.000.000-00"></div>
+        <div class="fg"><label class="fl">RG</label><input id="m-rg" type="text" class="fi" placeholder="00.000.000-0"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Telefone / WhatsApp</label><input id="m-tel" type="text" class="fi" placeholder="(00) 00000-0000"></div>
+        <div class="fg"><label class="fl">Cidade/UF</label><input id="m-cidade" type="text" class="fi" placeholder="Ex: Cascavel/PR"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">CEP</label><input id="m-cep" type="text" class="fi" placeholder="00000-000"></div>
+        <div class="fg"></div>
       </div>
       <div class="frow f1">
-        <div class="fg"><label class="fl">Endereço</label><input id="m-end" type="text" class="fi" placeholder="Rua, número, cidade…"></div>
+        <div class="fg"><label class="fl">Endereço</label><input id="m-end" type="text" class="fi" placeholder="Rua, número…"></div>
       </div>
     </div>
 
@@ -805,7 +819,19 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1 hidden" id="emb-dr">
         <div class="fg"><label class="fl">Data de entrega prevista</label><input id="m-emb-d" type="date" class="fi"></div>
       </div>
-      
+      <div id="emb-pedida-section" style="margin-top:14px">
+        <div class="fg" style="margin-bottom:11px">
+          <label class="fl">Embalagem já foi pedida?</label>
+          <div class="tg">
+            <label class="to ty"><input type="radio" name="embPedida" value="sim" onchange="embPedidaChg()"><span class="tl">✓ Sim</span></label>
+            <label class="to tn"><input type="radio" name="embPedida" value="nao" onchange="embPedidaChg()"><span class="tl">✗ Não</span></label>
+          </div>
+        </div>
+        <div class="frow f1 hidden" id="emb-prev-row">
+          <div class="fg"><label class="fl">Previsão de chegada</label><input id="m-emb-prev" type="date" class="fi"></div>
+        </div>
+        <p class="hint hint-warn hidden" id="emb-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar embalagem — [nome]"</strong> para daqui 3 dias.</p>
+      </div>
     </div>
 
     <!-- 4. Pagamento -->
@@ -839,6 +865,17 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div id="pag-rows"></div>
     </div>
 
+    <!-- 5. Sílica -->
+    <div class="fsec">
+      <div class="sttl">Sílica</div>
+      <div class="frow f1">
+        <div class="fg"><label class="fl">Data de início na sílica</label><input id="m-silica" type="date" class="fi" onchange="silChg()"></div>
+      </div>
+      <div id="silbox" class="silbox hidden">
+        <div class="sli"><div class="sll">Retirada (+30 dias)</div><div class="slv" id="sil-ret">—</div></div>
+        <div class="sli"><div class="sll">Montagem (+45 dias)</div><div class="slv" id="sil-mont">—</div></div>
+      </div>
+    </div>
 
     <!-- 6. Flores & Extras -->
     <div class="fsec">
@@ -850,7 +887,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label class="to tn"><input type="radio" name="rep" value="nao"><span class="tl">✗ Não autoriza</span></label>
         </div>
       </div>
-      <div class="fg">
+      <div class="fg" style="margin-bottom:13px">
+        <label class="fl">Flores utilizadas no buquê</label>
+        <textarea id="m-flores" class="fta" style="min-height:64px" placeholder="Ex: rosas brancas, eucalipto, gypsophila…"></textarea>
+      </div>
+      <div class="fg" style="margin-bottom:13px">
         <label class="fl">Peças adicionais</label>
         <div class="cg">
           <label class="co"><input type="checkbox" name="pecas" value="terco" onchange="pecaChg(this)"><span class="cl">Terço</span></label>
@@ -859,6 +900,17 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label class="co"><input type="checkbox" name="pecas" value="nenhuma" id="cb-nh" onchange="pecaChg(this)"><span class="cl">Nenhuma</span></label>
         </div>
         <input id="m-outro" type="text" class="fi hidden mt8" placeholder="Descreva a peça adicional…">
+      </div>
+      <div class="fg" style="margin-bottom:13px">
+        <label class="fl">Retirada do buquê no evento</label>
+        <div class="tg">
+          <label class="to ty"><input type="radio" name="retiradaBuque" value="florelle"><span class="tl">Florelle busca (+ R$30)</span></label>
+          <label class="to tn"><input type="radio" name="retiradaBuque" value="sedex"><span class="tl">Noiva envia Sedex</span></label>
+        </div>
+      </div>
+      <div class="frow" style="margin-bottom:0">
+        <div class="fg"><label class="fl">Cerimonialista — Nome</label><input id="m-cerim-nome" type="text" class="fi" placeholder="Nome do(a) cerimonialista"></div>
+        <div class="fg"><label class="fl">Cerimonialista — Telefone</label><input id="m-cerim-tel" type="text" class="fi" placeholder="(00) 00000-0000"></div>
       </div>
     </div>
 
@@ -912,8 +964,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div class="mft">
     <button class="bdng hidden" id="bdel" onclick="delBride()">Excluir</button>
     <div class="fr">
-      <button class="bsec" id="bcal" onclick="openCalModal()">🗓 Calendar</button>
       <button class="bsec" onclick="closeModal()">Cancelar</button>
+      <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
       <button class="bsav" onclick="saveModal()">Salvar</button>
     </div>
   </div>
@@ -921,22 +973,24 @@ body{display:flex;flex-direction:column;overflow:hidden}
  </div><!-- /mp -->
 </div><!-- /ov -->
 
-<!-- CALENDAR SYNC MODAL -->
+<!-- CALENDAR MODAL -->
 <div id="cal-ov" class="hidden" onclick="calClose()">
   <div id="cal-panel" onclick="event.stopPropagation()">
     <div class="calhd">
       <div class="cal-ico">📅</div>
-      <div style="flex:1"><div class="cal-ey">Google Calendar</div><div class="cal-nm" id="cal-nm">—</div></div>
+      <div style="flex:1">
+        <div class="cal-ey">Google Calendar</div>
+        <div class="cal-nm" id="cal-nm">—</div>
+      </div>
       <button class="bcls" onclick="calClose()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
     </div>
     <div class="calbdy">
-      <p class="cal-intro">Sincroniza os eventos desta noiva. Eventos anteriores são deletados e recriados — nunca duplica.</p>
-      <div id="cal-ev-preview" style="margin:10px 0;font-size:12px"></div>
-      <div id="cal-sync-status" style="font-size:12px;margin-top:8px;padding:7px 10px;border-radius:7px;display:none"></div>
+      <p class="cal-intro">Lembretes identificados ao salvar. Clique em <strong>Criar →</strong> em cada um para abrir o Google Calendar já preenchido:</p>
+      <div class="cal-lst" id="cal-lst"></div>
     </div>
     <div class="calft">
-      <button class="bsec" onclick="calClose()">Fechar</button>
-      <button class="cal-all" id="cal-sync-btn" onclick="calSyncBride(_calBrideId)">🗓 Sincronizar</button>
+      <span class="cal-note">Cada link abre o Calendar pré-preenchido. Revise e confirme em cada aba.</span>
+      <button class="cal-all" onclick="calOpenAll()">Criar todos →</button>
     </div>
   </div>
 </div>
@@ -979,7 +1033,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 <script>
 'use strict';
-
 
 /* ── COLUMNS ─────────────────────────────────── */
 const COLS=[
@@ -1224,6 +1277,14 @@ function fillForm(b){
   sv2('m-nome',       b.nome||'');
   sv2('m-cas',        b.dataCasamento||'');
   sv2('m-end',        b.endereco||'');
+  sv2('m-cpf',        b.cpf||'');
+  sv2('m-rg',         b.rg||'');
+  sv2('m-tel',        b.telefone||'');
+  sv2('m-cidade',     b.cidade||'');
+  sv2('m-cep',        b.cep||'');
+  sv2('m-flores',     b.floresUtilizadas||'');
+  sv2('m-cerim-nome', b.cerimonialista||'');
+  sv2('m-cerim-tel',  b.cerimonialTel||'');
   sv2('m-prod-obs',   b.produtoObs||'');
   sv2('m-emb-d',      b.dataEntregaEmbalagem||'');
   sv2('m-silica',     b.dataSilica||'');
@@ -1239,6 +1300,7 @@ function fillForm(b){
   setRad('emb',       b.statusEmbalagem||'naoEncomendada');
   setRad('pag',       b.formaPagamento||'');
   setRad('rep',       b.autorizaReposicao||'');
+  setRad('retiradaBuque', b.retiradaBuque||'');
   setRad('redomaStatus', b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':b.redomaPedida==='nao'?'naoEncomendada':''));
   setRad('embPedida', b.embPedida||'');
 
@@ -1276,7 +1338,7 @@ function syncName(){
 function embChg(){
   const v=radVal('emb');
   g('emb-dr').classList.toggle('hidden',v!=='encomendada');
-  syncAutoRems();
+  g('emb-pedida-section').classList.toggle('hidden',v==='emMaos');
 }
 
 function pecaChg(el){
@@ -1294,9 +1356,30 @@ function pecaVis(){
 }
 
 /* ── SILICA ──────────────────────────────────── */
-function silChg(){silDisp(gv('m-silica'));syncAutoRems();}
+function silChg(){
+  const v=gv('m-silica');
+  silDisp(v);
+  mRem=mRem.filter(r=>!r.auto);
+  if(v){
+    mRem.unshift(
+      {id:uid(),text:'Início da montagem',data:addDays(v,50),auto:true,done:false},
+      {id:uid(),text:'Retirar da sílica',data:addDays(v,30),auto:true,done:false},
+      {id:uid(),text:'Colocar na sílica',data:v,auto:true,done:false}
+    );
+  }
+  renderRL();
+}
 
-function silDisp(v){}
+function silDisp(v){
+  const box=g('silbox');
+  if(v){
+    g('sil-ret').textContent=fmt(addDays(v,30));
+    g('sil-mont').textContent=fmt(addDays(v,45));
+    box.classList.remove('hidden');
+  } else {
+    box.classList.add('hidden');
+  }
+}
 
 /* ── REMINDER LIST ───────────────────────────── */
 function renderRL(){
@@ -1331,41 +1414,6 @@ function addRem(){
   sv2('nr-txt','');sv2('nr-dt','');
   renderRL();
 }
-/* ── SYNC AUTO REMINDERS ─────────────────────── */
-function syncAutoRems(){
-  mRem=mRem.filter(r=>!r.auto);
-  const add=(text,data)=>{
-    if(!data||mRem.some(r=>r.auto&&r.text===text&&r.data===data))return;
-    mRem.push({id:uid(),text,data,auto:true,done:false});
-  };
-  // Sílica e entrega (from buque date)
-  const buq=gv('m-buque');
-  if(buq){
-    add('Colocar na sílica',addDays(buq,2));
-    add('Retirar da sílica',addDays(buq,32));
-    add('Iniciar montagem',addDays(buq,47));
-    add('Entrega',addDays(buq,60));
-  }
-  // Redoma — 3 dias após chegada do buquê, ou hoje+3 se não tiver buquê
-  const redomaBase=buq||today();
-  if(radVal('redomaStatus')==='naoEncomendada')add('Pedir redoma',addDays(redomaBase,3));
-  // Embalagem — mesmo critério
-  if(radVal('emb')==='naoEncomendada')add('Pedir embalagem',addDays(redomaBase,3));
-  // Pagamentos
-  const reservaAtiva=radVal('reservaAtiva')==='sim';
-  const fp=radVal('pag');
-  const rows=_getPagRows();
-  const pagRows=reservaAtiva?rows.slice(1):rows;
-  if(reservaAtiva&&rows[0]&&!rows[0].pago&&rows[0].data)add('Cobrança — Reserva',rows[0].data);
-  pagRows.forEach((p,i)=>{
-    if(!p.pago&&p.data){
-      const lbl=fp==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
-      add('Cobrança — '+lbl,p.data);
-    }
-  });
-  renderRL();
-}
-
 
 /* ── SAVE / DELETE ───────────────────────────── */
 async function saveModal(){
@@ -1378,6 +1426,15 @@ async function saveModal(){
     etapa:          gv('m-etapa'),
     dataCasamento:  gv('m-cas'),
     endereco:       gv('m-end').trim(),
+    cpf:            gv('m-cpf').trim(),
+    rg:             gv('m-rg').trim(),
+    telefone:       gv('m-tel').trim(),
+    cidade:         gv('m-cidade').trim(),
+    cep:            gv('m-cep').trim(),
+    floresUtilizadas: gv('m-flores').trim(),
+    cerimonialista: gv('m-cerim-nome').trim(),
+    cerimonialTel:  gv('m-cerim-tel').trim(),
+    retiradaBuque:  radVal('retiradaBuque'),
     produto:        radVal('prod'),
     produtoObs:     gv('m-prod-obs').trim(),
     statusEmbalagem:radVal('emb')||'naoEncomendada',
@@ -1409,7 +1466,6 @@ async function saveModal(){
     })(),
     anexos:         mAnexos,
     driveFolder:    _mDriveFolder,
-    calendarEvents: editId?(DATA.find(x=>x.id===editId)?.calendarEvents||[]):[],
     upd:            Date.now(),
   };
 
@@ -1434,6 +1490,7 @@ async function saveModal(){
     }
   });
 
+  const calEvs=buildCalEvents(rec);
 
   const isNew=!editId;
   let newId=null;
@@ -1446,13 +1503,8 @@ async function saveModal(){
     DATA.push({id:newId,crd:Date.now(),...rec});
   }
 
-  const savedId=editId||newId;
   save();closeModal();renderAll();
-
-  // Auto-sync Google Calendar silently after save
-  if(_gToken&&savedId){
-    setTimeout(()=>calSyncBride(savedId),400);
-  }
+  if(calEvs.length)setTimeout(()=>showCalModal(rec.nome,calEvs),80);
 
   // Auto-create Drive folder for new brides
   if(isNew&&newId){
@@ -1464,11 +1516,200 @@ async function saveModal(){
   }
 }
 
+function gerarContrato(){
+  // Coleta dados do formulário aberto
+  const nome      = gv('m-nome').trim()||'___________________';
+  const cpf       = gv('m-cpf').trim()||'___________________';
+  const rg        = gv('m-rg').trim()||'___________________';
+  const endereco  = gv('m-end').trim()||'___________________';
+  const cidade    = gv('m-cidade').trim()||'___________________';
+  const cep       = gv('m-cep').trim()||'___________________';
+  const telefone  = gv('m-tel').trim()||'___________________';
+  const flores    = gv('m-flores').trim()||'___________________';
+  const cerimNome = gv('m-cerim-nome').trim()||'___________________';
+  const cerimTel  = gv('m-cerim-tel').trim()||'___________________';
+  const valor     = gv('m-valor').trim()||'___________________';
+  const rep       = radVal('rep');
+  const retirada  = radVal('retiradaBuque');
+  const produto   = radVal('prod');
+  const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
+  const pecasOutro= gv('m-outro').trim();
+
+  // Produto
+  const prodMap={'cupula':'Cúpula','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×42 cm'};
+  const modeloTxt = prodMap[produto]||produto||'___________________';
+
+  // Itens adicionais
+  const itens=[];
+  if(pecas.includes('convite'))itens.push('Convite de casamento');
+  if(pecas.includes('terco'))itens.push('Terço');
+  if(pecas.includes('outro')&&pecasOutro)itens.push(pecasOutro);
+  const itensTxt = itens.length?itens.join(', '):'Não';
+
+  // Reposição
+  const repTxt = rep==='sim'
+    ? 'Autoriza a reposição de flores, se tecnicamente necessária, mediante cobrança adicional, informada no dia da retirada do buquê no evento.'
+    : rep==='nao'
+    ? 'Não autoriza reposição de flores.'
+    : '___________________';
+
+  // Retirada
+  let retiradaTxt='';
+  if(retirada==='florelle') retiradaTxt='Florelle responsável pela busca do buquê junto à noiva — taxa de <strong>R$ 30,00</strong> dentro de Cascavel.';
+  else if(retirada==='sedex') retiradaTxt='Noiva envia o buquê via Sedex, arcando com os custos de entrega e devolução.';
+  else retiradaTxt='___________________';
+
+  // Forma de pagamento e parcelas
+  const pagRows=_getPagRows();
+  const resAtiva=radVal('reservaAtiva')==='sim';
+  let pagTxt='';
+  if(resAtiva&&pagRows.length){
+    const reserva=pagRows[0];
+    const parcelas=pagRows.slice(1);
+    const linhas=[];
+    if(reserva.valor)linhas.push(`Reserva: R$ ${reserva.valor}${reserva.data?' — '+fmt(reserva.data):''}${reserva.pago?' (pago)':''}`);
+    parcelas.forEach((p,i)=>{
+      if(p.valor)linhas.push(`${i+1}ª parcela: R$ ${p.valor}${p.data?' — '+fmt(p.data):''}${p.pago?' (pago)':''}`);
+    });
+    pagTxt=linhas.join('<br>');
+  } else if(pagRows.length){
+    pagTxt=pagRows.filter(p=>p.valor).map((p,i)=>`${i+1}ª parcela: R$ ${p.valor}${p.data?' — '+fmt(p.data):''}${p.pago?' (pago)':''}`).join('<br>');
+  }
+  if(!pagTxt)pagTxt='___________________';
+
+  // Data de hoje
+  const hoje=new Date();
+  const dataHoje=`${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contrato — ${nome}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'EB Garamond',Georgia,serif;font-size:13.5pt;line-height:1.75;color:#1a1a1a;background:#f5f2ee}
+  .page{max-width:680px;margin:0 auto;background:#fff;padding:60px 64px 70px;min-height:100vh}
+  h1{font-family:'Cormorant Garamond',serif;font-size:22pt;font-weight:600;text-align:center;margin-bottom:4px;letter-spacing:.01em}
+  .sub{text-align:center;font-size:12pt;color:#555;margin-bottom:44px;font-style:italic}
+  h2{font-family:'Cormorant Garamond',serif;font-size:13.5pt;font-weight:600;text-decoration:underline;text-underline-offset:3px;margin:32px 0 10px}
+  p{margin-bottom:8px}
+  .field{display:inline-block;min-width:180px;border-bottom:1px solid #999;padding:0 2px}
+  .campo-bloco{margin-bottom:6px}
+  .campo-bloco strong{min-width:130px;display:inline-block;color:#444}
+  ul{margin:6px 0 10px 22px}
+  ul li{margin-bottom:3px}
+  .ass-row{display:flex;gap:60px;margin-top:48px;flex-wrap:wrap}
+  .ass-col{flex:1;min-width:220px}
+  .ass-col .linha{border-top:1px solid #555;margin-top:48px;padding-top:6px;font-size:11pt;color:#444}
+  .ass-col .ass-img{margin-top:8px}
+  .ass-col .ass-img img{max-height:52px;opacity:.85}
+  .print-btn{position:fixed;bottom:24px;right:24px;background:#5a7a52;color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:13px;font-family:sans-serif;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.22);z-index:999}
+  .print-btn:hover{background:#4a6a42}
+  @media print{
+    body{background:#fff}
+    .page{padding:30px 40px;box-shadow:none}
+    .print-btn{display:none}
+    h2{page-break-after:avoid}
+  }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+<div class="page">
+
+<h1>Contrato de Prestação de Serviços</h1>
+<div class="sub">Florelle Atelier — Buquê Eternizado</div>
+
+<h2>1. IDENTIFICAÇÃO DAS PARTES</h2>
+<p><strong>CONTRATADA:</strong><br>
+Bruna Alice Puerari Dona, brasileira, CPF nº 096.664.579-03, responsável pela prestação dos serviços artesanais de eternização de buquê, doravante denominada <strong>FLORELLE ATELIER</strong>.</p>
+
+<p><strong>CONTRATANTE:</strong></p>
+<div class="campo-bloco"><strong>Nome completo:</strong> ${nome}</div>
+<div class="campo-bloco"><strong>CPF:</strong> ${cpf}</div>
+<div class="campo-bloco"><strong>RG:</strong> ${rg}</div>
+<div class="campo-bloco"><strong>Endereço:</strong> ${endereco}</div>
+<div class="campo-bloco"><strong>Cidade/UF:</strong> ${cidade}</div>
+<div class="campo-bloco"><strong>CEP:</strong> ${cep}</div>
+<div class="campo-bloco"><strong>Telefone:</strong> ${telefone}</div>
+
+<h2>2. OBJETO DO CONTRATO</h2>
+<p>O presente contrato tem por objeto a prestação de serviços artesanais de eternização de buquê de noiva, incluindo secagem, preservação estética e montagem estrutural do buquê entregue pela CONTRATANTE.</p>
+
+<h2>3. NATUREZA DO BUQUÊ ETERNIZADO</h2>
+<p>A CONTRATANTE declara estar ciente e de acordo que:</p>
+<ul>
+  <li>O buquê é composto por flores naturais, sujeitas a alterações de cor e tonalidade decorrentes do processo de secagem e da ação do tempo;</li>
+  <li>Flores originalmente claras ou brancas podem evoluir para tons off-white, bege, champagne ou vintage; rosas vermelhas podem evoluir para vinho; assim como todas as cores podem ter evolução;</li>
+  <li>Tais alterações são naturais do material orgânico e não configuram defeito, vício ou falha na prestação do serviço;</li>
+  <li>A estrutura do buquê será preservada, desde que respeitadas as orientações de conservação.</li>
+</ul>
+
+<h2>4. MODELO DO BUQUÊ</h2>
+<div class="campo-bloco"><strong>Modelo contratado:</strong> ${modeloTxt}</div>
+
+<h2>5. FLORES UTILIZADAS</h2>
+<div class="campo-bloco"><strong>Flores que compõem o buquê:</strong> ${flores}</div>
+
+<h2>6. ITENS ADICIONAIS INCORPORADOS</h2>
+<div class="campo-bloco"><strong>Itens:</strong> ${itensTxt}</div>
+
+<h2>7. REPOSIÇÃO DE FLORES</h2>
+<p>A CONTRATANTE declara que: ${repTxt}</p>
+
+<h2>8. RETIRADA DO BUQUÊ NO EVENTO</h2>
+<p>${retiradaTxt}</p>
+<p>Caso o buquê precise ser enviado de outra cidade ou estado, a noiva se encarrega de enviar via Sedex arcando com os custos de entrega e devolução. Para devolução do buquê via Sedex saindo de Cascavel, o valor será enviado para reembolso.</p>
+
+<h2>9. CERIMONIALISTA</h2>
+<div class="campo-bloco"><strong>Nome:</strong> ${cerimNome}</div>
+<div class="campo-bloco"><strong>Telefone:</strong> ${cerimTel}</div>
+
+<h2>10. VALOR E FORMA DE PAGAMENTO</h2>
+<div class="campo-bloco"><strong>Valor total do serviço:</strong> R$ ${valor}</div>
+<div class="campo-bloco" style="margin-top:8px"><strong>Forma(s) de pagamento:</strong><br>${pagTxt}</div>
+
+<h2>11. DESISTÊNCIA</h2>
+<p>Em caso de desistência por parte da CONTRATANTE, os valores pagos até a data da retirada do buquê não serão reembolsados, por destinarem-se ao custeio de materiais, insumos e mão de obra já empregados.</p>
+
+<h2>12. PRAZO PARA RETIRADA DO BUQUÊ FINALIZADO</h2>
+<p>O buquê eternizado deverá ser retirado no prazo máximo de 120 (cento e vinte) dias após a conclusão do serviço.</p>
+<p>O descumprimento deste prazo autoriza a FLORELLE a descartar o buquê, sem aviso prévio e sem direito a indenização ou restituição de valores.</p>
+
+<h2>13. ACEITE E ASSINATURA ELETRÔNICA</h2>
+<p>As partes declaram que leram, compreenderam e concordam integralmente com os termos deste contrato, reconhecendo sua validade mediante assinatura eletrônica simples, inclusive com inserção de assinatura digitalizada ou imagem da assinatura manuscrita.</p>
+
+<p style="margin-top:24px"><strong>Local e data:</strong> Cascavel/PR, ${dataHoje}</p>
+
+<div class="ass-row">
+  <div class="ass-col">
+    <p><strong>CONTRATADA:</strong></p>
+    <p>Bruna Alice Puerari Dona<br>CPF nº 096.664.579-03</p>
+    <div class="ass-img"><img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMTIwIDUwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xMCA0MiBRMjUgMTAgNDAgMzAgUTU1IDQ4IDcwIDI4IFE4NSA4IDEwMCAzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" alt="assinatura"></div>
+    <div class="linha">Assinatura</div>
+  </div>
+  <div class="ass-col">
+    <p><strong>CONTRATANTE:</strong></p>
+    <p>${nome}<br>CPF: ${cpf}</p>
+    <div class="linha">Assinatura</div>
+  </div>
+</div>
+
+</div><!-- /page -->
+</body>
+</html>`;
+
+  const w=window.open('','_blank');
+  if(w){w.document.write(html);w.document.close();}
+  else{alert('Pop-up bloqueado. Permita pop-ups para este site e tente novamente.');}
+}
+
 function delBride(){
   if(!editId)return;
   if(!confirm('Excluir esta noiva? Essa ação não pode ser desfeita.'))return;
-  const bride=DATA.find(x=>x.id===editId);
-  if(bride?.calendarEvents?.length&&_gToken){_calDeleteAll(bride.calendarEvents).catch(()=>{});}
   DATA=DATA.filter(x=>x.id!==editId);
   save();closeModal();renderAll();
 }
@@ -1555,7 +1796,7 @@ function renderRP(){
 function buqueChg(){
   const v=gv('m-buque');
   buqueDisp(v);
-  syncAutoRems();
+  if(v&&!gv('m-silica')){sv2('m-silica',addDays(v,2));silChg();}
 }
 function buqueDisp(v){
   const box=g('buq-box');
@@ -1572,11 +1813,14 @@ function redomaChg(){
   const v=radVal('redomaStatus');
   g('redoma-dt-row').classList.toggle('hidden',v!=='encomendada');
   g('redoma-nao-hint').classList.toggle('hidden',v!=='naoEncomendada');
-  syncAutoRems();
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
-function embPedidaChg(){ syncAutoRems(); }
+function embPedidaChg(){
+  const v=radVal('embPedida');
+  g('emb-prev-row').classList.toggle('hidden',v!=='sim');
+  g('emb-nao-hint').classList.toggle('hidden',v!=='nao');
+}
 
 /* ── PAGAMENTO ───────────────────────────────── */
 function reservaChg(){
@@ -1660,11 +1904,10 @@ function pagCalc(preload){
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
     `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="pagCalc()">`+
-    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
-    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''} onchange="syncAutoRems()"> ${r.chkLabel}</label>`+
+    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px">`+
+    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
     `</div>`
   ).join('');
-  syncAutoRems();
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
@@ -1674,170 +1917,61 @@ function calUrl(title,dateStr){
   const s=calIso(dateStr),e=calIso(addDays(dateStr,1));
   return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+s+'/'+e;
 }
+let _calEvs=[];
 function buildCalEvents(rec){
-  const evs=[],n=rec.nome||'';
-  const buq=rec.dataBuque;
-  if(buq){
-    evs.push({key:'sil_colocar',title:'Colocar na sílica — '+n,date:addDays(buq,2)});
-    evs.push({key:'sil_retirar',title:'Retirar da sílica — '+n,date:addDays(buq,32)});
-    evs.push({key:'sil_montagem',title:'Iniciar montagem — '+n,date:addDays(buq,47)});
-    evs.push({key:'entrega',title:'Entrega — '+n,date:addDays(buq,60)});
-    const base=buq;
-    if(rec.redomaStatus==='naoEncomendada')evs.push({key:'redoma',title:'Pedir redoma — '+n,date:addDays(base,3)});
-    if(rec.statusEmbalagem==='naoEncomendada')evs.push({key:'embalagem',title:'Pedir embalagem — '+n,date:addDays(base,3)});
+  const evs=[];
+  const nome=rec.nome||'';
+  if(rec.dataSilica){
+    evs.push({title:'Colocar na sílica — '+nome,date:rec.dataSilica});
+    evs.push({title:'Retirar da sílica — '+nome,date:addDays(rec.dataSilica,30)});
+    evs.push({title:'Início da montagem — '+nome,date:addDays(rec.dataSilica,50)});
   }
-  if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data)evs.push({key:'reserva',title:'Cobrança Reserva — '+n,date:rec.reserva.data});
+  if(rec.dataCasamento){
+    evs.push({title:'Entrega — '+nome,date:rec.dataCasamento});
+  }
+  if(rec.redomaStatus==='naoEncomendada'){
+    evs.push({title:'Encomendar redoma — '+nome,date:addDays(today(),3)});
+  }
+  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao'){
+    evs.push({title:'Encomendar embalagem — '+nome,date:addDays(today(),3)});
+  }
+  if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data){
+    evs.push({title:'Cobrança Reserva — '+nome,date:rec.reserva.data});
+  }
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
       const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
-      evs.push({key:'pag_'+i,title:'Cobrança '+lbl+' — '+n,date:p.data});
+      evs.push({title:'Cobrança '+lbl+' — '+nome,date:p.data});
     }
   });
   return evs.filter(e=>e.date);
 }
-function calClose(){g('cal-ov').classList.add('hidden');}
-/* ── GOOGLE CALENDAR API ─────────────────────── */
-const GCAL_CAL_NAME='Florelle';
-let _florelleCal=null; // cached calendarId
-
-
-async function _calFetch(method,path,body){
-  const h={'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'};
-  const r=await fetch('https://www.googleapis.com/calendar/v3'+path,
-    {method,headers:h,body:body?JSON.stringify(body):undefined});
-  if(r.status===401){_gToken=null;throw new Error('Sessão expirada. Reconecte ao Drive.');}
-  return r;
-}
-
-async function _getOrCreateFlorelleCal(){
-  if(_florelleCal)return _florelleCal;
-  // List calendars and find Florelle
-  const r=await _calFetch('GET','/users/me/calendarList');
-  if(!r.ok)throw new Error('Erro ao listar calendários');
-  const d=await r.json();
-  const found=(d.items||[]).find(c=>c.summary===GCAL_CAL_NAME);
-  if(found){_florelleCal=found.id;return _florelleCal;}
-  // Create it
-  const cr=await _calFetch('POST','/calendars',{summary:GCAL_CAL_NAME,timeZone:'America/Sao_Paulo'});
-  if(!cr.ok)throw new Error('Erro ao criar calendário Florelle');
-  const cd=await cr.json();
-  // Set color to green
-  try{await _calFetch('PATCH','/users/me/calendarList/'+encodeURIComponent(cd.id),{colorId:'sage'});}catch(e){}
-  _florelleCal=cd.id;
-  return _florelleCal;
-}
-
-async function _clearAllCalEvents(calId){
-  // List all events and delete them
-  let pageToken='';
-  do{
-    const url='/calendars/'+encodeURIComponent(calId)+'/events?maxResults=250'+(pageToken?'&pageToken='+pageToken:'');
-    const r=await _calFetch('GET',url);
-    if(!r.ok)break;
-    const d=await r.json();
-    pageToken=d.nextPageToken||'';
-    for(const ev of(d.items||[])){
-      if(ev.status!=='cancelled'){
-        try{await _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+ev.id);}catch(e){}
-      }
-    }
-  }while(pageToken);
-}
-
-async function calSyncBride(brideId){
-  const bride=DATA.find(x=>x.id===brideId);
-  if(!bride)return;
-  const btn=g('cal-sync-btn');
-  const status=g('cal-sync-status');
-  if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
-  if(status){status.style.display='block';status.style.background='#EDF4EB';status.style.color='var(--sd)';status.textContent='Buscando calendário…';}
-  try{
-    await _ensureToken();
-    const calId=await _getOrCreateFlorelleCal();
-
-    if(status)status.textContent='Limpando eventos antigos…';
-
-    // Delete ALL events in the Florelle calendar that belong to this bride
-    // Strategy: list all events, delete ones with bride name
-    let pageToken='';
-    do{
-      const url='/calendars/'+encodeURIComponent(calId)+'/events?maxResults=250&showDeleted=false'+(pageToken?'&pageToken='+pageToken:'');
-      const r=await _calFetch('GET',url);
-      if(!r.ok)break;
-      const d=await r.json();
-      pageToken=d.nextPageToken||'';
-      for(const ev of(d.items||[])){
-        if(ev.summary&&ev.summary.includes('— '+bride.nome)){
-          try{await _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+ev.id);}catch(e){}
-        }
-      }
-    }while(pageToken);
-
-    // Also delete by stored eventIds (catches events from primary calendar)
-    const allIds=new Set();
-    (bride.calendarEvents||[]).forEach(e=>{if(e.eventId)allIds.add(e.eventId);});
-    const legacy=bride.calEventIds||{};
-    Object.values(legacy).forEach(id=>{if(id)allIds.add(id);});
-    for(const id of allIds){
-      // Try both primary and florelle calendar
-      try{await _calFetch('DELETE','/calendars/primary/events/'+id);}catch(e){}
-      try{await _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+id);}catch(e){}
-    }
-
-    if(status)status.textContent='Criando eventos…';
-
-    // Create new events in Florelle calendar
-    const evs=buildCalEvents(bride);
-    const newEvs=[];
-    for(const ev of evs){
-      const r=await _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',{
-        summary:ev.title,colorId:'2',
-        start:{date:ev.date},end:{date:addDays(ev.date,1)}
-      });
-      if(r.ok){const d=await r.json();newEvs.push({key:ev.key,title:ev.title,date:ev.date,eventId:d.id,calId});}
-    }
-
-    // Save
-    const i=DATA.findIndex(x=>x.id===brideId);
-    if(i!==-1){DATA[i].calendarEvents=newEvs;DATA[i].calEventIds={};save();}
-    if(btn){btn.disabled=false;btn.textContent='✓ Sincronizado!';}
-    if(status)status.textContent=newEvs.length+' evento(s) criado(s) no calendário Florelle.';
-    setTimeout(()=>{if(btn)btn.textContent='🗓 Sincronizar';},3000);
-  }catch(err){
-    if(btn){btn.disabled=false;btn.textContent='🗓 Sincronizar';}
-    if(status){status.style.background='#FEEDEA';status.style.color='#B03420';status.textContent='Erro: '+err.message;}
-    console.error('calSync error:',err);
-  }
-}
-
-let _calBrideId=null;
-
-function openCalModal(){
-  _calBrideId=editId;
-  const bride=editId?DATA.find(x=>x.id===editId):null;
-  const nome=bride?.nome||gv('m-nome')||'—';
+function showCalModal(nome,evs){
+  _calEvs=evs;
   g('cal-nm').textContent=nome;
-  const status=g('cal-sync-status');
-  if(status){status.style.display='none';status.textContent='';}
-  const previewRec={
-    nome,dataBuque:gv('m-buque'),dataCasamento:gv('m-cas'),
-    redomaStatus:radVal('redomaStatus'),statusEmbalagem:radVal('emb')||'naoEncomendada',
-    reserva:(()=>{const rows=_getPagRows();const ra=radVal('reservaAtiva')==='sim';return ra?{ativa:true,valor:rows[0]?.valor||'',data:rows[0]?.data||'',paga:!!(rows[0]?.pago)}:{ativa:false};})(),
-    pagamentos:(()=>{const rows=_getPagRows();return radVal('reservaAtiva')==='sim'?rows.slice(1):rows;})(),
-    formaPagamento:radVal('pag'),
-  };
-  const evs=buildCalEvents(previewRec);
-  const prev=g('cal-ev-preview');
-  if(prev)prev.innerHTML=evs.length
-    ?'<strong style="font-size:11px;color:var(--txl)">Eventos que serão sincronizados:</strong><br>'+evs.map(e=>'• '+e.title+' — '+fmt(e.date)).join('<br>')
-    :'<span style="color:var(--txl)">Nenhuma data de buquê preenchida.</span>';
-  const btn=g('cal-sync-btn');
-  if(btn){btn.disabled=evs.length===0;btn.textContent='🗓 Sincronizar';}
+  const lst=g('cal-lst');lst.innerHTML='';
+  evs.forEach(ev=>{
+    const url=calUrl(ev.title,ev.date);
+    const div=document.createElement('div');
+    div.className='cal-ev';
+    div.innerHTML=
+      '<div class="cal-ev-info">'+
+        '<div class="cal-ev-ttl">'+ev.title+'</div>'+
+        '<div class="cal-ev-dt">'+fmt(ev.date)+'</div>'+
+      '</div>'+
+      '<a href="'+url+'" target="_blank" rel="noopener" class="cal-link">Criar →</a>';
+    lst.appendChild(div);
+  });
   g('cal-ov').classList.remove('hidden');
 }
+function calClose(){g('cal-ov').classList.add('hidden');}
+function calOpenAll(){
+  _calEvs.forEach((ev,i)=>{
+    const url=calUrl(ev.title,ev.date);
+    if(url)setTimeout(()=>window.open(url,'_blank'),i*380);
+  });
+}
 
-
-/* ── GOOGLE CALENDAR API ─────────────────────── */
 /* ── TABS ────────────────────────────────────── */
 function showTab(t){
   curTab=t;
@@ -2006,6 +2140,7 @@ function buildTasks(){
     if(b.dataSilica){
       tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:b.dataSilica,           done:false,auto:true});
       tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataSilica,30),done:false,auto:true});
+      tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataSilica,45),done:false,auto:true});
     } else if(b.dataBuque){
       tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:addDays(b.dataBuque,2), done:false,auto:true});
       tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataBuque,32),done:false,auto:true});
@@ -2253,6 +2388,7 @@ function renderMaterial(){
   body.appendChild(hd);
   sec('Redoma não pedida',semRedoma,'Encomendar redoma','r-warn');
   sec('Embalagem não pedida',semEmb,'Encomendar embalagem','r-warn');
+  sec('Sílica vencida — retirada pendente',silVenc,'Retirar da sílica!','r-late');
 }
 
 function renderSummary(){
@@ -2350,7 +2486,7 @@ function _mimeIcon(mt){
 }
 /* ── GOOGLE DRIVE UPLOAD (GIS popup mode) ────── */
 const GD_CLIENT_ID='232678212261-q2n2tjhc2dkhoj1njkdcp7femcrab3o4.apps.googleusercontent.com';
-const GD_SCOPE='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar';
+const GD_SCOPE='https://www.googleapis.com/auth/drive.file';
 const GD_ROOT='FLORELLE - NOIVAS';
 const GD_NOIVAS_ID='1cUGoU0TT-M01nIdUX5qCkxuSE2QUWr2o'; // pasta raiz FLORELLE - NOIVAS
 
