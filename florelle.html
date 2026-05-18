@@ -1989,13 +1989,12 @@ async function _createCalEvents(nome,calEvs){
   const calId=await _getOrCreateFlorCal();
   const results=await Promise.all(
     calEvs.filter(ev=>ev.date).map(ev=>
-      _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',{
-        summary:ev.title,
-        start:{date:ev.date},
-        end:{date:addDays(ev.date,1)},
-        description:'Florelle — '+nome,
-        colorId:_calColor(ev.title),
-      }).then(r=>r.ok?r.json():null).catch(()=>null)
+      (()=>{
+        const body={summary:ev.title,start:{date:ev.date},end:{date:addDays(ev.date,1)},description:'Florelle — '+nome};
+        if(!calId.includes('group.calendar'))body.colorId=_calColor(ev.title);
+        return _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',body)
+          .then(r=>r.ok?r.json():null).catch(()=>null);
+      })()
     )
   );
   return results.filter(d=>d&&d.id).map(d=>d.id);
