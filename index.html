@@ -1295,10 +1295,8 @@ function fillForm(b){
   syncName();
   syncDriveBtn();
   embChg();
-  silDisp(b.dataSilica||'');
   buqueDisp(b.dataBuque||'');
   redomaChg();
-  embPedidaChg();
   pagCalc(allPagRows.length?allPagRows:null);
   pecaVis();
   renderRL();
@@ -1349,12 +1347,11 @@ function silChg(){
 
 function silDisp(v){
   const box=g('silbox');
+  if(!box)return;
+  box.classList.toggle('hidden',!v);
   if(v){
-    g('sil-ret').textContent=fmt(addDays(v,30));
-    g('sil-mont').textContent=fmt(addDays(v,45));
-    box.classList.remove('hidden');
-  } else {
-    box.classList.add('hidden');
+    if(g('sil-ret'))g('sil-ret').textContent=fmt(addDays(v,30));
+    if(g('sil-mont'))g('sil-mont').textContent=fmt(addDays(v,45));
   }
 }
 
@@ -1793,11 +1790,7 @@ function redomaChg(){
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
-function embPedidaChg(){
-  const v=radVal('embPedida');
-  g('emb-prev-row').classList.toggle('hidden',v!=='sim');
-  g('emb-nao-hint').classList.toggle('hidden',v!=='nao');
-}
+function embPedidaChg(){ /* campo removido */ }
 
 /* ── PAGAMENTO ───────────────────────────────── */
 function reservaChg(){
