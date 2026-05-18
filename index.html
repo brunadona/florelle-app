@@ -1360,20 +1360,19 @@ function syncAutoRems(){
     if(!data||mRem.some(r=>r.auto&&r.text===text&&r.data===data))return;
     mRem.push({id:uid(),text,data,auto:true,done:false});
   };
-  // Sílica (from buque date)
+  // Sílica e entrega (from buque date)
   const buq=gv('m-buque');
   if(buq){
     add('Colocar na sílica',addDays(buq,2));
     add('Retirar da sílica',addDays(buq,32));
     add('Iniciar montagem',addDays(buq,47));
+    add('Entrega',addDays(buq,60));
   }
-  // Entrega
-  const cas=gv('m-cas');
-  if(cas)add('Entrega',cas);
-  // Redoma
-  if(radVal('redomaStatus')==='naoEncomendada')add('Pedir redoma',addDays(today(),3));
-  // Embalagem
-  if(radVal('emb')==='naoEncomendada')add('Pedir embalagem',addDays(today(),3));
+  // Redoma — 3 dias após chegada do buquê, ou hoje+3 se não tiver buquê
+  const redomaBase=buq||today();
+  if(radVal('redomaStatus')==='naoEncomendada')add('Pedir redoma',addDays(redomaBase,3));
+  // Embalagem — mesmo critério
+  if(radVal('emb')==='naoEncomendada')add('Pedir embalagem',addDays(redomaBase,3));
   // Pagamentos
   const reservaAtiva=radVal('reservaAtiva')==='sim';
   const fp=radVal('pag');
@@ -1386,7 +1385,6 @@ function syncAutoRems(){
       add('Cobrança — '+lbl,p.data);
     }
   });
-  // Data casamento lembrete
   renderRL();
 }
 
