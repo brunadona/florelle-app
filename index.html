@@ -819,19 +819,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1 hidden" id="emb-dr">
         <div class="fg"><label class="fl">Data de entrega prevista</label><input id="m-emb-d" type="date" class="fi"></div>
       </div>
-      <div id="emb-pedida-section" style="margin-top:14px">
-        <div class="fg" style="margin-bottom:11px">
-          <label class="fl">Embalagem já foi pedida?</label>
-          <div class="tg">
-            <label class="to ty"><input type="radio" name="embPedida" value="sim" onchange="embPedidaChg()"><span class="tl">✓ Sim</span></label>
-            <label class="to tn"><input type="radio" name="embPedida" value="nao" onchange="embPedidaChg()"><span class="tl">✗ Não</span></label>
-          </div>
-        </div>
-        <div class="frow f1 hidden" id="emb-prev-row">
-          <div class="fg"><label class="fl">Previsão de chegada</label><input id="m-emb-prev" type="date" class="fi"></div>
-        </div>
-        <p class="hint hint-warn hidden" id="emb-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar embalagem — [nome]"</strong> para daqui 3 dias.</p>
-      </div>
+      <input type="hidden" id="m-emb-prev" value="">
     </div>
 
     <!-- 4. Pagamento -->
@@ -865,17 +853,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div id="pag-rows"></div>
     </div>
 
-    <!-- 5. Sílica -->
-    <div class="fsec">
-      <div class="sttl">Sílica</div>
-      <div class="frow f1">
-        <div class="fg"><label class="fl">Data de início na sílica</label><input id="m-silica" type="date" class="fi" onchange="silChg()"></div>
-      </div>
-      <div id="silbox" class="silbox hidden">
-        <div class="sli"><div class="sll">Retirada (+30 dias)</div><div class="slv" id="sil-ret">—</div></div>
-        <div class="sli"><div class="sll">Montagem (+45 dias)</div><div class="slv" id="sil-mont">—</div></div>
-      </div>
-    </div>
+      <input type="hidden" id="m-silica" value="">
 
     <!-- 6. Flores & Extras -->
     <div class="fsec">
@@ -1338,7 +1316,6 @@ function syncName(){
 function embChg(){
   const v=radVal('emb');
   g('emb-dr').classList.toggle('hidden',v!=='encomendada');
-  g('emb-pedida-section').classList.toggle('hidden',v==='emMaos');
 }
 
 function pecaChg(el){
@@ -1481,7 +1458,7 @@ async function saveModal(){
   };
   if(rec.dataCasamento)_ar('Entrega',rec.dataCasamento);
   if(rec.redomaStatus==='naoEncomendada')_ar('Pedir redoma',addDays(today(),3));
-  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao')_ar('Pedir embalagem',addDays(today(),3));
+  if(rec.statusEmbalagem==='naoEncomendada')_ar('Pedir embalagem',addDays(today(),3));
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)_ar('Cobrança — Reserva',rec.reserva.data);
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
@@ -1921,10 +1898,10 @@ let _calEvs=[];
 function buildCalEvents(rec){
   const evs=[];
   const nome=rec.nome||'';
-  if(rec.dataSilica){
-    evs.push({title:'Colocar na sílica — '+nome,date:rec.dataSilica});
-    evs.push({title:'Retirar da sílica — '+nome,date:addDays(rec.dataSilica,30)});
-    evs.push({title:'Início da montagem — '+nome,date:addDays(rec.dataSilica,50)});
+  if(rec.dataBuque){
+    evs.push({title:'Colocar na sílica — '+nome,     date:addDays(rec.dataBuque,2)});
+    evs.push({title:'Retirar da sílica — '+nome,     date:addDays(rec.dataBuque,32)});
+    evs.push({title:'Início da montagem — '+nome,    date:addDays(rec.dataBuque,47)});
   }
   if(rec.dataCasamento){
     evs.push({title:'Entrega — '+nome,date:rec.dataCasamento});
@@ -1932,7 +1909,7 @@ function buildCalEvents(rec){
   if(rec.redomaStatus==='naoEncomendada'){
     evs.push({title:'Encomendar redoma — '+nome,date:addDays(today(),3)});
   }
-  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao'){
+  if(rec.statusEmbalagem==='naoEncomendada'){
     evs.push({title:'Encomendar embalagem — '+nome,date:addDays(today(),3)});
   }
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data){
