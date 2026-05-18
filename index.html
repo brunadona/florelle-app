@@ -1760,14 +1760,25 @@ async function calSyncBride(brideId){
   const btn=g('cal-sync-btn');
   const status=g('cal-sync-status');
   if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
-  status.style.display='block';
-  status.style.background='#EDF4EB';status.style.color='var(--sd)';
-  status.textContent='Conectando…';
+  if(status){status.style.display='block';status.style.background='#EDF4EB';status.style.color='var(--sd)';status.textContent='Conectando…';}
   try{
     await _ensureToken();
-    await _calDeleteAll(bride.calendarEvents||[]);
-    // Also search and delete any orphaned events by name pattern
+
+    // Collect ALL known eventIds: from calendarEvents array AND legacy calEventIds object
+    const allIds=new Set();
+    (bride.calendarEvents||[]).forEach(e=>{if(e.eventId)allIds.add(e.eventId);});
+    const legacy=bride.calEventIds||{};
+    Object.values(legacy).forEach(id=>{if(id)allIds.add(id);});
+
+    // Delete all known events
+    for(const id of allIds){
+      try{await _calFetch('DELETE','/calendars/'+encodeURIComponent(GCAL_ID)+'/events/'+id);}catch(e){}
+    }
+
+    // Also search by title to catch any orphans not stored
     await _calDeleteByTitle(bride.nome||'');
+
+    // Build and create new events
     const evs=buildCalEvents(bride);
     const newEvs=[];
     for(const ev of evs){
@@ -1777,15 +1788,16 @@ async function calSyncBride(brideId){
       });
       if(r.ok){const d=await r.json();newEvs.push({key:ev.key,title:ev.title,date:ev.date,eventId:d.id});}
     }
+
+    // Save new eventIds and clear legacy
     const i=DATA.findIndex(x=>x.id===brideId);
-    if(i!==-1){DATA[i].calendarEvents=newEvs;save();}
+    if(i!==-1){DATA[i].calendarEvents=newEvs;DATA[i].calEventIds={};save();}
     if(btn){btn.disabled=false;btn.textContent='✓ Sincronizado!';}
-    status.textContent=newEvs.length+' evento(s) criado(s) no Google Calendar.';
+    if(status){status.textContent=newEvs.length+' evento(s) no Google Calendar.';}
     setTimeout(()=>{if(btn)btn.textContent='🗓 Sincronizar';},3000);
   }catch(err){
     if(btn){btn.disabled=false;btn.textContent='🗓 Sincronizar';}
-    status.style.background='#FEEDEA';status.style.color='#B03420';
-    status.textContent='Erro: '+err.message;
+    if(status){status.style.background='#FEEDEA';status.style.color='#B03420';status.textContent='Erro: '+err.message;}
   }
 }
 
