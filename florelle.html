@@ -1675,29 +1675,22 @@ function calUrl(title,dateStr){
   return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+s+'/'+e;
 }
 function buildCalEvents(rec){
-  const evs=[];
-  const nome=rec.nome||'';
-  if(rec.dataSilica){
-    evs.push({title:'Colocar na sílica — '+nome,date:rec.dataSilica});
-    evs.push({title:'Retirar da sílica — '+nome,date:addDays(rec.dataSilica,30)});
-    evs.push({title:'Início da montagem — '+nome,date:addDays(rec.dataSilica,50)});
+  const evs=[],n=rec.nome||'';
+  const buq=rec.dataBuque;
+  if(buq){
+    evs.push({key:'sil_colocar',title:'Colocar na sílica — '+n,date:addDays(buq,2)});
+    evs.push({key:'sil_retirar',title:'Retirar da sílica — '+n,date:addDays(buq,32)});
+    evs.push({key:'sil_montagem',title:'Iniciar montagem — '+n,date:addDays(buq,47)});
+    evs.push({key:'entrega',title:'Entrega — '+n,date:addDays(buq,60)});
   }
-  if(rec.dataCasamento){
-    evs.push({title:'Entrega — '+nome,date:rec.dataCasamento});
-  }
-  if(rec.redomaStatus==='naoEncomendada'){
-    evs.push({title:'Encomendar redoma — '+nome,date:addDays(today(),3)});
-  }
-  if(rec.statusEmbalagem==='naoEncomendada'&&rec.embPedida==='nao'){
-    evs.push({title:'Encomendar embalagem — '+nome,date:addDays(today(),3)});
-  }
-  if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data){
-    evs.push({title:'Cobrança Reserva — '+nome,date:rec.reserva.data});
-  }
+  const base=buq||today();
+  if(rec.redomaStatus==='naoEncomendada')evs.push({key:'redoma',title:'Pedir redoma — '+n,date:addDays(base,3)});
+  if(rec.statusEmbalagem==='naoEncomendada')evs.push({key:'embalagem',title:'Pedir embalagem — '+n,date:addDays(base,3)});
+  if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data)evs.push({key:'reserva',title:'Cobrança Reserva — '+n,date:rec.reserva.data});
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
       const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
-      evs.push({title:'Cobrança '+lbl+' — '+nome,date:p.data});
+      evs.push({key:'pag_'+i,title:'Cobrança '+lbl+' — '+n,date:p.data});
     }
   });
   return evs.filter(e=>e.date);
@@ -1734,6 +1727,21 @@ async function _calFetch(method,path,body){
   return r;
 }
 
+async function _calDeleteByTitle(nome){
+  // Search for events matching this bride's name and delete them
+  try{
+    const q=encodeURIComponent(nome);
+    const r=await _calFetch('GET','/calendars/'+encodeURIComponent(GCAL_ID)+'/events?q='+q+'&maxResults=50');
+    if(!r.ok)return;
+    const d=await r.json();
+    for(const ev of(d.items||[])){
+      if(ev.summary&&ev.summary.includes('— '+nome)){
+        await _calFetch('DELETE','/calendars/'+encodeURIComponent(GCAL_ID)+'/events/'+ev.id);
+      }
+    }
+  }catch(e){console.warn('calDeleteByTitle:',e);}
+}
+
 async function _calDeleteAll(calendarEvents){
   for(const ev of(calendarEvents||[])){
     if(!ev.eventId)continue;
@@ -1753,6 +1761,8 @@ async function calSyncBride(brideId){
   try{
     await _ensureToken();
     await _calDeleteAll(bride.calendarEvents||[]);
+    // Also search and delete any orphaned events by name pattern
+    await _calDeleteByTitle(bride.nome||'');
     const evs=buildCalEvents(bride);
     const newEvs=[];
     for(const ev of evs){
