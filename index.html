@@ -1966,20 +1966,18 @@ async function _deleteCalEvents(eventIds){
 
 async function _createCalEvents(nome,calEvs){
   const calId=await _getOrCreateFlorCal();
-  const ids=[];
-  for(const ev of calEvs){
-    if(!ev.date)continue;
-    const body={
-      summary:ev.title,
-      start:{date:ev.date},
-      end:{date:addDays(ev.date,1)},
-      description:'Florelle — '+nome,
-      colorId:'2', // sage green
-    };
-    const r=await _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',body);
-    if(r.ok){const d=await r.json();ids.push(d.id);}
-  }
-  return ids;
+  const results=await Promise.all(
+    calEvs.filter(ev=>ev.date).map(ev=>
+      _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',{
+        summary:ev.title,
+        start:{date:ev.date},
+        end:{date:addDays(ev.date,1)},
+        description:'Florelle — '+nome,
+        colorId:'2',
+      }).then(r=>r.ok?r.json():null).catch(()=>null)
+    )
+  );
+  return results.filter(d=>d&&d.id).map(d=>d.id);
 }
 
 async function syncCalendar(brideId,nome,calEvs,oldEventIds){
@@ -1996,7 +1994,7 @@ async function syncCalendar(brideId,nome,calEvs,oldEventIds){
     console.log('[Cal] criados',newIds.length,'eventos, IDs:',newIds);
     const b=DATA.find(x=>x.id===brideId);
     if(b){b.calEventIds=newIds;save();}
-    setTimeout(()=>_showCalToast('Calendário atualizado ✓'),400);
+    setTimeout(()=>_showCalToast('Calendário atualizado ✓'),200);
     return newIds;
   }catch(e){
     console.error('[Cal] ERRO:',e);
