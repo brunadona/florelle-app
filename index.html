@@ -1697,6 +1697,169 @@ function buildCalEvents(rec){
 }
 function calClose(){g('cal-ov').classList.add('hidden');}
 /* ── GOOGLE CALENDAR API ─────────────────────── */
+const GCAL_CAL_NAME='Florelle';
+let _florelleCal=null; // cached calendarId
+
+function buildCalEvents(rec){
+  const evs=[],n=rec.nome||'';
+  const buq=rec.dataBuque;
+  if(buq){
+    evs.push({key:'sil_colocar',title:'Colocar na sílica — '+n,date:addDays(buq,2)});
+    evs.push({key:'sil_retirar',title:'Retirar da sílica — '+n,date:addDays(buq,32)});
+    evs.push({key:'sil_montagem',title:'Iniciar montagem — '+n,date:addDays(buq,47)});
+    evs.push({key:'entrega',title:'Entrega — '+n,date:addDays(buq,60)});
+    if(rec.redomaStatus==='naoEncomendada')evs.push({key:'redoma',title:'Pedir redoma — '+n,date:addDays(buq,3)});
+    if(rec.statusEmbalagem==='naoEncomendada')evs.push({key:'embalagem',title:'Pedir embalagem — '+n,date:addDays(buq,3)});
+  }
+  if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data)
+    evs.push({key:'reserva',title:'Cobrança Reserva — '+n,date:rec.reserva.data});
+  (rec.pagamentos||[]).forEach((p,i)=>{
+    if(!p.pago&&p.data){
+      const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      evs.push({key:'pag_'+i,title:'Cobrança '+lbl+' — '+n,date:p.data});
+    }
+  });
+  return evs.filter(e=>e.date);
+}
+
+async function _calFetch(method,path,body){
+  const h={'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'};
+  const r=await fetch('https://www.googleapis.com/calendar/v3'+path,
+    {method,headers:h,body:body?JSON.stringify(body):undefined});
+  if(r.status===401){_gToken=null;throw new Error('Sessão expirada. Reconecte ao Drive.');}
+  return r;
+}
+
+async function _getOrCreateFlorelleCal(){
+  if(_florelleCal)return _florelleCal;
+  // List calendars and find Florelle
+  const r=await _calFetch('GET','/users/me/calendarList');
+  if(!r.ok)throw new Error('Erro ao listar calendários');
+  const d=await r.json();
+  const found=(d.items||[]).find(c=>c.summary===GCAL_CAL_NAME);
+  if(found){_florelleCal=found.id;return _florelleCal;}
+  // Create it
+  const cr=await _calFetch('POST','/calendars',{summary:GCAL_CAL_NAME,timeZone:'America/Sao_Paulo'});
+  if(!cr.ok)throw new Error('Erro ao criar calendário Florelle');
+  const cd=await cr.json();
+  // Set color to green
+  try{await _calFetch('PATCH','/users/me/calendarList/'+encodeURIComponent(cd.id),{colorId:'sage'});}catch(e){}
+  _florelleCal=cd.id;
+  return _florelleCal;
+}
+
+async function _clearAllCalEvents(calId){
+  // List all events and delete them
+  let pageToken='';
+  do{
+    const url='/calendars/'+encodeURIComponent(calId)+'/events?maxResults=250'+(pageToken?'&pageToken='+pageToken:'');
+    const r=await _calFetch('GET',url);
+    if(!r.ok)break;
+    const d=await r.json();
+    pageToken=d.nextPageToken||'';
+    for(const ev of(d.items||[])){
+      if(ev.status!=='cancelled'){
+        try{await _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+ev.id);}catch(e){}
+      }
+    }
+  }while(pageToken);
+}
+
+async function calSyncBride(brideId){
+  const bride=DATA.find(x=>x.id===brideId);
+  if(!bride)return;
+  const btn=g('cal-sync-btn');
+  const status=g('cal-sync-status');
+  if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
+  if(status){status.style.display='block';status.style.background='#EDF4EB';status.style.color='var(--sd)';status.textContent='Buscando calendário…';}
+  try{
+    await _ensureToken();
+    const calId=await _getOrCreateFlorelleCal();
+
+    if(status)status.textContent='Limpando eventos antigos…';
+
+    // Delete ALL events in the Florelle calendar that belong to this bride
+    // Strategy: list all events, delete ones with bride name
+    let pageToken='';
+    do{
+      const url='/calendars/'+encodeURIComponent(calId)+'/events?maxResults=250&showDeleted=false'+(pageToken?'&pageToken='+pageToken:'');
+      const r=await _calFetch('GET',url);
+      if(!r.ok)break;
+      const d=await r.json();
+      pageToken=d.nextPageToken||'';
+      for(const ev of(d.items||[])){
+        if(ev.summary&&ev.summary.includes('— '+bride.nome)){
+          try{await _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+ev.id);}catch(e){}
+        }
+      }
+    }while(pageToken);
+
+    // Also delete by stored eventIds (catches events from primary calendar)
+    const allIds=new Set();
+    (bride.calendarEvents||[]).forEach(e=>{if(e.eventId)allIds.add(e.eventId);});
+    const legacy=bride.calEventIds||{};
+    Object.values(legacy).forEach(id=>{if(id)allIds.add(id);});
+    for(const id of allIds){
+      // Try both primary and florelle calendar
+      try{await _calFetch('DELETE','/calendars/primary/events/'+id);}catch(e){}
+      try{await _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+id);}catch(e){}
+    }
+
+    if(status)status.textContent='Criando eventos…';
+
+    // Create new events in Florelle calendar
+    const evs=buildCalEvents(bride);
+    const newEvs=[];
+    for(const ev of evs){
+      const r=await _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',{
+        summary:ev.title,colorId:'2',
+        start:{date:ev.date},end:{date:addDays(ev.date,1)}
+      });
+      if(r.ok){const d=await r.json();newEvs.push({key:ev.key,title:ev.title,date:ev.date,eventId:d.id,calId});}
+    }
+
+    // Save
+    const i=DATA.findIndex(x=>x.id===brideId);
+    if(i!==-1){DATA[i].calendarEvents=newEvs;DATA[i].calEventIds={};save();}
+    if(btn){btn.disabled=false;btn.textContent='✓ Sincronizado!';}
+    if(status)status.textContent=newEvs.length+' evento(s) criado(s) no calendário Florelle.';
+    setTimeout(()=>{if(btn)btn.textContent='🗓 Sincronizar';},3000);
+  }catch(err){
+    if(btn){btn.disabled=false;btn.textContent='🗓 Sincronizar';}
+    if(status){status.style.background='#FEEDEA';status.style.color='#B03420';status.textContent='Erro: '+err.message;}
+    console.error('calSync error:',err);
+  }
+}
+
+let _calBrideId=null;
+
+function openCalModal(){
+  _calBrideId=editId;
+  const bride=editId?DATA.find(x=>x.id===editId):null;
+  const nome=bride?.nome||gv('m-nome')||'—';
+  g('cal-nm').textContent=nome;
+  const status=g('cal-sync-status');
+  if(status){status.style.display='none';status.textContent='';}
+  const previewRec={
+    nome,dataBuque:gv('m-buque'),dataCasamento:gv('m-cas'),
+    redomaStatus:radVal('redomaStatus'),statusEmbalagem:radVal('emb')||'naoEncomendada',
+    reserva:(()=>{const rows=_getPagRows();const ra=radVal('reservaAtiva')==='sim';return ra?{ativa:true,valor:rows[0]?.valor||'',data:rows[0]?.data||'',paga:!!(rows[0]?.pago)}:{ativa:false};})(),
+    pagamentos:(()=>{const rows=_getPagRows();return radVal('reservaAtiva')==='sim'?rows.slice(1):rows;})(),
+    formaPagamento:radVal('pag'),
+  };
+  const evs=buildCalEvents(previewRec);
+  const prev=g('cal-ev-preview');
+  if(prev)prev.innerHTML=evs.length
+    ?'<strong style="font-size:11px;color:var(--txl)">Eventos que serão sincronizados:</strong><br>'+evs.map(e=>'• '+e.title+' — '+fmt(e.date)).join('<br>')
+    :'<span style="color:var(--txl)">Nenhuma data de buquê preenchida.</span>';
+  const btn=g('cal-sync-btn');
+  if(btn){btn.disabled=evs.length===0;btn.textContent='🗓 Sincronizar';}
+  g('cal-ov').classList.remove('hidden');
+}
+
+function calClose(){g('cal-ov').classList.add('hidden');}
+
+/* ── GOOGLE CALENDAR API ─────────────────────── */
 const GCAL_ID='primary';
 let _calBrideId=null;
 
