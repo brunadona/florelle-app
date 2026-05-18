@@ -1469,8 +1469,13 @@ async function saveModal(){
     DATA.push({id:newId,crd:Date.now(),...rec});
   }
 
+  const savedId=editId||newId;
   save();closeModal();renderAll();
-  if(calEvs.length)setTimeout(()=>showCalModal(rec.nome,calEvs),80);
+
+  // Auto-sync Google Calendar silently after save
+  if(_gToken&&savedId){
+    setTimeout(()=>calSyncBride(savedId),400);
+  }
 
   // Auto-create Drive folder for new brides
   if(isNew&&newId){
