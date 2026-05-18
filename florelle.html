@@ -1942,16 +1942,20 @@ async function _calFetch(method,path,body){
 
 async function _getOrCreateFlorCal(){
   if(_florCalId)return _florCalId;
-  // Buscar calendário existente
+  // Buscar calendário Florelle que seja nosso (owner)
   const r=await _calFetch('GET','/users/me/calendarList');
   if(r.ok){
     const d=await r.json();
-    const found=(d.items||[]).find(c=>c.summary==='Florelle');
+    const found=(d.items||[]).find(c=>c.summary==='Florelle'&&c.accessRole==='owner');
     if(found){_florCalId=found.id;return _florCalId;}
   }
-  // Criar calendário
+  // Criar calendário próprio
   const cr=await _calFetch('POST','/calendars',{summary:'Florelle',timeZone:'America/Sao_Paulo'});
-  if(cr.ok){const d=await cr.json();_florCalId=d.id;return _florCalId;}
+  if(cr.ok){
+    const d=await cr.json();
+    _florCalId=d.id;
+    return _florCalId;
+  }
   throw new Error('Não foi possível criar o calendário Florelle.');
 }
 
