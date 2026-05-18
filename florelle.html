@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Florelle — Gestão de Noivas</title>
+<!-- app-version: v7-20260517 -->
 <link rel="manifest" href="/florelle-app/manifest.json">
 <meta name="theme-color" content="#5a7a5c">
 <meta name="mobile-web-app-capable" content="yes">
@@ -731,7 +732,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Dados da Noiva</div>
       <div class="frow">
         <div class="fg"><label class="fl">Nome</label><input id="m-nome" type="text" class="fi" placeholder="Nome completo" oninput="syncName()"></div>
-        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi"></div>
+        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi" onchange="syncAutoRems()"></div>
       </div>
       <div class="frow f1">
         <div class="fg"><label class="fl">Endereço</label><input id="m-end" type="text" class="fi" placeholder="Rua, número, cidade…"></div>
@@ -786,7 +787,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         </div>
       </div>
       <div class="frow f1 hidden" id="redoma-dt-row">
-        <div class="fg"><label class="fl">Data do pedido</label><input id="m-redoma-dt" type="date" class="fi"></div>
+        <div class="fg"><label class="fl">Data do pedido</label><input id="m-redoma-dt" type="date" class="fi" onchange="syncAutoRems()"></div>
       </div>
       <p class="hint hint-warn hidden" id="redoma-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar redoma — [nome]"</strong> para daqui 3 dias.</p>
     </div>
@@ -803,7 +804,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         </div>
       </div>
       <div class="frow f1 hidden" id="emb-dr">
-        <div class="fg"><label class="fl">Data de entrega prevista</label><input id="m-emb-d" type="date" class="fi"></div>
+        <div class="fg"><label class="fl">Data de entrega prevista</label><input id="m-emb-d" type="date" class="fi" onchange="syncAutoRems()"></div>
       </div>
       <div id="emb-pedida-section" style="margin-top:14px">
         <div class="fg" style="margin-bottom:11px">
@@ -814,7 +815,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
           </div>
         </div>
         <div class="frow f1 hidden" id="emb-prev-row">
-          <div class="fg"><label class="fl">Previsão de chegada</label><input id="m-emb-prev" type="date" class="fi"></div>
+          <div class="fg"><label class="fl">Previsão de chegada</label><input id="m-emb-prev" type="date" class="fi" onchange="syncAutoRems()"></div>
         </div>
         <p class="hint hint-warn hidden" id="emb-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar embalagem — [nome]"</strong> para daqui 3 dias.</p>
       </div>
@@ -856,10 +857,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Sílica</div>
       <div class="frow f1">
         <div class="fg"><label class="fl">Data de início na sílica</label><input id="m-silica" type="date" class="fi" onchange="silChg()"></div>
-      </div>
-      <div id="silbox" class="silbox hidden">
-        <div class="sli"><div class="sll">Retirada (+30 dias)</div><div class="slv" id="sil-ret">—</div></div>
-        <div class="sli"><div class="sll">Montagem (+45 dias)</div><div class="slv" id="sil-mont">—</div></div>
       </div>
     </div>
 
@@ -1300,6 +1297,7 @@ function embChg(){
   const v=radVal('emb');
   g('emb-dr').classList.toggle('hidden',v!=='encomendada');
   g('emb-pedida-section').classList.toggle('hidden',v==='emMaos');
+  syncAutoRems();
 }
 
 function pecaChg(el){
@@ -1318,29 +1316,11 @@ function pecaVis(){
 
 /* ── SILICA ──────────────────────────────────── */
 function silChg(){
-  const v=gv('m-silica');
-  silDisp(v);
-  mRem=mRem.filter(r=>!r.auto);
-  if(v){
-    mRem.unshift(
-      {id:uid(),text:'Início da montagem',data:addDays(v,50),auto:true,done:false},
-      {id:uid(),text:'Retirar da sílica',data:addDays(v,30),auto:true,done:false},
-      {id:uid(),text:'Colocar na sílica',data:v,auto:true,done:false}
-    );
-  }
-  renderRL();
+  silDisp(gv('m-silica'));
+  syncAutoRems();
 }
 
-function silDisp(v){
-  const box=g('silbox');
-  if(v){
-    g('sil-ret').textContent=fmt(addDays(v,30));
-    g('sil-mont').textContent=fmt(addDays(v,45));
-    box.classList.remove('hidden');
-  } else {
-    box.classList.add('hidden');
-  }
-}
+function silDisp(v){/* silbox removido — buq-box agora é a única exibição de datas */}
 
 /* ── REMINDER LIST ───────────────────────────── */
 function renderRL(){
@@ -1373,6 +1353,62 @@ function addRem(){
   if(!txt){g('nr-txt').focus();return;}
   mRem.push({id:uid(),text:txt,data:dt,auto:false,done:false});
   sv2('nr-txt','');sv2('nr-dt','');
+  renderRL();
+}
+
+/* ── SYNC AUTO REMINDERS (tempo real) ────────── */
+function syncAutoRems(){
+  // Remove TODOS os lembretes auto e reconstrói do zero a partir dos campos atuais
+  mRem=mRem.filter(r=>!r.auto);
+
+  const add=(text,data)=>{
+    if(!data||mRem.some(r=>r.auto&&r.text===text&&r.data===data))return;
+    mRem.push({id:uid(),text,data,auto:true,done:false});
+  };
+
+  // Sílica
+  const sil=gv('m-silica');
+  if(sil){
+    add('Colocar na sílica',sil);
+    add('Retirar da sílica',addDays(sil,30));
+    add('Início da montagem',addDays(sil,50));
+  }
+
+  // Entrega (data casamento)
+  const cas=gv('m-cas');
+  if(cas)add('Entrega',cas);
+
+  // Redoma
+  const redomaStatus=radVal('redomaStatus');
+  if(redomaStatus==='naoEncomendada')add('Pedir redoma',addDays(today(),3));
+
+  // Embalagem
+  const embStatus=radVal('emb');
+  const embPedida=radVal('embPedida');
+  if(embStatus==='naoEncomendada'&&embPedida==='nao')add('Pedir embalagem',addDays(today(),3));
+
+  // Pagamentos
+  const reservaAtiva=radVal('reservaAtiva')==='sim';
+  const fp=radVal('pag');
+  const rows=_getPagRows();
+  if(reservaAtiva&&rows.length>0){
+    const res=rows[0];
+    if(!res.pago&&res.data)add('Cobrança — Reserva',res.data);
+    rows.slice(1).forEach((p,i)=>{
+      if(!p.pago&&p.data){
+        const lbl=fp==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+        add('Cobrança — '+lbl,p.data);
+      }
+    });
+  } else {
+    rows.forEach((p,i)=>{
+      if(!p.pago&&p.data){
+        const lbl=fp==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+        add('Cobrança — '+lbl,p.data);
+      }
+    });
+  }
+
   renderRL();
 }
 
@@ -1558,6 +1594,7 @@ function buqueChg(){
   const v=gv('m-buque');
   buqueDisp(v);
   if(v&&!gv('m-silica')){sv2('m-silica',addDays(v,2));silChg();}
+  syncAutoRems();
 }
 function buqueDisp(v){
   const box=g('buq-box');
@@ -1574,6 +1611,7 @@ function redomaChg(){
   const v=radVal('redomaStatus');
   g('redoma-dt-row').classList.toggle('hidden',v!=='encomendada');
   g('redoma-nao-hint').classList.toggle('hidden',v!=='naoEncomendada');
+  syncAutoRems();
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
@@ -1581,6 +1619,7 @@ function embPedidaChg(){
   const v=radVal('embPedida');
   g('emb-prev-row').classList.toggle('hidden',v!=='sim');
   g('emb-nao-hint').classList.toggle('hidden',v!=='nao');
+  syncAutoRems();
 }
 
 /* ── PAGAMENTO ───────────────────────────────── */
@@ -1665,10 +1704,11 @@ function pagCalc(preload){
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
     `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="pagCalc()">`+
-    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px">`+
-    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
+    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
+    `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''} onchange="syncAutoRems()"> ${r.chkLabel}</label>`+
     `</div>`
   ).join('');
+  syncAutoRems();
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
