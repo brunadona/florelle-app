@@ -733,7 +733,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Dados da Noiva</div>
       <div class="frow">
         <div class="fg"><label class="fl">Nome</label><input id="m-nome" type="text" class="fi" placeholder="Nome completo" oninput="syncName()"></div>
-        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi"></div>
+        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi" onchange="syncAutoRems()"></div>
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">CPF</label><input id="m-cpf" type="text" class="fi" placeholder="000.000.000-00"></div>
@@ -1330,7 +1330,47 @@ function pecaVis(){
   g('m-outro').classList.toggle('hidden',!(o&&o.checked));
 }
 
-/* ── SILICA ──────────────────────────────────── */
+/* ── SYNC AUTO REMINDERS (tempo real) ────────── */
+function syncAutoRems(){
+  const dataBuque  = gv('m-buque');
+  const dataCas    = gv('m-cas');
+  const redomaSt   = radVal('redomaStatus');
+  const embSt      = radVal('emb')||'naoEncomendada';
+
+  // remove todos os automáticos
+  mRem = mRem.filter(r=>!r.auto);
+
+  const add=(text,data)=>{
+    if(!data)return;
+    mRem.push({id:uid(),text,data,auto:true,done:false});
+  };
+
+  // sílica / montagem baseados em dataBuque
+  if(dataBuque){
+    add('Colocar na sílica',    addDays(dataBuque,2));
+    add('Pedir redoma',         addDays(dataBuque,3));
+    add('Pedir embalagem',      addDays(dataBuque,3));
+    add('Retirar da sílica',    addDays(dataBuque,32));
+    add('Iniciar montagem',     addDays(dataBuque,47));
+  }
+  if(dataCas) add('Entrega', dataCas);
+
+  // cobranças
+  const resAtiva = radVal('reservaAtiva')==='sim';
+  const rows = _getPagRows();
+  if(resAtiva && rows[0] && !rows[0].pago && rows[0].data)
+    add('Cobrança — Reserva', rows[0].data);
+  const parcelas = resAtiva ? rows.slice(1) : rows;
+  parcelas.forEach((p,i)=>{
+    if(!p.pago && p.data){
+      const lbl = radVal('pag')==='pix3x'
+        ?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      add('Cobrança — '+lbl, p.data);
+    }
+  });
+
+  renderRL();
+}
 function silChg(){
   const v=gv('m-silica');
   silDisp(v);
@@ -1443,20 +1483,20 @@ async function saveModal(){
     upd:            Date.now(),
   };
 
-  // lembretes automáticos — antes de salvar no DATA
-  const _used2=[];
-  const _ar=(text,data)=>{
-    if(!data)return;
-    const key=text+'|'+data;
-    if(_used2.includes(key))return;
-    if(rec.lembretes.some(r=>r.text===text&&r.data===data))return;
-    _used2.push(key);
-    rec.lembretes.push({id:uid(),text,data,auto:true,done:false});
-  };
+  // lembretes automáticos — apaga todos os auto e recria do zero
+  rec.lembretes = rec.lembretes.filter(r=>!r.auto);
+  const _ar=(text,data)=>{if(data)rec.lembretes.push({id:uid(),text,data,auto:true,done:false});};
+
+  if(rec.dataBuque){
+    _ar('Colocar na sílica',    addDays(rec.dataBuque,2));
+    _ar('Pedir redoma',         addDays(rec.dataBuque,3));
+    _ar('Pedir embalagem',      addDays(rec.dataBuque,3));
+    _ar('Retirar da sílica',    addDays(rec.dataBuque,32));
+    _ar('Iniciar montagem',     addDays(rec.dataBuque,47));
+  }
   if(rec.dataCasamento)_ar('Entrega',rec.dataCasamento);
-  if(rec.redomaStatus==='naoEncomendada')_ar('Pedir redoma',addDays(today(),3));
-  if(rec.statusEmbalagem==='naoEncomendada')_ar('Pedir embalagem',addDays(today(),3));
-  if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)_ar('Cobrança — Reserva',rec.reserva.data);
+  if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data)
+    _ar('Cobrança — Reserva',rec.reserva.data);
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
       const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
@@ -1770,7 +1810,7 @@ function renderRP(){
 function buqueChg(){
   const v=gv('m-buque');
   buqueDisp(v);
-  if(v&&!gv('m-silica')){sv2('m-silica',addDays(v,2));silChg();}
+  syncAutoRems();
 }
 function buqueDisp(v){
   const box=g('buq-box');
@@ -1874,10 +1914,11 @@ function pagCalc(preload){
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
     `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="pagCalc()">`+
-    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px">`+
+    `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
     `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
     `</div>`
   ).join('');
+  syncAutoRems();
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
@@ -1892,18 +1933,14 @@ function buildCalEvents(rec){
   const evs=[];
   const nome=rec.nome||'';
   if(rec.dataBuque){
-    evs.push({title:'Colocar na sílica — '+nome,     date:addDays(rec.dataBuque,2)});
-    evs.push({title:'Retirar da sílica — '+nome,     date:addDays(rec.dataBuque,32)});
-    evs.push({title:'Início da montagem — '+nome,    date:addDays(rec.dataBuque,47)});
+    evs.push({title:'Colocar na sílica — '+nome,  date:addDays(rec.dataBuque,2)});
+    evs.push({title:'Pedir redoma — '+nome,        date:addDays(rec.dataBuque,3)});
+    evs.push({title:'Pedir embalagem — '+nome,     date:addDays(rec.dataBuque,3)});
+    evs.push({title:'Retirar da sílica — '+nome,   date:addDays(rec.dataBuque,32)});
+    evs.push({title:'Iniciar montagem — '+nome,    date:addDays(rec.dataBuque,47)});
   }
   if(rec.dataCasamento){
     evs.push({title:'Entrega — '+nome,date:rec.dataCasamento});
-  }
-  if(rec.redomaStatus==='naoEncomendada'){
-    evs.push({title:'Encomendar redoma — '+nome,date:addDays(today(),3)});
-  }
-  if(rec.statusEmbalagem==='naoEncomendada'){
-    evs.push({title:'Encomendar embalagem — '+nome,date:addDays(today(),3)});
   }
   if(rec.reserva&&rec.reserva.ativa&&!rec.reserva.paga&&rec.reserva.data){
     evs.push({title:'Cobrança Reserva — '+nome,date:rec.reserva.data});
