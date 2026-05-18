@@ -1728,15 +1728,20 @@ async function _calFetch(method,path,body){
 }
 
 async function _calDeleteByTitle(nome){
-  // Search for events matching this bride's name and delete them
+  // Search and delete ALL events containing this bride's name
+  const keywords=['— '+nome, '- '+nome];
   try{
     const q=encodeURIComponent(nome);
-    const r=await _calFetch('GET','/calendars/'+encodeURIComponent(GCAL_ID)+'/events?q='+q+'&maxResults=50');
+    // Search with a wide date range (past 2 years to future 2 years)
+    const tMin=new Date(Date.now()-2*365*86400000).toISOString();
+    const tMax=new Date(Date.now()+2*365*86400000).toISOString();
+    const url='/calendars/'+encodeURIComponent(GCAL_ID)+'/events?q='+q+'&maxResults=100&timeMin='+encodeURIComponent(tMin)+'&timeMax='+encodeURIComponent(tMax)+'&singleEvents=true';
+    const r=await _calFetch('GET',url);
     if(!r.ok)return;
     const d=await r.json();
     for(const ev of(d.items||[])){
-      if(ev.summary&&ev.summary.includes('— '+nome)){
-        await _calFetch('DELETE','/calendars/'+encodeURIComponent(GCAL_ID)+'/events/'+ev.id);
+      if(ev.summary&&keywords.some(k=>ev.summary.includes(k))){
+        try{await _calFetch('DELETE','/calendars/'+encodeURIComponent(GCAL_ID)+'/events/'+ev.id);}catch(e){}
       }
     }
   }catch(e){console.warn('calDeleteByTitle:',e);}
