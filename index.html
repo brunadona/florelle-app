@@ -1545,7 +1545,7 @@ function redomaChg(){
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
-function embPedidaChg(){ syncAutoRems(); }
+function embPedidaChg(){ if(typeof syncAutoRems==='function')syncAutoRems(); }
 
 /* ── PAGAMENTO ───────────────────────────────── */
 function reservaChg(){
