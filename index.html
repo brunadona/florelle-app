@@ -2019,14 +2019,16 @@ function _showCalToast(msg,type){
   if(!t){
     t=document.createElement('div');
     t.id='cal-toast';
-    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#3d5c38;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.2)';
+    t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(0);background:#3d5c38;color:#fff;padding:11px 22px;border-radius:9px;font-size:13.5px;font-family:"DM Sans",sans-serif;font-weight:500;z-index:99999;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.28);opacity:0;transition:opacity .25s ease';
     document.body.appendChild(t);
   }
   t.textContent=msg;
   t.style.background=type==='err'?'#8B3A3A':'#3d5c38';
+  // Forçar reflow antes de aplicar opacity
+  void t.offsetWidth;
   t.style.opacity='1';
   clearTimeout(t._tm);
-  t._tm=setTimeout(()=>t.style.opacity='0',3500);
+  t._tm=setTimeout(()=>{t.style.opacity='0';},4000);
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
