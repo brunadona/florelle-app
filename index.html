@@ -1545,11 +1545,7 @@ function redomaChg(){
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
-function embPedidaChg(){
-  const v=radVal('embPedida');
-  g('emb-prev-row').classList.toggle('hidden',v!=='sim');
-  g('emb-nao-hint').classList.toggle('hidden',v!=='nao');
-}
+function embPedidaChg(){ syncAutoRems(); }
 
 /* ── PAGAMENTO ───────────────────────────────── */
 function reservaChg(){
