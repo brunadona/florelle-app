@@ -1974,27 +1974,28 @@ async function _deleteCalEvents(eventIds){
   ));
 }
 
-function _calColor(title){
+function _calEmoji(title){
   const t=title||'';
-  if(t.startsWith('Cobrança'))return'6';        // laranja
-  if(t.startsWith('Data do casamento'))return'3'; // uva
-  if(t.startsWith('Colocar na sílica')||t.startsWith('Retirar da sílica'))return'2'; // verde
-  if(t.startsWith('Pedir redoma')||t.startsWith('Pedir embalagem'))return'9'; // azul
-  if(t.startsWith('Iniciar montagem'))return'5'; // amarelo
-  if(t.startsWith('Entrega'))return'10';         // verde escuro
-  return'1'; // lavanda (default)
+  if(t.startsWith('Cobrança'))return'💰 ';
+  if(t.startsWith('Data do casamento'))return'💒 ';
+  if(t.startsWith('Colocar na sílica'))return'🌿 ';
+  if(t.startsWith('Retirar da sílica'))return'✨ ';
+  if(t.startsWith('Pedir redoma')||t.startsWith('Pedir embalagem'))return'📦 ';
+  if(t.startsWith('Iniciar montagem'))return'🔨 ';
+  if(t.startsWith('Entrega'))return'🎁 ';
+  return'';
 }
 
 async function _createCalEvents(nome,calEvs){
   const calId=await _getOrCreateFlorCal();
   const results=await Promise.all(
     calEvs.filter(ev=>ev.date).map(ev=>
-      (()=>{
-        const body={summary:ev.title,start:{date:ev.date},end:{date:addDays(ev.date,1)},description:'Florelle — '+nome};
-        if(!calId.includes('group.calendar'))body.colorId=_calColor(ev.title);
-        return _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',body)
-          .then(r=>r.ok?r.json():null).catch(()=>null);
-      })()
+      _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',{
+        summary:_calEmoji(ev.title)+ev.title,
+        start:{date:ev.date},
+        end:{date:addDays(ev.date,1)},
+        description:'Florelle — '+nome,
+      }).then(r=>r.ok?r.json():null).catch(()=>null)
     )
   );
   return results.filter(d=>d&&d.id).map(d=>d.id);
