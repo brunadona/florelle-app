@@ -1510,6 +1510,7 @@ async function saveModal(){
 
   const isNew=!editId;
   let newId=null;
+  const oldCalIds = editId ? (DATA.find(x=>x.id===editId)||{}).calEventIds||[] : [];
 
   if(editId){
     const i=DATA.findIndex(x=>x.id===editId);
@@ -1519,8 +1520,16 @@ async function saveModal(){
     DATA.push({id:newId,crd:Date.now(),...rec});
   }
 
+  const brideIdForCal = editId || newId;
   save();closeModal();renderAll();
-  if(calEvs.length)setTimeout(()=>showCalModal(rec.nome,calEvs),80);
+  // Sincronizar Google Calendar automaticamente se conectado
+  if(calEvs.length&&brideIdForCal){
+    if(_gToken){
+      syncCalendar(brideIdForCal, rec.nome, calEvs, oldCalIds);
+    } else {
+      _ensureToken().then(()=>syncCalendar(brideIdForCal, rec.nome, calEvs, oldCalIds)).catch(()=>{});
+    }
+  }
 
   // Auto-create Drive folder for new brides
   if(isNew&&newId){
@@ -1723,7 +1732,9 @@ p{margin-bottom:4px;text-align:justify}
 function delBride(){
   if(!editId)return;
   if(!confirm('Excluir esta noiva? Essa ação não pode ser desfeita.'))return;
-  DATA=DATA.filter(x=>x.id!==editId);
+  const delId=editId;
+  deleteCalendarEvents(delId).catch(()=>{});
+  DATA=DATA.filter(x=>x.id!==delId);
   save();closeModal();renderAll();
 }
 
@@ -1918,6 +1929,99 @@ function pagCalc(preload){
     `</div>`
   ).join('');
   syncAutoRems();
+}
+
+
+/* ── GOOGLE CALENDAR API ─────────────────────── */
+async function _calFetch(method,path,body){
+  const h={'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'};
+  const r=await fetch('https://www.googleapis.com/calendar/v3'+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  if(r.status===401){_gToken=null;throw new Error('Sessão expirada.');}
+  return r;
+}
+
+async function _getOrCreateFlorCal(){
+  if(_florCalId)return _florCalId;
+  // Buscar calendário existente
+  const r=await _calFetch('GET','/users/me/calendarList');
+  if(r.ok){
+    const d=await r.json();
+    const found=(d.items||[]).find(c=>c.summary==='Florelle');
+    if(found){_florCalId=found.id;return _florCalId;}
+  }
+  // Criar calendário
+  const cr=await _calFetch('POST','/calendars',{summary:'Florelle',timeZone:'America/Sao_Paulo'});
+  if(cr.ok){const d=await cr.json();_florCalId=d.id;return _florCalId;}
+  throw new Error('Não foi possível criar o calendário Florelle.');
+}
+
+async function _deleteCalEvents(eventIds){
+  if(!eventIds||!eventIds.length)return;
+  const calId=await _getOrCreateFlorCal();
+  await Promise.all(eventIds.map(id=>
+    _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+id)
+      .catch(()=>{}) // ignora erro se evento já foi deletado
+  ));
+}
+
+async function _createCalEvents(nome,calEvs){
+  const calId=await _getOrCreateFlorCal();
+  const ids=[];
+  for(const ev of calEvs){
+    if(!ev.date)continue;
+    const body={
+      summary:ev.title,
+      start:{date:ev.date},
+      end:{date:addDays(ev.date,1)},
+      description:'Florelle — '+nome,
+      colorId:'2', // sage green
+    };
+    const r=await _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',body);
+    if(r.ok){const d=await r.json();ids.push(d.id);}
+  }
+  return ids;
+}
+
+async function syncCalendar(brideId,nome,calEvs,oldEventIds){
+  try{
+    if(!_gToken)await _ensureToken();
+    // Deletar eventos antigos
+    if(oldEventIds&&oldEventIds.length)await _deleteCalEvents(oldEventIds);
+    // Criar novos
+    const newIds=await _createCalEvents(nome,calEvs);
+    // Salvar IDs no DATA
+    const b=DATA.find(x=>x.id===brideId);
+    if(b){b.calEventIds=newIds;save();}
+    _showCalToast('Calendário atualizado ✓');
+    return newIds;
+  }catch(e){
+    _showCalToast('Erro no Calendar: '+e.message,'err');
+    return [];
+  }
+}
+
+async function deleteCalendarEvents(brideId){
+  const b=DATA.find(x=>x.id===brideId);
+  if(!b||!b.calEventIds||!b.calEventIds.length)return;
+  try{
+    if(!_gToken)await _ensureToken();
+    await _deleteCalEvents(b.calEventIds);
+  }catch(e){console.warn('Erro ao deletar eventos do Calendar:',e);}
+}
+
+function _showCalToast(msg,type){
+  let t=document.getElementById('cal-toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='cal-toast';
+    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#3d5c38;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.2)';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.background=type==='err'?'#8B3A3A':'#3d5c38';
+  t.style.opacity='1';
+  clearTimeout(t._tm);
+  t._tm=setTimeout(()=>t.style.opacity='0',3500);
 }
 
 /* ── GOOGLE CALENDAR ─────────────────────────── */
