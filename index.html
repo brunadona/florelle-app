@@ -1942,17 +1942,23 @@ async function _calFetch(method,path,body){
 
 async function _getOrCreateFlorCal(){
   if(_florCalId)return _florCalId;
-  // Buscar calendário Florelle que seja nosso (owner)
+  // Buscar calendário Florelle que seja nosso (owner) e não seja group.calendar
   const r=await _calFetch('GET','/users/me/calendarList');
   if(r.ok){
     const d=await r.json();
-    const found=(d.items||[]).find(c=>c.summary==='Florelle'&&c.accessRole==='owner');
+    const found=(d.items||[]).find(c=>
+      c.summary==='Florelle' &&
+      c.accessRole==='owner' &&
+      !c.id.includes('group.calendar')
+    );
     if(found){_florCalId=found.id;return _florCalId;}
   }
-  // Criar calendário próprio
+  // Criar calendário próprio — o ID retornado é o email do calendário (não group)
   const cr=await _calFetch('POST','/calendars',{summary:'Florelle',timeZone:'America/Sao_Paulo'});
   if(cr.ok){
     const d=await cr.json();
+    // Adicionar à lista para garantir acesso
+    await _calFetch('POST','/users/me/calendarList',{id:d.id});
     _florCalId=d.id;
     return _florCalId;
   }
@@ -1968,6 +1974,17 @@ async function _deleteCalEvents(eventIds){
   ));
 }
 
+function _calColor(title){
+  const t=title||'';
+  if(t.startsWith('Cobrança'))return'6';        // laranja
+  if(t.startsWith('Data do casamento'))return'3'; // uva
+  if(t.startsWith('Colocar na sílica')||t.startsWith('Retirar da sílica'))return'2'; // verde
+  if(t.startsWith('Pedir redoma')||t.startsWith('Pedir embalagem'))return'9'; // azul
+  if(t.startsWith('Iniciar montagem'))return'5'; // amarelo
+  if(t.startsWith('Entrega'))return'10';         // verde escuro
+  return'1'; // lavanda (default)
+}
+
 async function _createCalEvents(nome,calEvs){
   const calId=await _getOrCreateFlorCal();
   const results=await Promise.all(
@@ -1977,6 +1994,7 @@ async function _createCalEvents(nome,calEvs){
         start:{date:ev.date},
         end:{date:addDays(ev.date,1)},
         description:'Florelle — '+nome,
+        colorId:_calColor(ev.title),
       }).then(r=>r.ok?r.json():null).catch(()=>null)
     )
   );
