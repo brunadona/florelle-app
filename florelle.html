@@ -1984,17 +1984,22 @@ async function _createCalEvents(nome,calEvs){
 
 async function syncCalendar(brideId,nome,calEvs,oldEventIds){
   try{
+    console.log('[Cal] syncCalendar iniciando para',nome);
     if(!_gToken)await _ensureToken();
-    // Deletar eventos antigos
-    if(oldEventIds&&oldEventIds.length)await _deleteCalEvents(oldEventIds);
-    // Criar novos
+    console.log('[Cal] token OK, scope:',GD_SCOPE);
+    if(oldEventIds&&oldEventIds.length){
+      console.log('[Cal] deletando',oldEventIds.length,'eventos antigos');
+      await _deleteCalEvents(oldEventIds);
+    }
+    console.log('[Cal] criando',calEvs.length,'eventos');
     const newIds=await _createCalEvents(nome,calEvs);
-    // Salvar IDs no DATA
+    console.log('[Cal] criados',newIds.length,'eventos, IDs:',newIds);
     const b=DATA.find(x=>x.id===brideId);
     if(b){b.calEventIds=newIds;save();}
     _showCalToast('Calendário atualizado ✓');
     return newIds;
   }catch(e){
+    console.error('[Cal] ERRO:',e);
     _showCalToast('Erro no Calendar: '+e.message,'err');
     return [];
   }
@@ -2597,7 +2602,7 @@ function _mimeIcon(mt){
 }
 /* ── GOOGLE DRIVE UPLOAD (GIS popup mode) ────── */
 const GD_CLIENT_ID='232678212261-q2n2tjhc2dkhoj1njkdcp7femcrab3o4.apps.googleusercontent.com';
-const GD_SCOPE='https://www.googleapis.com/auth/drive.file';
+const GD_SCOPE='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar';
 const GD_ROOT='FLORELLE - NOIVAS';
 const GD_NOIVAS_ID='1cUGoU0TT-M01nIdUX5qCkxuSE2QUWr2o'; // pasta raiz FLORELLE - NOIVAS
 
