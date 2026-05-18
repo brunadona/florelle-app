@@ -2013,16 +2013,11 @@ async function deleteCalendarEvents(brideId){
 }
 
 function _showCalToast(msg,type){
-  let t=document.getElementById('cal-toast');
-  if(!t){
-    t=document.createElement('div');
-    t.id='cal-toast';
-    t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(0);background:#3d5c38;color:#fff;padding:11px 22px;border-radius:9px;font-size:13.5px;font-family:"DM Sans",sans-serif;font-weight:500;z-index:99999;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.28);opacity:0;transition:opacity .25s ease';
-    document.body.appendChild(t);
-  }
+  const t=document.getElementById('cal-toast');
+  if(!t)return;
   t.textContent=msg;
   t.style.background=type==='err'?'#8B3A3A':'#3d5c38';
-  // Forçar reflow antes de aplicar opacity
+  t.style.opacity='0';
   void t.offsetWidth;
   t.style.opacity='1';
   clearTimeout(t._tm);
@@ -3028,5 +3023,7 @@ if('serviceWorker' in navigator){
 }
 </script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<div id="cal-toast" style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#3d5c38;color:#fff;padding:11px 24px;border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;z-index:999999;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.3);opacity:0;transition:opacity .25s ease;pointer-events:none"></div>
 </body>
 </html>
