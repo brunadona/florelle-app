@@ -1973,7 +1973,6 @@ async function _createCalEvents(nome,calEvs){
         start:{date:ev.date},
         end:{date:addDays(ev.date,1)},
         description:'Florelle — '+nome,
-        colorId:'2',
       }).then(r=>r.ok?r.json():null).catch(()=>null)
     )
   );
