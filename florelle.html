@@ -980,6 +980,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 <script>
 'use strict';
+// Safety guard for cached versions
+if(typeof syncAutoRems==='undefined'){window.syncAutoRems=function(){};}
 
 /* ── COLUMNS ─────────────────────────────────── */
 const COLS=[
