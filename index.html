@@ -1700,27 +1700,6 @@ function calClose(){g('cal-ov').classList.add('hidden');}
 const GCAL_CAL_NAME='Florelle';
 let _florelleCal=null; // cached calendarId
 
-function buildCalEvents(rec){
-  const evs=[],n=rec.nome||'';
-  const buq=rec.dataBuque;
-  if(buq){
-    evs.push({key:'sil_colocar',title:'Colocar na sílica — '+n,date:addDays(buq,2)});
-    evs.push({key:'sil_retirar',title:'Retirar da sílica — '+n,date:addDays(buq,32)});
-    evs.push({key:'sil_montagem',title:'Iniciar montagem — '+n,date:addDays(buq,47)});
-    evs.push({key:'entrega',title:'Entrega — '+n,date:addDays(buq,60)});
-    if(rec.redomaStatus==='naoEncomendada')evs.push({key:'redoma',title:'Pedir redoma — '+n,date:addDays(buq,3)});
-    if(rec.statusEmbalagem==='naoEncomendada')evs.push({key:'embalagem',title:'Pedir embalagem — '+n,date:addDays(buq,3)});
-  }
-  if(rec.reserva?.ativa&&!rec.reserva.paga&&rec.reserva.data)
-    evs.push({key:'reserva',title:'Cobrança Reserva — '+n,date:rec.reserva.data});
-  (rec.pagamentos||[]).forEach((p,i)=>{
-    if(!p.pago&&p.data){
-      const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
-      evs.push({key:'pag_'+i,title:'Cobrança '+lbl+' — '+n,date:p.data});
-    }
-  });
-  return evs.filter(e=>e.date);
-}
 
 async function _calFetch(method,path,body){
   const h={'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'};
@@ -1857,7 +1836,6 @@ function openCalModal(){
   g('cal-ov').classList.remove('hidden');
 }
 
-function calClose(){g('cal-ov').classList.add('hidden');}
 
 /* ── GOOGLE CALENDAR API ─────────────────────── */
 /* ── TABS ────────────────────────────────────── */
