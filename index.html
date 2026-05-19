@@ -78,6 +78,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .bcard{background:var(--ccard);border-radius:8px;border:1px solid var(--bdl);padding:10px 10px 8px 13px;cursor:pointer;position:relative;box-shadow:var(--sh0);transition:box-shadow .18s,transform .14s,border-color .18s}
 .bcard:hover{box-shadow:var(--sh1);border-color:var(--sl);transform:translateY(-1px)}
 .bcard.drag{opacity:.42;transform:rotate(1.2deg)}
+.bcard.overdue{border-color:#F0B8B0;box-shadow:0 0 0 1.5px #F0B8B0,var(--sh0)}
+.bcard.overdue .cacc{background:#E07060!important}
 .cacc{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:8px 0 0 8px}
 .cname{font-family:'Cormorant Garamond',serif;font-size:16.5px;font-weight:500;color:var(--tx);line-height:1.2;margin-bottom:3px}
 .cdate{font-size:11px;color:var(--sd);margin-bottom:6px;display:flex;align-items:center;gap:4px}
@@ -1155,7 +1157,13 @@ function buildCol(col){
 
 function buildCard(b,acc){
   const el=document.createElement('div');
-  el.className='bcard';
+  // Detectar pagamento vencido
+  const _allPagItems=[];
+  if(b.reserva?.ativa)_allPagItems.push({pago:b.reserva.paga,data:b.reserva.data||''});
+  (b.pagamentos||[]).forEach(p=>_allPagItems.push({pago:p.pago,data:p.data||''}));
+  const _isOverdue=_allPagItems.some(p=>!p.pago&&p.data&&p.data<today());
+
+  el.className='bcard'+(_isOverdue?' overdue':'');
   el.dataset.id=b.id;
   el.draggable=true;
   el.addEventListener('dragstart',()=>{dragId=b.id;setTimeout(()=>el.classList.add('drag'),0);});
