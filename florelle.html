@@ -1992,24 +1992,20 @@ function _showReconnectBtn(){
 
 async function _getOrCreateFlorCal(){
   if(_florCalId)return _florCalId;
-  // Buscar calendário Florelle que seja nosso (owner) e não seja group.calendar
+  // Buscar calendário Florelle/FLORELLE com accessRole owner
   const r=await _calFetch('GET','/users/me/calendarList');
   if(r.ok){
     const d=await r.json();
     const found=(d.items||[]).find(c=>
       (c.summary==='Florelle'||c.summary==='FLORELLE') &&
-      c.accessRole==='owner' 
+      c.accessRole==='owner'
     );
     if(found){_florCalId=found.id;localStorage.setItem('florelle_cal_id',_florCalId);return _florCalId;}
   }
-  // Criar calendário próprio — o ID retornado é o email do calendário (não group)
-  const cr=await _calFetch('POST','/calendars',{summary:'Florelle',timeZone:'America/Sao_Paulo'});
-  if(cr.ok){
-    const d=await cr.json();
-    _florCalId=d.id;localStorage.setItem('florelle_cal_id',_florCalId);
-    return _florCalId;
-  }
-  throw new Error('Não foi possível criar o calendário Florelle.');
+  // Fallback: usar calendário FLORELLE fixo criado manualmente
+  _florCalId='57491405469c09dd8b5f05d87d070db4eeb51fab4e14d6fcfcc5575bd7e17a55@group.calendar.google.com';
+  localStorage.setItem('florelle_cal_id',_florCalId);
+  return _florCalId;
 }
 
 async function _deleteCalEvents(eventIds){
