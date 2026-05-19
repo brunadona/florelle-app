@@ -2626,19 +2626,31 @@ function renderFinancialTab(){
   _renderFinSummary();
   _renderFinDetail();
 }
+function _totalParcelas(b){
+  // Soma todas as parcelas (pagas ou não) para usar como fallback do valorTotal
+  let t=0;
+  const res=b.reserva||{};
+  if(res.ativa&&res.valor)t+=_parseBRL(res.valor);
+  (b.pagamentos||[]).forEach(p=>{if(p.valor)t+=_parseBRL(p.valor);});
+  return t;
+}
+function _calcBase(b){
+  // Usa valorTotal se cadastrado, senão usa soma das parcelas
+  const v=calcValor(b);
+  return v>0?v:_totalParcelas(b);
+}
 function _calcRecebido(b){
   let t=0;
   const res=b.reserva||{};
   if(res.ativa&&res.paga&&res.valor)t+=_parseBRL(res.valor);
   (b.pagamentos||[]).forEach(p=>{if(p.pago&&p.valor)t+=_parseBRL(p.valor);});
-  // Nunca pode exceder o total contratado
-  const tot=calcValor(b);
-  return tot>0?Math.min(t,tot):t;
+  const base=_calcBase(b);
+  return base>0?Math.min(t,base):t;
 }
 function _calcAReceber(b){
-  const tot=calcValor(b);
-  if(!tot)return 0; // sem valor cadastrado, não mostra a receber
-  return Math.max(0,tot-_calcRecebido(b));
+  const base=_calcBase(b);
+  if(!base)return 0;
+  return Math.max(0,base-_calcRecebido(b));
 }
 function _renderFinSummary(){
   const el=g('fin-summary-cards');if(!el)return;
