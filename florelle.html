@@ -2564,7 +2564,7 @@ function _renderFinSummary(){
     <div style="flex:1;min-width:150px;background:${c.bg};border-radius:10px;padding:14px 16px;border:1px solid rgba(0,0,0,.06)">
       <div style="font-size:18px;margin-bottom:4px">${c.ico}</div>
       <div style="font-size:10.5px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${c.label}</div>
-      <div style="font-size:18px;font-weight:600;color:${c.col};font-family:'DM Sans',sans-serif">R$ ${fmtBRL(c.val)}</div>
+      <div style="font-size:18px;font-weight:600;color:${c.col};font-family:'DM Sans',sans-serif">${fmtBRL(c.val)}</div>
     </div>
   `).join('');
 }
@@ -2612,9 +2612,9 @@ function _renderFinDetail(){
         </div>
         <div class="r-sub" style="margin-top:2px">${pct}% recebido</div>
       </div>`+
-      `<div class="r-val" style="color:#3d5c38">R$ ${fmtBRL(rec)}</div>`+
-      `<div class="r-val" style="color:#7a5c1e">R$ ${fmtBRL(arec)}</div>`+
-      `<div class="r-val">R$ ${fmtBRL(tot)}</div>`+
+      `<div class="r-val" style="color:#3d5c38">${fmtBRL(rec)}</div>`+
+      `<div class="r-val" style="color:#7a5c1e">${fmtBRL(arec)}</div>`+
+      `<div class="r-val">${fmtBRL(tot)}</div>`+
       `<span class="r-pill ${cls}">${status}</span>`;
     el.appendChild(row);
   });
@@ -2631,9 +2631,15 @@ function _calcRecebido(b){
   const res=b.reserva||{};
   if(res.ativa&&res.paga&&res.valor)t+=_parseBRL(res.valor);
   (b.pagamentos||[]).forEach(p=>{if(p.pago&&p.valor)t+=_parseBRL(p.valor);});
-  return t;
+  // Nunca pode exceder o total contratado
+  const tot=calcValor(b);
+  return tot>0?Math.min(t,tot):t;
 }
-function _calcAReceber(b){return Math.max(0,calcValor(b)-_calcRecebido(b));}
+function _calcAReceber(b){
+  const tot=calcValor(b);
+  if(!tot)return 0; // sem valor cadastrado, não mostra a receber
+  return Math.max(0,tot-_calcRecebido(b));
+}
 function _renderFinSummary(){
   const el=g('fin-summary-cards');if(!el)return;
   const ativas=DATA.filter(b=>b.etapa!=='cancelado');
@@ -2667,7 +2673,7 @@ function _renderFinSummary(){
     {ico:'✅',label:'Total recebido',val:totR,bg:'#EDF4EB',col:'#3d5c38'},
     {ico:'🔜',label:'Total a receber',val:totA,bg:'#F5F2EE',col:'#555'},
   ];
-  el.innerHTML=cards.map(c=>`<div style="flex:1;min-width:150px;background:${c.bg};border-radius:10px;padding:14px 16px;border:1px solid rgba(0,0,0,.06)"><div style="font-size:18px;margin-bottom:4px">${c.ico}</div><div style="font-size:10.5px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${c.label}</div><div style="font-size:18px;font-weight:600;color:${c.col};font-family:'DM Sans',sans-serif">R$ ${fmtBRL(c.val)}</div></div>`).join('');
+  el.innerHTML=cards.map(c=>`<div style="flex:1;min-width:150px;background:${c.bg};border-radius:10px;padding:14px 16px;border:1px solid rgba(0,0,0,.06)"><div style="font-size:18px;margin-bottom:4px">${c.ico}</div><div style="font-size:10.5px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${c.label}</div><div style="font-size:18px;font-weight:600;color:${c.col};font-family:'DM Sans',sans-serif">${fmtBRL(c.val)}</div></div>`).join('');
 }
 function _renderFinDetail(){
   const el=g('fin-detail-bdy');if(!el)return;el.innerHTML='';
@@ -2695,9 +2701,9 @@ function _renderFinDetail(){
       `<div><div class="r-nm">${esc(b.nome)}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa}</div>`+
       `<div style="margin-top:5px;height:4px;background:#e0dbd5;border-radius:3px;overflow:hidden"><div style="height:4px;background:#5a7a52;border-radius:3px;width:${pct}%"></div></div>`+
       `<div class="r-sub" style="margin-top:2px">${pct}% recebido</div></div>`+
-      `<div class="r-val" style="color:#3d5c38">R$ ${fmtBRL(rec)}</div>`+
-      `<div class="r-val" style="color:#7a5c1e">R$ ${fmtBRL(arec)}</div>`+
-      `<div class="r-val">R$ ${fmtBRL(tot)}</div>`+
+      `<div class="r-val" style="color:#3d5c38">${fmtBRL(rec)}</div>`+
+      `<div class="r-val" style="color:#7a5c1e">${fmtBRL(arec)}</div>`+
+      `<div class="r-val">${fmtBRL(tot)}</div>`+
       `<span class="r-pill ${cls}">${status}</span>`;
     el.appendChild(row);
   });
