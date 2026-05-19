@@ -1997,9 +1997,8 @@ async function _getOrCreateFlorCal(){
   if(r.ok){
     const d=await r.json();
     const found=(d.items||[]).find(c=>
-      c.summary==='Florelle' &&
-      c.accessRole==='owner' &&
-      !c.id.includes('group.calendar')
+      (c.summary==='Florelle'||c.summary==='FLORELLE') &&
+      c.accessRole==='owner' 
     );
     if(found){_florCalId=found.id;localStorage.setItem('florelle_cal_id',_florCalId);return _florCalId;}
   }
@@ -2007,8 +2006,6 @@ async function _getOrCreateFlorCal(){
   const cr=await _calFetch('POST','/calendars',{summary:'Florelle',timeZone:'America/Sao_Paulo'});
   if(cr.ok){
     const d=await cr.json();
-    // Adicionar à lista para garantir acesso
-    await _calFetch('POST','/users/me/calendarList',{id:d.id});
     _florCalId=d.id;localStorage.setItem('florelle_cal_id',_florCalId);
     return _florCalId;
   }
