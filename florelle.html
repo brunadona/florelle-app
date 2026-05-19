@@ -613,6 +613,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     Relatórios
   </button>
+  <button class="tni" id="tab-fv" onclick="showTab('fv')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Financeiro
+  </button>
   <button class="tni" id="tab-iv" onclick="showTab('iv')">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
     Inventário
@@ -659,6 +663,15 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div class="rsec">
     <div class="rsh"><div class="rs-ico" style="background:#EDF4EB">📊</div><span class="rsti">Resumo Geral</span></div>
     <div class="rsb" id="sum-bdy"></div>
+  </div>
+</div>
+
+<!-- FINANCIAL VIEW -->
+<div id="fv" class="hidden">
+  <div id="fin-summary-cards" style="display:flex;gap:14px;padding:18px 18px 0;flex-wrap:wrap"></div>
+  <div class="rsec" style="margin-top:14px">
+    <div class="rsh"><div class="rs-ico" style="background:#EDF4EB">💰</div><span class="rsti">Detalhamento por Noiva</span></div>
+    <div class="rsb" id="fin-detail-bdy"></div>
   </div>
 </div>
 
@@ -1113,6 +1126,7 @@ function renderAll(){
   bellUpdate();
   updTvBadge();
   if(curTab==='rv')renderReports();
+  if(curTab==='fv')renderFinancialTab();
   if(curTab==='iv')renderInv();
   if(curTab==='tv')renderTasks();
   if(isMobile())applyMobileCol();
@@ -2143,9 +2157,11 @@ function showTab(t){
   g('iv').classList.toggle('hidden',t!=='iv');
   g('tv').classList.toggle('hidden',t!=='tv');
   if(g('fv'))g('fv').classList.toggle('hidden',t!=='fv');
+  if(g('fv'))g('fv').classList.toggle('hidden',t!=='fv');
   ['kb','rv','iv','tv','fv'].forEach(id=>{ const el=g('tab-'+id);if(el)el.classList.toggle('act',id===t); });
   const cn=g('col-nav');if(cn)cn.classList.toggle('cn-off',t!=='kb');
   if(t==='rv')renderReports();
+  if(t==='fv')renderFinancialTab();
   if(t==='iv')renderInv();
   if(t==='tv')renderTasks();
 }
