@@ -2604,6 +2604,89 @@ function _renderFinDetail(){
   });
 }
 
+
+/* ── FINANCIAL TAB ───────────────────────────── */
+function renderFinancialTab(){
+  _renderFinSummary();
+  _renderFinDetail();
+}
+function _calcRecebido(b){
+  let t=0;
+  const res=b.reserva||{};
+  if(res.ativa&&res.paga&&res.valor)t+=_parseBRL(res.valor);
+  (b.pagamentos||[]).forEach(p=>{if(p.pago&&p.valor)t+=_parseBRL(p.valor);});
+  return t;
+}
+function _calcAReceber(b){return Math.max(0,calcValor(b)-_calcRecebido(b));}
+function _renderFinSummary(){
+  const el=g('fin-summary-cards');if(!el)return;
+  const ativas=DATA.filter(b=>b.etapa!=='cancelado');
+  const t=today(),mes=t.slice(0,7);
+  let totC=0,totR=0,totA=0,recMes=0,arecMes=0,venc=0;
+  ativas.forEach(b=>{
+    totC+=calcValor(b);totR+=_calcRecebido(b);totA+=_calcAReceber(b);
+    const res=b.reserva||{};
+    if(res.ativa&&res.valor){
+      if(res.paga&&res.data&&res.data.startsWith(mes))recMes+=_parseBRL(res.valor);
+      if(!res.paga&&res.data){
+        if(res.data.startsWith(mes))arecMes+=_parseBRL(res.valor);
+        if(res.data<t)venc+=_parseBRL(res.valor);
+      }
+    }
+    (b.pagamentos||[]).forEach(p=>{
+      if(!p.valor)return;
+      if(p.pago&&p.data&&p.data.startsWith(mes))recMes+=_parseBRL(p.valor);
+      if(!p.pago&&p.data){
+        if(p.data.startsWith(mes))arecMes+=_parseBRL(p.valor);
+        if(p.data<t)venc+=_parseBRL(p.valor);
+      }
+    });
+  });
+  const mesNome=new Date(mes+'-15').toLocaleString('pt-BR',{month:'long',year:'numeric'});
+  const cards=[
+    {ico:'📅',label:'Recebido em '+mesNome,val:recMes,bg:'#EDF4EB',col:'#3d5c38'},
+    {ico:'⏳',label:'A receber em '+mesNome,val:arecMes,bg:'#FEF3E4',col:'#7a5c1e'},
+    {ico:'⚠️',label:'Vencidos',val:venc,bg:'#FEEDEA',col:'#8B3A3A'},
+    {ico:'💼',label:'Total contratado',val:totC,bg:'#F0EBF8',col:'#5a3a8a'},
+    {ico:'✅',label:'Total recebido',val:totR,bg:'#EDF4EB',col:'#3d5c38'},
+    {ico:'🔜',label:'Total a receber',val:totA,bg:'#F5F2EE',col:'#555'},
+  ];
+  el.innerHTML=cards.map(c=>`<div style="flex:1;min-width:150px;background:${c.bg};border-radius:10px;padding:14px 16px;border:1px solid rgba(0,0,0,.06)"><div style="font-size:18px;margin-bottom:4px">${c.ico}</div><div style="font-size:10.5px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${c.label}</div><div style="font-size:18px;font-weight:600;color:${c.col};font-family:'DM Sans',sans-serif">R$ ${fmtBRL(c.val)}</div></div>`).join('');
+}
+function _renderFinDetail(){
+  const el=g('fin-detail-bdy');if(!el)return;el.innerHTML='';
+  const ativas=DATA.filter(b=>b.etapa!=='cancelado').sort((a,b)=>(_pagNextDate(a)||'').localeCompare(_pagNextDate(b)||''));
+  if(!ativas.length){el.innerHTML='<div class="r-emp">Nenhuma noiva ativa.</div>';return;}
+  const hd=document.createElement('div');hd.className='rth fin';
+  hd.innerHTML='<span>Noiva</span><span>Recebido</span><span>A receber</span><span>Total</span><span>Status</span>';
+  el.appendChild(hd);
+  ativas.forEach(b=>{
+    const rec=_calcRecebido(b),arec=_calcAReceber(b),tot=calcValor(b);
+    const pct=tot>0?Math.round(rec/tot*100):0;
+    let status='Em dia',cls='r-ok';
+    if(_pagAllPaid(b)){status='Pago';cls='r-ok';}
+    else{
+      const nd=_pagNextDate(b);
+      if(nd){const d=daysTo(nd);
+        if(d<0){status='Vencido '+Math.abs(d)+'d';cls='r-late';}
+        else if(d===0){status='Vence hoje';cls='r-warn';}
+        else if(d<=7){status='Em '+d+'d';cls='r-warn';}
+      }
+    }
+    const row=document.createElement('div');row.className='rtr fin';row.style.cursor='pointer';
+    row.onclick=()=>{showTab('kb');openModal(b.id);};
+    row.innerHTML=
+      `<div><div class="r-nm">${esc(b.nome)}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa}</div>`+
+      `<div style="margin-top:5px;height:4px;background:#e0dbd5;border-radius:3px;overflow:hidden"><div style="height:4px;background:#5a7a52;border-radius:3px;width:${pct}%"></div></div>`+
+      `<div class="r-sub" style="margin-top:2px">${pct}% recebido</div></div>`+
+      `<div class="r-val" style="color:#3d5c38">R$ ${fmtBRL(rec)}</div>`+
+      `<div class="r-val" style="color:#7a5c1e">R$ ${fmtBRL(arec)}</div>`+
+      `<div class="r-val">R$ ${fmtBRL(tot)}</div>`+
+      `<span class="r-pill ${cls}">${status}</span>`;
+    el.appendChild(row);
+  });
+}
+
 function renderReports(){renderFinancial();renderMaterial();renderSummary();}
 
 /* ── helpers pagamento ── */
