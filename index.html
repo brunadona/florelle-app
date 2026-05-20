@@ -2819,149 +2819,6 @@ function _showListaCompras(b){
   modal.onclick=e=>{if(e.target===modal)modal.remove();};
 }
 
-/* ── FINANCIAL TAB ───────────────────────────── */
-function renderFinancialTab(){
-  _renderFinSummary();
-  _renderFinDetail();
-}
-
-function _calcRecebido(b){
-  let total=0;
-  const res=b.reserva||{};
-  if(res.ativa&&res.paga&&res.valor)total+=_parseBRL(res.valor);
-  (b.pagamentos||[]).forEach(p=>{if(p.pago&&p.valor)total+=_parseBRL(p.valor);});
-  return total;
-}
-
-function _calcAReceber(b){
-  const tot=calcValor(b);
-  return Math.max(0,tot-_calcRecebido(b));
-}
-
-function _renderFinSummary(){
-  const el=g('fin-summary-cards');
-  if(!el)return;
-  const ativas=DATA.filter(b=>b.etapa!=='cancelado');
-  const t=today();
-  const mesAtual=t.slice(0,7); // YYYY-MM
-
-  // Total geral
-  let totalContratado=0,totalRecebido=0,totalAReceber=0;
-  ativas.forEach(b=>{
-    totalContratado+=calcValor(b);
-    totalRecebido+=_calcRecebido(b);
-    totalAReceber+=_calcAReceber(b);
-  });
-
-  // Recebimentos do mês atual (parcelas pagas com data no mês)
-  let recebidoMes=0;
-  ativas.forEach(b=>{
-    const res=b.reserva||{};
-    if(res.ativa&&res.paga&&res.data&&res.data.startsWith(mesAtual)&&res.valor)
-      recebidoMes+=_parseBRL(res.valor);
-    (b.pagamentos||[]).forEach(p=>{
-      if(p.pago&&p.data&&p.data.startsWith(mesAtual)&&p.valor)
-        recebidoMes+=_parseBRL(p.valor);
-    });
-  });
-
-  // A receber no mês (parcelas não pagas com data no mês)
-  let aReceberMes=0;
-  ativas.forEach(b=>{
-    const res=b.reserva||{};
-    if(res.ativa&&!res.paga&&res.data&&res.data.startsWith(mesAtual)&&res.valor)
-      aReceberMes+=_parseBRL(res.valor);
-    (b.pagamentos||[]).forEach(p=>{
-      if(!p.pago&&p.data&&p.data.startsWith(mesAtual)&&p.valor)
-        aReceberMes+=_parseBRL(p.valor);
-    });
-  });
-
-  // Vencidos (não pagos com data < hoje)
-  let vencidos=0;
-  ativas.forEach(b=>{
-    const res=b.reserva||{};
-    if(res.ativa&&!res.paga&&res.data&&res.data<t&&res.valor)
-      vencidos+=_parseBRL(res.valor);
-    (b.pagamentos||[]).forEach(p=>{
-      if(!p.pago&&p.data&&p.data<t&&p.valor)
-        vencidos+=_parseBRL(p.valor);
-    });
-  });
-
-  const mesNome=new Date(mesAtual+'-15').toLocaleString('pt-BR',{month:'long',year:'numeric'});
-
-  const cards=[
-    {ico:'📅',label:'Recebido em '+mesNome,val:recebidoMes,bg:'#EDF4EB',col:'#3d5c38'},
-    {ico:'⏳',label:'A receber em '+mesNome,val:aReceberMes,bg:'#FEF3E4',col:'#7a5c1e'},
-    {ico:'⚠️',label:'Vencidos',val:vencidos,bg:'#FEEDEA',col:'#8B3A3A'},
-    {ico:'💼',label:'Total contratado',val:totalContratado,bg:'#F0EBF8',col:'#5a3a8a'},
-    {ico:'✅',label:'Total recebido',val:totalRecebido,bg:'#EDF4EB',col:'#3d5c38'},
-    {ico:'🔜',label:'Total a receber',val:totalAReceber,bg:'#F5F2EE',col:'#555'},
-  ];
-
-  el.innerHTML=cards.map(c=>`
-    <div style="flex:1;min-width:150px;background:${c.bg};border-radius:10px;padding:14px 16px;border:1px solid rgba(0,0,0,.06)">
-      <div style="font-size:18px;margin-bottom:4px">${c.ico}</div>
-      <div style="font-size:10.5px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${c.label}</div>
-      <div style="font-size:18px;font-weight:600;color:${c.col};font-family:'DM Sans',sans-serif">${fmtBRL(c.val)}</div>
-    </div>
-  `).join('');
-}
-
-function _renderFinDetail(){
-  const el=g('fin-detail-bdy');
-  if(!el)return;
-  el.innerHTML='';
-  const ativas=DATA.filter(b=>b.etapa!=='cancelado').sort((a,bx)=>(_pagNextDate(a)||'').localeCompare(_pagNextDate(bx)||''));
-  if(!ativas.length){el.innerHTML='<div class="r-emp">Nenhuma noiva ativa.</div>';return;}
-
-  const hd=document.createElement('div');
-  hd.className='rth fin';
-  hd.innerHTML='<span>Noiva</span><span>Recebido</span><span>A receber</span><span>Total</span><span>Status</span>';
-  el.appendChild(hd);
-
-  ativas.forEach(b=>{
-    const rec=_calcRecebido(b);
-    const arec=_calcAReceber(b);
-    const tot=calcValor(b);
-    const pct=tot>0?Math.round(rec/tot*100):0;
-
-    let status='Em dia',cls='r-ok';
-    if(_pagAllPaid(b)){status='Pago';cls='r-ok';}
-    else{
-      const nd=_pagNextDate(b);
-      if(nd){
-        const d=daysTo(nd);
-        if(d<0){status='Vencido '+Math.abs(d)+'d';cls='r-late';}
-        else if(d===0){status='Vence hoje';cls='r-warn';}
-        else if(d<=7){status='Em '+d+'d';cls='r-warn';}
-      }
-    }
-
-    const row=document.createElement('div');
-    row.className='rtr fin';
-    row.style.cursor='pointer';
-    row.onclick=()=>{showTab('kb');openModal(b.id);};
-    row.innerHTML=
-      `<div>
-        <div class="r-nm">${esc(b.nome)}</div>
-        <div class="r-sub">${ETLBL[b.etapa]||b.etapa}</div>
-        <div style="margin-top:5px;height:4px;background:#e0dbd5;border-radius:3px;overflow:hidden">
-          <div style="height:4px;background:#5a7a52;border-radius:3px;width:${pct}%"></div>
-        </div>
-        <div class="r-sub" style="margin-top:2px">${pct}% recebido</div>
-      </div>`+
-      `<div class="r-val" style="color:#3d5c38">${fmtBRL(rec)}</div>`+
-      `<div class="r-val" style="color:#7a5c1e">${fmtBRL(arec)}</div>`+
-      `<div class="r-val">${fmtBRL(tot)}</div>`+
-      `<span class="r-pill ${cls}">${status}</span>`;
-    el.appendChild(row);
-  });
-}
-
-
-
 /* ── LISTA DE COMPRAS NOVA NOIVA ─────────────── */
 function _showListaCompras(b){
   const lista=_listaComprasNoiva(b);
@@ -3016,7 +2873,7 @@ function _totalParcelas(b){
   const res=b.reserva||{};
   if(res.ativa&&res.valor)t+=_parseBRL(res.valor);
   (b.pagamentos||[]).forEach(p=>{if(p.valor)t+=_parseBRL(p.valor);});
-  return t;
+  return t/100; // _parseBRL retorna centavos
 }
 function _calcBase(b){
   // Usa valorTotal se cadastrado, senão usa soma das parcelas
@@ -3028,8 +2885,9 @@ function _calcRecebido(b){
   const res=b.reserva||{};
   if(res.ativa&&res.paga&&res.valor)t+=_parseBRL(res.valor);
   (b.pagamentos||[]).forEach(p=>{if(p.pago&&p.valor)t+=_parseBRL(p.valor);});
+  const tReais=t/100; // _parseBRL retorna centavos
   const base=_calcBase(b);
-  return base>0?Math.min(t,base):t;
+  return base>0?Math.min(tReais,base):tReais;
 }
 function _calcAReceber(b){
   const base=_calcBase(b);
@@ -3045,18 +2903,18 @@ function _renderFinSummary(){
     totC+=calcValor(b);totR+=_calcRecebido(b);totA+=_calcAReceber(b);
     const res=b.reserva||{};
     if(res.ativa&&res.valor){
-      if(res.paga&&res.data&&res.data.startsWith(mes))recMes+=_parseBRL(res.valor);
+      if(res.paga&&res.data&&res.data.startsWith(mes))recMes+=_parseBRL(res.valor)/100;
       if(!res.paga&&res.data){
-        if(res.data.startsWith(mes))arecMes+=_parseBRL(res.valor);
-        if(res.data<t)venc+=_parseBRL(res.valor);
+        if(res.data.startsWith(mes))arecMes+=_parseBRL(res.valor)/100;
+        if(res.data<t)venc+=_parseBRL(res.valor)/100;
       }
     }
     (b.pagamentos||[]).forEach(p=>{
       if(!p.valor)return;
-      if(p.pago&&p.data&&p.data.startsWith(mes))recMes+=_parseBRL(p.valor);
+      if(p.pago&&p.data&&p.data.startsWith(mes))recMes+=_parseBRL(p.valor)/100;
       if(!p.pago&&p.data){
-        if(p.data.startsWith(mes))arecMes+=_parseBRL(p.valor);
-        if(p.data<t)venc+=_parseBRL(p.valor);
+        if(p.data.startsWith(mes))arecMes+=_parseBRL(p.valor)/100;
+        if(p.data<t)venc+=_parseBRL(p.valor)/100;
       }
     });
   });
