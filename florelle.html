@@ -801,12 +801,12 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="fg" style="margin-bottom:11px">
         <label class="fl">Tipo de produto</label>
         <div class="rg">
-          <label class="ro"><input type="radio" name="prod" value="quadro25x30"><span class="rl">Quadro 25×30</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadro32x42"><span class="rl">Quadro 32×42</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadroSobMedida"><span class="rl">Quadro sob medida</span></label>
-          <label class="ro"><input type="radio" name="prod" value="cupulaG"><span class="rl">Cúpula G</span></label>
-          <label class="ro"><input type="radio" name="prod" value="cupulaM"><span class="rl">Cúpula M</span></label>
-          <label class="ro"><input type="radio" name="prod" value="multiplos"><span class="rl">Múltiplos</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
+          <label class="ro"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()"><span class="rl">Cúpula G</span></label>
+          <label class="ro"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula M</span></label>
+          <label class="ro"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque()"><span class="rl">Múltiplos</span></label>
         </div>
       </div>
       <div class="frow f1">
@@ -852,6 +852,21 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <div class="fsec">
       <div class="sttl">Pagamento</div>
 
+      <!-- Custo do buquê -->
+      <div class="frow" style="margin-bottom:14px">
+        <div class="fg">
+          <label class="fl">Custo estimado do buquê</label>
+          <div id="m-custo-buque" style="background:var(--ccol);border:1.5px solid var(--bd);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--txm);display:flex;justify-content:space-between;align-items:center">
+            <span id="m-custo-val">—</span>
+            <span style="font-size:11px;color:var(--txl)">inclui R$50 custos variáveis</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">Margem (Valor total − Custo)</label>
+          <div id="m-margem-buque" style="background:var(--ccol);border:1.5px solid var(--bd);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--txm)">—</div>
+        </div>
+      </div>
+
       <!-- Reserva de data -->
       <div class="fg" style="margin-bottom:8px">
         <label class="fl">Reserva de data</label>
@@ -872,7 +887,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
       <!-- Valor total -->
       <div class="frow f1" style="margin-bottom:8px">
-        <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" placeholder="Ex: 1.290,00" oninput="pagCalc()"></div>
+        <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" oninput="updateCustoBuque()" placeholder="Ex: 1.290,00" oninput="pagCalc()"></div>
       </div>
 
       <!-- Linhas de parcela (renderizadas por pagCalc) -->
@@ -1335,6 +1350,7 @@ function fillForm(b){
   embChg();
   buqueDisp(b.dataBuque||'');
   redomaChg();
+  setTimeout(updateCustoBuque,50);
   pagCalc(allPagRows.length?allPagRows:null);
   pecaVis();
   renderRL();
@@ -2340,15 +2356,14 @@ const INV_DEFAULT=[
   {nome:'Bastão cola quente',qtdAtual:200,unidade:'un',   precoUnit:0.08,  consumo:10,  comprarAntes:false, porProduto:null, obs:'500un = R$40'},
   {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:''},
   {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:''},
-  {nome:'Custos variáveis',qtdAtual:0,    unidade:'R$',   precoUnit:1.00,  consumo:50,  comprarAntes:false, porProduto:null, obs:'Reposição de flores etc.'},
   // DEPENDENTES DO PRODUTO
-  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   comprarAntes:false, porProduto:['quadro32'], obs:'Comprar após buquê chegar'},
-  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   comprarAntes:false, porProduto:['quadro25'], obs:'Comprar após buquê chegar'},
-  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   comprarAntes:false, porProduto:['cupula','cupolam'], obs:'Comprar após buquê chegar'},
-  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['cupula','cupolam'], obs:'Para cúpula'},
-  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['quadro25','quadro32'], obs:'Para quadros'},
-  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['cupula','cupolam'], obs:'Comprar após buquê chegar'},
-  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['quadro25','quadro32'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   comprarAntes:false, porProduto:['quadro32x42'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   comprarAntes:false, porProduto:['quadro25x30'], obs:'Comprar após buquê chegar'},
+  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
+  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Para cúpula'},
+  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Para quadros'},
+  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
+  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Comprar após buquê chegar'},
 ];
 function loadInv(){
   try{
@@ -2374,6 +2389,39 @@ function loadInv(){
   }catch{INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));saveInv();}
 }
 function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
+
+
+function updateCustoBuque(){
+  const produto = radVal('prod')||'';
+  const custo = calcCustoBuque(produto);
+  const valor = _parseBRL(gv('m-valor'));
+  const custoEl = g('m-custo-val');
+  const margemEl = g('m-margem-buque');
+  if(custoEl) custoEl.textContent = 'R$ ' + custo.toFixed(2).replace('.',',');
+  if(margemEl){
+    if(valor>0){
+      const margem = valor - custo;
+      const pct = (margem/valor*100).toFixed(0);
+      margemEl.textContent = 'R$ ' + margem.toFixed(2).replace('.',',') + ' (' + pct + '%)';
+      margemEl.style.color = margem >= 0 ? 'var(--sd)' : '#B03420';
+    } else {
+      margemEl.textContent = '—';
+      margemEl.style.color = 'var(--txm)';
+    }
+  }
+}
+
+/* ── CUSTO DO BUQUÊ ──────────────────────────── */
+function calcCustoBuque(produto){
+  const CUSTOS_VARIAVEIS = 50.00;
+  let total = CUSTOS_VARIAVEIS;
+  INV.forEach(item=>{
+    if(item.porProduto && !item.porProduto.includes(produto||'')) return;
+    if(item.nome==='Custos variáveis') return; // já incluído acima
+    total += (item.consumo||0) * (item.precoUnit||0);
+  });
+  return total;
+}
 
 /* ── INVENTORY HELPERS ───────────────────────── */
 // Retorna quantas noivas ativas precisam de um item (considerando produto)
