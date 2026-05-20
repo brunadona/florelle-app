@@ -1069,7 +1069,7 @@ const COLS=[
   {id:'cancelado',       label:'Cancelado / Rejeitado',color:'#A8A098'},
 ];
 
-const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G',cupulaM:'Cúpula M',multiplos:'Múltiplos'};
+const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G',cupulaM:'Cúpula M',multiplos:'Múltiplos',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
 const PAGLABEL={pixAVista:'Pix à vista',pix3x:'Pix 3×',cartao:'Cartão'};
 const EMBLABEL={naoEncomendada:'À encomendar',encomendada:'Encomendada',emMaos:'Em mãos'};
 const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
@@ -2393,12 +2393,17 @@ function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
 
 function updateCustoBuque(){
   const produto = radVal('prod')||'';
+  const custoEl = g('m-custo-val');
+  const margemEl = g('m-margem-buque');
+  if(!produto){
+    if(custoEl){ custoEl.textContent = '—'; custoEl.style.color='var(--txm)'; }
+    if(margemEl){ margemEl.textContent = '⚠️ Selecione o produto acima'; margemEl.style.color='#B03420'; }
+    return;
+  }
   const custo = calcCustoBuque(produto);
   const valorCents = _parseBRL(gv('m-valor'));
   const valor = valorCents / 100; // _parseBRL retorna centavos
-  const custoEl = g('m-custo-val');
-  const margemEl = g('m-margem-buque');
-  if(custoEl) custoEl.textContent = 'R$ ' + custo.toFixed(2).replace('.',',');
+  if(custoEl){ custoEl.textContent = 'R$ ' + custo.toFixed(2).replace('.',','); custoEl.style.color=''; }
   if(margemEl){
     if(valor>0){
       const margem = valor - custo;
