@@ -1712,7 +1712,7 @@ function enviarContratoWpp(){
   const tel  = gv('m-tel').trim().replace(/\D/g,'');
   if(!tel){alert('Preencha o telefone da noiva para enviar por WhatsApp.');return;}
   const msg = encodeURIComponent(
-    `Olá ${nome}! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura! 📄✨\n\nPor favor, leia com atenção e confira todas as informações antes de assinar. Qualquer divergência me avise!\n\nPara assinar, você pode:\n• Assinar digitalmente no próprio arquivo\n• Imprimir, assinar e me enviar uma foto\n\nQualquer dúvida estou à disposição! 💐`
+    `Olá, ${nome}! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura! 📄✨\n\nPor favor, leia com atenção e confira todas as informações antes de assinar. Qualquer divergência me avise!\n\nPara assinar, você pode:\n• Assinar digitalmente no próprio arquivo\n• Imprimir, assinar e me enviar uma foto\n\nQualquer dúvida estou à disposição! 💐`
   );
   // Abre WhatsApp e contrato de forma síncrona (dentro do evento de clique)
   // para o browser não bloquear como popup
