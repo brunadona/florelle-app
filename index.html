@@ -853,17 +853,28 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Pagamento</div>
 
       <!-- Custo do buquê -->
-      <div class="frow" style="margin-bottom:14px">
-        <div class="fg">
-          <label class="fl">Custo estimado do buquê</label>
-          <div id="m-custo-buque" style="background:var(--ccol);border:1.5px solid var(--bd);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--txm);display:flex;justify-content:space-between;align-items:center">
-            <span id="m-custo-val">—</span>
-            <span style="font-size:11px;color:var(--txl)">inclui R$50 custos variáveis</span>
-          </div>
+      <div style="margin-bottom:14px">
+        <label class="fl" style="margin-bottom:6px">Produto para cálculo de custo</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q25"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()" style="display:none"> Quadro 25×30</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q32"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()" style="display:none"> Quadro 32×42</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-qsm"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()" style="display:none"> Sob medida</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cg"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()" style="display:none"> Cúpula G</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cm"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()" style="display:none"> Cúpula M</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-mu"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque()" style="display:none"> Múltiplos</label>
         </div>
-        <div class="fg">
-          <label class="fl">Margem (Valor total − Custo)</label>
-          <div id="m-margem-buque" style="background:var(--ccol);border:1.5px solid var(--bd);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--txm)">—</div>
+        <div class="frow">
+          <div class="fg">
+            <label class="fl">Custo estimado</label>
+            <div id="m-custo-buque" style="background:var(--ccol);border:1.5px solid var(--bd);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--txm);display:flex;justify-content:space-between;align-items:center">
+              <span id="m-custo-val">—</span>
+              <span style="font-size:11px;color:var(--txl)">inclui R$50 custos variáveis + R$80 embalagem</span>
+            </div>
+          </div>
+          <div class="fg">
+            <label class="fl">Margem (Valor total − Custo)</label>
+            <div id="m-margem-buque" style="background:var(--ccol);border:1.5px solid var(--bd);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--txm)">—</div>
+          </div>
         </div>
       </div>
 
@@ -2393,16 +2404,25 @@ function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
 
 function updateCustoBuque(){
   const produto = radVal('prod')||'';
+  // Atualiza visual dos pills de produto no painel de pagamento
+  const pillMap={quadro25x30:'m-cp-q25',quadro32x42:'m-cp-q32',quadroSobMedida:'m-cp-qsm',cupulaG:'m-cp-cg',cupulaM:'m-cp-cm',multiplos:'m-cp-mu'};
+  Object.entries(pillMap).forEach(([v,id])=>{
+    const el=g(id); if(!el) return;
+    const sel = v===produto;
+    el.style.background   = sel ? 'var(--sd)' : '';
+    el.style.color        = sel ? '#fff'       : '';
+    el.style.borderColor  = sel ? 'var(--sd)'  : 'var(--bd)';
+  });
   const custoEl = g('m-custo-val');
   const margemEl = g('m-margem-buque');
   if(!produto){
     if(custoEl){ custoEl.textContent = '—'; custoEl.style.color='var(--txm)'; }
-    if(margemEl){ margemEl.textContent = '⚠️ Selecione o produto acima'; margemEl.style.color='#B03420'; }
+    if(margemEl){ margemEl.textContent = '← selecione o produto'; margemEl.style.color='var(--txl)'; }
     return;
   }
   const custo = calcCustoBuque(produto);
   const valorCents = _parseBRL(gv('m-valor'));
-  const valor = valorCents / 100; // _parseBRL retorna centavos
+  const valor = valorCents / 100;
   if(custoEl){ custoEl.textContent = 'R$ ' + custo.toFixed(2).replace('.',','); custoEl.style.color=''; }
   if(margemEl){
     if(valor>0){
