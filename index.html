@@ -1716,7 +1716,7 @@ function enviarContratoWpp(){
   const msg = encodeURIComponent(
     `Olá ${nome}! 🌸\n\nSegue o contrato Florelle Atelier para sua assinatura.\n\nApós revisar, assine digitalmente e nos retorne o arquivo.\n\nQualquer dúvida estou à disposição! 💐`
   );
-  const wppUrl = `https://wa.me/55${tel}?text=${msg}`;
+  const wppUrl = `https://web.whatsapp.com/send?phone=55${tel}&text=${msg}`;
   setTimeout(()=>window.open(wppUrl,'_blank'),800);
 }
 
