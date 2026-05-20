@@ -1576,6 +1576,12 @@ async function saveModal(){
     }
   }
 
+  // Mostrar lista de compras para nova noiva
+  if(isNew&&newId){
+    const bNova=DATA.find(x=>x.id===newId);
+    if(bNova)setTimeout(()=>_showListaCompras(bNova),300);
+  }
+
   // Auto-create Drive folder for new brides
   if(isNew&&newId){
     if(_gToken){
@@ -2318,26 +2324,95 @@ function importData(e){
 
 /* ── INVENTORY ───────────────────────────────── */
 const INV_KEY='florelle_inv_v1';
+// Consumo por buquê (gasto real, não estoque)
+// consumo: quanto usa por buquê | unidade: unidade do consumo | precoUnit: preço por unidade
+// qtdAtual: estoque atual | comprarAntes: true = precisa antes do buquê chegar
+// porProduto: objeto com consumo diferente por produto (null = mesmo para todos)
 const INV_DEFAULT=[
-  {nome:'Verniz',         qtdAtual:0,qtdMin:1,unidade:'unid',obs:''},
-  {nome:'Sílica',         qtdAtual:0,qtdMin:1,unidade:'kg',  obs:''},
-  {nome:'Pote',           qtdAtual:0,qtdMin:1,unidade:'unid',obs:''},
-  {nome:'Plástico filme', qtdAtual:0,qtdMin:1,unidade:'rolo',obs:''},
-  {nome:'Cola quente',    qtdAtual:0,qtdMin:1,unidade:'unid',obs:''},
-  {nome:'Fita',           qtdAtual:0,qtdMin:1,unidade:'rolo',obs:''},
-  {nome:'Tekbond',        qtdAtual:0,qtdMin:1,unidade:'unid',obs:''},
-  {nome:'Mat. impressos', qtdAtual:0,qtdMin:5,unidade:'unid',obs:''},
-  {nome:'Tag',            qtdAtual:0,qtdMin:5,unidade:'unid',obs:''},
+  // CONSUMÍVEIS (todos os produtos)
+  {nome:'Sílica',          qtdAtual:4,    unidade:'kg',   precoUnit:38.08, consumo:4,   comprarAntes:true,  porProduto:null, obs:'8kg por buquê, reutiliza 1x (4kg efetivo). Balde 12kg = R$457'},
+  {nome:'Plástico filme',  qtdAtual:150,  unidade:'m',    precoUnit:0.20,  consumo:24,  comprarAntes:false, porProduto:null, obs:'Rolo 300m = R$60'},
+  {nome:'Cola acrílica',   qtdAtual:230,  unidade:'ml',   precoUnit:0.30,  consumo:3,   comprarAntes:false, porProduto:null, obs:'Frasco 250ml = R$75'},
+  {nome:'Papel kraft',     qtdAtual:95,   unidade:'m',    precoUnit:0.80,  consumo:3,   comprarAntes:false, porProduto:null, obs:'Rolo 100m = R$80'},
+  {nome:'Foto instax',     qtdAtual:10,   unidade:'foto', precoUnit:7.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:'Pack 10 fotos = R$70'},
+  {nome:'Verniz',          qtdAtual:300,  unidade:'ml',   precoUnit:0.333, consumo:100, comprarAntes:false, porProduto:null, obs:'Frasco 300ml = R$100'},
+  {nome:'Junco',           qtdAtual:1,    unidade:'maço', precoUnit:42.00, consumo:1,   comprarAntes:false, porProduto:null, obs:'R$42/maço'},
+  {nome:'Bastão cola quente',qtdAtual:200,unidade:'un',   precoUnit:0.08,  consumo:10,  comprarAntes:false, porProduto:null, obs:'500un = R$40'},
+  {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:''},
+  {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:''},
+  {nome:'Custos variáveis',qtdAtual:0,    unidade:'R$',   precoUnit:1.00,  consumo:50,  comprarAntes:false, porProduto:null, obs:'Reposição de flores etc.'},
+  // DEPENDENTES DO PRODUTO
+  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   comprarAntes:false, porProduto:['quadro32'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   comprarAntes:false, porProduto:['quadro25'], obs:'Comprar após buquê chegar'},
+  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   comprarAntes:false, porProduto:['cupula','cupolam'], obs:'Comprar após buquê chegar'},
+  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['cupula','cupolam'], obs:'Para cúpula'},
+  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['quadro25','quadro32'], obs:'Para quadros'},
+  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['cupula','cupolam'], obs:'Comprar após buquê chegar'},
+  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['quadro25','quadro32'], obs:'Comprar após buquê chegar'},
 ];
 function loadInv(){
   try{
     const s=localStorage.getItem(INV_KEY);
-    if(s)INV=JSON.parse(s);
-    else{INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));saveInv();}
-  }catch{INV=[];}
+    if(s){
+      const parsed=JSON.parse(s);
+      // Migrar: se não tem 'consumo', resetar para INV_DEFAULT (nova versão)
+      if(parsed.length>0&&parsed[0].consumo===undefined){
+        INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));
+      } else {
+        INV=parsed;
+        // Adicionar itens novos que não existem ainda
+        INV_DEFAULT.forEach(def=>{
+          if(!INV.find(x=>x.nome===def.nome)){
+            INV.push({id:uid(),historico:[],...def});
+          }
+        });
+      }
+    } else {
+      INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));
+    }
+    saveInv();
+  }catch{INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));saveInv();}
 }
 function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
-function invAlertCount(){return INV.filter(x=>x.qtdMin>0&&Number(x.qtdAtual)<=Number(x.qtdMin)).length;}
+
+/* ── INVENTORY HELPERS ───────────────────────── */
+// Retorna quantas noivas ativas precisam de um item (considerando produto)
+function _invNoivasQueUsam(item){
+  const ativas = DATA.filter(b=>!['entregue','cancelado'].includes(b.etapa));
+  if(!item.porProduto) return ativas.length;
+  return ativas.filter(b=>item.porProduto.includes(b.produto||'')).length;
+}
+
+// Retorna quanto precisa comprar (negativo = tem sobra, positivo = falta)
+function _invNeeded(item){
+  const qtdNecessaria = item.consumo * _invNoivasQueUsam(item);
+  return Math.max(0, qtdNecessaria - Number(item.qtdAtual||0));
+}
+
+// Retorna custo total do item para todas as noivas ativas
+function _invCusto(item){
+  return item.consumo * item.precoUnit * _invNoivasQueUsam(item);
+}
+
+// Gera lista de compras para uma noiva específica
+function _listaComprasNoiva(b){
+  const produto = b.produto||'';
+  return INV.map(item=>{
+    if(item.porProduto && !item.porProduto.includes(produto)) return null;
+    const needed = item.consumo - 0; // simplificado
+    return {
+      nome: item.nome,
+      consumo: item.consumo,
+      unidade: item.unidade,
+      precoUnit: item.precoUnit,
+      custo: item.consumo * item.precoUnit,
+      comprarAntes: item.comprarAntes||false,
+      temEstoque: Number(item.qtdAtual||0) >= item.consumo,
+    };
+  }).filter(Boolean);
+}
+
+function invAlertCount(){return INV.filter(x=>_invNeeded(x)>0).length;}
 function updInvBadge(){
   const n=invAlertCount();
   const bdg=g('iv-bdg');if(bdg){bdg.textContent=n;bdg.classList.toggle('hidden',n===0);}
@@ -2354,18 +2429,18 @@ function delInvItem(id){
 }
 function updInv(id,field,val){
   const item=INV.find(x=>x.id===id);if(!item)return;
-  item[field]=(field==='qtdAtual'||field==='qtdMin')?(Number(val)||0):val;
+  const numFields=['qtdAtual','consumo','precoUnit'];
+  item[field]=numFields.includes(field)?(parseFloat(String(val).replace(',','.'))||0):val;
   saveInv();
-  const n=invAlertCount();
-  const ct=g('inv-ct');if(ct){ct.textContent=n?n+' repor':'✓ OK';ct.classList.toggle('al',n>0);}
-  const bdg=g('iv-bdg');if(bdg){bdg.textContent=n;bdg.classList.toggle('hidden',n===0);}
+  updInvBadge();
   const row=document.querySelector('.inv-item[data-id="'+id+'"]');
   if(row){
-    const isAl=item.qtdMin>0&&Number(item.qtdAtual)<=Number(item.qtdMin);
+    const needed=_invNeeded(item);
+    const isAl=needed>0;
     row.classList.toggle('al',isAl);
     const nm=row.querySelector('.inv-nm');if(nm)nm.classList.toggle('al-nm',isAl);
     const qtdIn=row.querySelector('.inv-in-qt');if(qtdIn)qtdIn.classList.toggle('al',isAl);
-    const rt=row.querySelector('.repor-tag');if(rt)rt.classList.toggle('hidden',!isAl);
+    const rt=row.querySelector('.repor-tag');if(rt){rt.textContent=isAl?'COMPRAR '+needed.toFixed(1)+' '+item.unidade:'';rt.classList.toggle('hidden',!isAl);}
   }
 }
 function restockInv(id){
@@ -2384,34 +2459,84 @@ function restockInv(id){
 function renderInv(){
   const body=g('inv-bdy');if(!body)return;
   body.innerHTML='';
-  const n=invAlertCount();
-  const ct=g('inv-ct');if(ct){ct.textContent=n?n+' repor':'✓ OK';ct.classList.toggle('al',n>0);}
-  const bdg=g('iv-bdg');if(bdg){bdg.textContent=n;bdg.classList.toggle('hidden',n===0);}
-  const UNITS=['unid','ml','g','kg','rolo','metros'];
+  updInvBadge();
+
+  // Seção 1: Lista de compras necessárias
+  const precisaComprar=INV.filter(x=>_invNeeded(x)>0);
+  const secCompras=document.createElement('div');
+  secCompras.className='rsec';
+  secCompras.style='margin-bottom:16px';
+
+  if(precisaComprar.length){
+    secCompras.innerHTML=`<div class="rsh"><div class="rs-ico" style="background:#FEEDEA">🛒</div><span class="rsti">Comprar agora (${precisaComprar.length} itens)</span></div>`;
+    const cBody=document.createElement('div');cBody.className='rsb';
+    precisaComprar.forEach(item=>{
+      const needed=_invNeeded(item);
+      const custo=(needed*item.precoUnit).toFixed(2).replace('.',',');
+      const urgente=item.comprarAntes;
+      const row=document.createElement('div');
+      row.className='rtr';row.style='align-items:center;gap:10px';
+      row.innerHTML=
+        `<div style="flex:2"><div class="r-nm">${esc(item.nome)}</div>`+
+        (urgente?'<div class="r-sub" style="color:#B03420;font-weight:600">⚠️ Comprar ANTES do buquê chegar</div>':
+                 '<div class="r-sub">Comprar após buquê chegar</div>')+
+        `</div>`+
+        `<div class="r-val" style="color:#B03420">Faltam ${needed.toFixed(1)} ${item.unidade}</div>`+
+        `<div class="r-val" style="color:#888">R$ ${custo}</div>`;
+      cBody.appendChild(row);
+    });
+    secCompras.appendChild(cBody);
+  } else {
+    secCompras.innerHTML=`<div class="rsh"><div class="rs-ico" style="background:#EDF4EB">✅</div><span class="rsti">Estoque OK para todas as noivas ativas</span></div>`;
+  }
+  body.appendChild(secCompras);
+
+  // Seção 2: Tabela completa de itens
+  const secTabela=document.createElement('div');
+  secTabela.className='rsec';
+  secTabela.innerHTML=`<div class="rsh"><div class="rs-ico" style="background:#F0EBF8">📦</div><span class="rsti">Estoque completo</span></div>`;
+
+  const tabBody=document.createElement('div');tabBody.className='rsb';
+
+  // Cabeçalho
+  const hd=document.createElement('div');hd.className='rth';
+  hd.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 80px;font-size:10.5px';
+  hd.innerHTML='<span>Item</span><span>Estoque atual</span><span>Consumo/buquê</span><span>Preço unit.</span><span>Status</span><span></span>';
+  tabBody.appendChild(hd);
+
   INV.forEach(item=>{
-    const isAl=item.qtdMin>0&&Number(item.qtdAtual)<=Number(item.qtdMin);
+    const needed=_invNeeded(item);
+    const isAl=needed>0;
+    const noivas=_invNoivasQueUsam(item);
     const el=document.createElement('div');
-    el.className='inv-item'+(isAl?' al':'');
+    el.className='inv-item rtr'+(isAl?' al':'');
     el.dataset.id=item.id;
-    const uOpts=UNITS.map(u=>`<option value="${u}"${item.unidade===u?' selected':''}>${u}</option>`).join('');
+    el.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:8px';
+    const statusTxt=isAl
+      ?`<span class="r-pill r-late">Faltam ${needed.toFixed(1)} ${item.unidade}</span>`
+      :`<span class="r-pill r-ok">OK (${noivas} noiva${noivas!==1?'s':''})</span>`;
     el.innerHTML=
-      `<div class="inv-nm">${esc(item.nome)}<span class="repor-tag${isAl?'':' hidden'}">REPOR</span></div>`+
-      `<input type="number" class="inv-in inv-in-qt${isAl?' al':''}" value="${item.qtdAtual}" min="0" step="0.5" style="width:100%" onchange="updInv('${item.id}','qtdAtual',this.value)">`+
-      `<select class="inv-sel" onchange="updInv('${item.id}','unidade',this.value)">${uOpts}</select>`+
-      `<input type="number" class="inv-in" value="${item.qtdMin}" min="0" step="1" style="width:100%" onchange="updInv('${item.id}','qtdMin',this.value)">`+
-      `<input type="text" class="inv-in" value="${esc(item.obs)}" placeholder="Observação…" style="width:100%" onchange="updInv('${item.id}','obs',this.value)">`+
-      `<button class="bsec" style="height:30px;padding:0 10px;font-size:11px;white-space:nowrap" onclick="restockInv('${item.id}')">+ Repor</button>`+
-      `<button class="inv-del" onclick="delInvItem('${item.id}')" title="Remover">${icn('<path d="M1 1l10 10M11 1L1 11"/>',10,10)}</button>`;
-    body.appendChild(el);
+      `<div><div class="r-nm inv-nm${isAl?' al-nm':''}">${esc(item.nome)}</div>`+
+      (item.obs?`<div class="r-sub">${esc(item.obs)}</div>`:'')+
+      (item.comprarAntes?'<div class="r-sub" style="color:#B03420">⚠️ Antes do buquê</div>':'')+
+      `</div>`+
+      `<input type="number" class="inv-in inv-in-qt${isAl?' al':''}" value="${item.qtdAtual}" min="0" step="0.5" style="width:90px" onchange="updInv('${item.id}','qtdAtual',this.value)" title="Estoque atual">`+
+      `<input type="number" class="inv-in" value="${item.consumo}" min="0" step="0.5" style="width:90px" onchange="updInv('${item.id}','consumo',this.value)" title="Consumo por buquê">`+
+      `<input type="number" class="inv-in" value="${item.precoUnit}" min="0" step="0.01" style="width:90px" onchange="updInv('${item.id}','precoUnit',this.value)" title="Preço unitário">`+
+      statusTxt+
+      `<button class="bsec" style="height:28px;padding:0 8px;font-size:11px" onclick="restockInv('${item.id}')">+ Repor</button>`;
+    tabBody.appendChild(el);
     if(item.historico&&item.historico.length){
-      const hist=document.createElement('div');
-      hist.className='inv-hist';
-      hist.innerHTML='<div class="inv-hist-ttl">Histórico de reposição</div>'+
+      const hist=document.createElement('div');hist.className='inv-hist';
+      hist.innerHTML='<div class="inv-hist-ttl">Histórico</div>'+
         item.historico.slice(0,3).map(h=>`<div class="inv-hist-row">${fmt(h.data)} — +${h.quantidade} ${item.unidade}${h.obs?' · '+esc(h.obs):''}</div>`).join('');
-      body.appendChild(hist);
+      tabBody.appendChild(hist);
     }
   });
+  secTabela.appendChild(tabBody);
+  body.appendChild(secTabela);
 }
+
 
 /* ── TASKS VIEW ──────────────────────────────── */
 let _tvFilter='all';
@@ -2601,6 +2726,50 @@ function calcValor(b){
 function fmtBRL(n){return'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
 
+
+/* ── LISTA DE COMPRAS NOVA NOIVA ─────────────── */
+function _showListaCompras(b){
+  const lista=_listaComprasNoiva(b);
+  if(!lista.length)return;
+
+  const antes=lista.filter(x=>x.comprarAntes&&!x.temEstoque);
+  const depois=lista.filter(x=>!x.comprarAntes&&!x.temEstoque);
+  const temTudo=lista.every(x=>x.temEstoque);
+
+  if(temTudo){_showCalToast('✅ Estoque OK para '+b.nome);return;}
+
+  // Modal de lista de compras
+  let modal=document.getElementById('compras-modal');
+  if(modal)modal.remove();
+  modal=document.createElement('div');
+  modal.id='compras-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(44,40,37,.52);z-index:3000;display:flex;align-items:center;justify-content:center;padding:14px';
+
+  const custoTotal=lista.filter(x=>!x.temEstoque).reduce((s,x)=>s+x.custo,0);
+
+  modal.innerHTML=`
+    <div style="background:#F5F2EE;border-radius:14px;padding:28px 28px 22px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;margin-bottom:4px">Lista de Compras</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px">${b.nome} · ${b.produto?b.produto:''}</div>
+      ${antes.length?`
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#B03420;margin-bottom:8px">⚠️ Comprar ANTES do buquê chegar</div>
+        ${antes.map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 12px;background:#FEEDEA;border-radius:7px;margin-bottom:6px;font-size:13px"><span>${esc(x.nome)}</span><span style="color:#B03420;font-weight:600">${x.consumo} ${x.unidade} · R$ ${x.custo.toFixed(2).replace('.',',')}</span></div>`).join('')}
+      `:''}
+      ${depois.length?`
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#5a7a52;margin-bottom:8px;margin-top:${antes.length?'16px':'0'}">📦 Comprar após buquê chegar</div>
+        ${depois.map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 12px;background:#EDF4EB;border-radius:7px;margin-bottom:6px;font-size:13px"><span>${esc(x.nome)}</span><span style="color:#3d5c38;font-weight:600">${x.consumo} ${x.unidade} · R$ ${x.custo.toFixed(2).replace('.',',')}</span></div>`).join('')}
+      `:''}
+      <div style="border-top:1px solid #DDD8D2;margin-top:16px;padding-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:#888">Total estimado a comprar</span>
+        <span style="font-size:16px;font-weight:600;color:#3d5c38">R$ ${custoTotal.toFixed(2).replace('.',',')}</span>
+      </div>
+      <button onclick="document.getElementById('compras-modal').remove()" style="width:100%;margin-top:16px;height:38px;background:#5a7a52;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer">Entendido</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+}
+
 /* ── FINANCIAL TAB ───────────────────────────── */
 function renderFinancialTab(){
   _renderFinSummary();
@@ -2742,6 +2911,50 @@ function _renderFinDetail(){
   });
 }
 
+
+
+/* ── LISTA DE COMPRAS NOVA NOIVA ─────────────── */
+function _showListaCompras(b){
+  const lista=_listaComprasNoiva(b);
+  if(!lista.length)return;
+
+  const antes=lista.filter(x=>x.comprarAntes&&!x.temEstoque);
+  const depois=lista.filter(x=>!x.comprarAntes&&!x.temEstoque);
+  const temTudo=lista.every(x=>x.temEstoque);
+
+  if(temTudo){_showCalToast('✅ Estoque OK para '+b.nome);return;}
+
+  // Modal de lista de compras
+  let modal=document.getElementById('compras-modal');
+  if(modal)modal.remove();
+  modal=document.createElement('div');
+  modal.id='compras-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(44,40,37,.52);z-index:3000;display:flex;align-items:center;justify-content:center;padding:14px';
+
+  const custoTotal=lista.filter(x=>!x.temEstoque).reduce((s,x)=>s+x.custo,0);
+
+  modal.innerHTML=`
+    <div style="background:#F5F2EE;border-radius:14px;padding:28px 28px 22px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;margin-bottom:4px">Lista de Compras</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px">${b.nome} · ${b.produto?b.produto:''}</div>
+      ${antes.length?`
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#B03420;margin-bottom:8px">⚠️ Comprar ANTES do buquê chegar</div>
+        ${antes.map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 12px;background:#FEEDEA;border-radius:7px;margin-bottom:6px;font-size:13px"><span>${esc(x.nome)}</span><span style="color:#B03420;font-weight:600">${x.consumo} ${x.unidade} · R$ ${x.custo.toFixed(2).replace('.',',')}</span></div>`).join('')}
+      `:''}
+      ${depois.length?`
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#5a7a52;margin-bottom:8px;margin-top:${antes.length?'16px':'0'}">📦 Comprar após buquê chegar</div>
+        ${depois.map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 12px;background:#EDF4EB;border-radius:7px;margin-bottom:6px;font-size:13px"><span>${esc(x.nome)}</span><span style="color:#3d5c38;font-weight:600">${x.consumo} ${x.unidade} · R$ ${x.custo.toFixed(2).replace('.',',')}</span></div>`).join('')}
+      `:''}
+      <div style="border-top:1px solid #DDD8D2;margin-top:16px;padding-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:#888">Total estimado a comprar</span>
+        <span style="font-size:16px;font-weight:600;color:#3d5c38">R$ ${custoTotal.toFixed(2).replace('.',',')}</span>
+      </div>
+      <button onclick="document.getElementById('compras-modal').remove()" style="width:100%;margin-top:16px;height:38px;background:#5a7a52;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer">Entendido</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+}
 
 /* ── FINANCIAL TAB ───────────────────────────── */
 function renderFinancialTab(){
