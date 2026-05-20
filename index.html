@@ -1711,13 +1711,13 @@ function enviarContratoWpp(){
   const nome = gv('m-nome').trim()||'';
   const tel  = gv('m-tel').trim().replace(/\D/g,'');
   if(!tel){alert('Preencha o telefone da noiva para enviar por WhatsApp.');return;}
-  // Gera o contrato em nova aba e abre WhatsApp com mensagem
-  gerarContrato();
   const msg = encodeURIComponent(
     `Olá ${nome}! 🌸\n\nSegue o contrato Florelle Atelier para sua assinatura.\n\nApós revisar, assine digitalmente e nos retorne o arquivo.\n\nQualquer dúvida estou à disposição! 💐`
   );
-  const wppUrl = `https://web.whatsapp.com/send?phone=55${tel}&text=${msg}`;
-  setTimeout(()=>window.open(wppUrl,'_blank'),800);
+  // Abre WhatsApp e contrato de forma síncrona (dentro do evento de clique)
+  // para o browser não bloquear como popup
+  window.open(`https://web.whatsapp.com/send?phone=55${tel}&text=${msg}`, '_blank');
+  gerarContrato();
 }
 
 function _contratoHTMLStr(p){
