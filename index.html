@@ -2394,7 +2394,8 @@ function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
 function updateCustoBuque(){
   const produto = radVal('prod')||'';
   const custo = calcCustoBuque(produto);
-  const valor = _parseBRL(gv('m-valor'));
+  const valorCents = _parseBRL(gv('m-valor'));
+  const valor = valorCents / 100; // _parseBRL retorna centavos
   const custoEl = g('m-custo-val');
   const margemEl = g('m-margem-buque');
   if(custoEl) custoEl.textContent = 'R$ ' + custo.toFixed(2).replace('.',',');
