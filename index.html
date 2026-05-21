@@ -2639,7 +2639,7 @@ function buildTasks(){
   const PAG_LBLS={pix3x:['1ª parcela','2ª parcela','3ª parcela'],pixAVista:['Saldo restante'],cartao:['Saldo restante']};
 
   DATA.forEach(b=>{
-    if(b.etapa==='cancelado')return;
+    if(b.etapa==='cancelado'||b.etapa==='entregue')return;
     const bid=b.id,nome=_nomeDisp(b),fp=b.formaPagamento||'';
 
     // Sílica / montagem
@@ -2659,12 +2659,12 @@ function buildTasks(){
 
     // Pagamentos
     if(fp&&b.reserva?.ativa&&b.reserva.data)
-      tasks.push({id:'cob-'+bid+'-reserva',bid,nome,type:'cobranca',date:b.reserva.data,label:'Reserva',done:false,auto:true});
+      tasks.push({id:'cob-'+bid+'-reserva',bid,nome,type:'cobranca',date:b.reserva.data,label:'Reserva',done:!!(b.reserva.paga),auto:true});
     if(fp&&b.pagamentos?.length){
       const lbls=PAG_LBLS[fp]||[];
       b.pagamentos.forEach((p,i)=>{
         if(!p.data)return;
-        tasks.push({id:'cob-'+bid+'-p'+i,bid,nome,type:'cobranca',date:p.data,label:lbls[i]||('Parcela '+(i+1)),done:false,auto:true});
+        tasks.push({id:'cob-'+bid+'-p'+i,bid,nome,type:'cobranca',date:p.data,label:lbls[i]||('Parcela '+(i+1)),done:!!(p.pago),auto:true});
       });
     }
 
