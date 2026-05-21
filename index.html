@@ -3530,26 +3530,65 @@ Retorne apenas o JSON.`;
 
     closeWaImport();
 
-    editId=null;mRem=[];
-    fillForm({
-      etapa:          'lead',
-      nome:           parsed.nome||'',
-      telefone:       parsed.telefone||'',
-      dataCasamento:  parsed.dataCasamento||'',
-      cidade:         parsed.cidade||'',
-      endereco:       parsed.endereco||'',
-      produto:        parsed.produto||'',
-      produtoObs:     parsed.produtoObs||'',
-      formaPagamento: parsed.formaPagamento||'',
-      valorTotal:     parsed.valorTotal||'',
-      retiradaBuque:  parsed.retiradaBuque||'',
-      autorizaReposicao: parsed.autorizaReposicao||'',
-      floresUtilizadas:  parsed.floresUtilizadas||'',
-      cerimonialista:    parsed.cerimonialista||'',
-      cerimonialTel:     parsed.cerimonialTel||'',
-      anotacoes:      parsed.anotacoes||'',
-    });
-    g('bdel').classList.add('hidden');
+    // Tenta encontrar noiva existente por telefone ou nome
+    const _tel=(parsed.telefone||'').replace(/\D/g,'');
+    const _nm=(parsed.nome||'').trim().toLowerCase();
+    let match=null;
+    if(_tel.length>=8) match=DATA.find(b=>(b.telefone||'').replace(/\D/g,'')===_tel);
+    if(!match&&_nm.length>=3) match=DATA.find(b=>(b.nome||'').trim().toLowerCase()===_nm);
+
+    if(match){
+      // Modo edição: mescla campos novos sobre os existentes (não apaga o que já tinha)
+      editId=match.id;
+      mRem=JSON.parse(JSON.stringify(match.lembretes||[]));
+      mAnexos=JSON.parse(JSON.stringify(match.anexos||[]));
+      _mDriveFolder=match.driveFolder||'';
+      const merged={...match};
+      const ov=(k,v)=>{if(v)merged[k]=v;};
+      ov('nome',           parsed.nome);
+      ov('telefone',       parsed.telefone);
+      ov('dataCasamento',  parsed.dataCasamento);
+      ov('cidade',         parsed.cidade);
+      ov('endereco',       parsed.endereco);
+      ov('produto',        parsed.produto);
+      ov('produtoObs',     parsed.produtoObs);
+      ov('formaPagamento', parsed.formaPagamento);
+      ov('valorTotal',     parsed.valorTotal);
+      ov('retiradaBuque',  parsed.retiradaBuque);
+      ov('autorizaReposicao', parsed.autorizaReposicao);
+      ov('floresUtilizadas',  parsed.floresUtilizadas);
+      ov('cerimonialista',    parsed.cerimonialista);
+      ov('cerimonialTel',     parsed.cerimonialTel);
+      if(parsed.anotacoes){
+        merged.anotacoes=merged.anotacoes
+          ?(merged.anotacoes+'\n\n'+parsed.anotacoes)
+          :parsed.anotacoes;
+      }
+      fillForm(merged);
+      g('bdel').classList.remove('hidden');
+      _showCalToast('Noiva encontrada: '+_nomeDisp(match)+' — campos atualizados');
+    } else {
+      editId=null;mRem=[];mAnexos=[];_mDriveFolder='';
+      fillForm({
+        etapa:          'lead',
+        nome:           parsed.nome||'',
+        telefone:       parsed.telefone||'',
+        dataCasamento:  parsed.dataCasamento||'',
+        cidade:         parsed.cidade||'',
+        endereco:       parsed.endereco||'',
+        produto:        parsed.produto||'',
+        produtoObs:     parsed.produtoObs||'',
+        formaPagamento: parsed.formaPagamento||'',
+        valorTotal:     parsed.valorTotal||'',
+        retiradaBuque:  parsed.retiradaBuque||'',
+        autorizaReposicao: parsed.autorizaReposicao||'',
+        floresUtilizadas:  parsed.floresUtilizadas||'',
+        cerimonialista:    parsed.cerimonialista||'',
+        cerimonialTel:     parsed.cerimonialTel||'',
+        anotacoes:      parsed.anotacoes||'',
+      });
+      g('bdel').classList.add('hidden');
+    }
     g('ov').classList.remove('hidden');
 
   }catch(err){
