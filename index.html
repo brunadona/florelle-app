@@ -1157,6 +1157,11 @@ function radVal(name){const r=document.querySelector(`input[name="${name}"]:chec
 function setRad(name,val){document.querySelectorAll(`input[name="${name}"]`).forEach(r=>r.checked=r.value===val);}
 function icn(d,w,h){return`<svg width="${w||13}" height="${h||13}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function _nomeDisp(b){
+  if(b.nome)return b.nome;
+  const parts=[b.telefone,b.dataCasamento?fmt(b.dataCasamento):''].filter(Boolean);
+  return parts.length?parts.join(' · '):'(sem nome)';
+}
 
 /* ── RENDER ──────────────────────────────────── */
 function renderAll(){
@@ -1266,7 +1271,7 @@ function buildCard(b,acc){
 
   el.innerHTML=`
     <div class="cacc" style="background:${acc}"></div>
-    <div class="cname">${esc(b.nome)||'(sem nome)'}</div>
+    <div class="cname">${esc(_nomeDisp(b))}</div>
     <div class="cdate">${icn('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',11,11)}
       ${b.dataCasamento?fmt(b.dataCasamento):'<em style="opacity:.55">Data indefinida</em>'}${pill}
     </div>
@@ -1996,7 +2001,7 @@ function renderRP(){
     const el=document.createElement('div');
     el.className='rpi';
     el.onclick=()=>{toggleRP();openModal(b.id);};
-    el.innerHTML=`<div class="rpin">${b.nome}</div><div class="rpit">${r.text}</div><div class="rpid ${cls}">${lbl}</div>`;
+    el.innerHTML=`<div class="rpin">${esc(_nomeDisp(b))}</div><div class="rpit">${r.text}</div><div class="rpid ${cls}">${lbl}</div>`;
     body.appendChild(el);
   });
 }
@@ -2635,7 +2640,7 @@ function buildTasks(){
 
   DATA.forEach(b=>{
     if(b.etapa==='cancelado')return;
-    const bid=b.id,nome=b.nome||'Noiva',fp=b.formaPagamento||'';
+    const bid=b.id,nome=_nomeDisp(b),fp=b.formaPagamento||'';
 
     // Sílica / montagem
     if(b.dataSilica){
@@ -2810,7 +2815,7 @@ function _showListaCompras(b){
   const depois=lista.filter(x=>!x.comprarAntes&&!x.temEstoque);
   const temTudo=lista.every(x=>x.temEstoque);
 
-  if(temTudo){_showCalToast('✅ Estoque OK para '+b.nome);return;}
+  if(temTudo){_showCalToast('✅ Estoque OK para '+_nomeDisp(b));return;}
 
   // Modal de lista de compras
   let modal=document.getElementById('compras-modal');
@@ -2824,7 +2829,7 @@ function _showListaCompras(b){
   modal.innerHTML=`
     <div style="background:#F5F2EE;border-radius:14px;padding:28px 28px 22px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)">
       <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;margin-bottom:4px">Lista de Compras</div>
-      <div style="font-size:12px;color:#888;margin-bottom:20px">${b.nome} · ${b.produto?b.produto:''}</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px">${esc(_nomeDisp(b))} · ${b.produto?b.produto:''}</div>
       ${antes.length?`
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#B03420;margin-bottom:8px">⚠️ Comprar ANTES do buquê chegar</div>
         ${antes.map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 12px;background:#FEEDEA;border-radius:7px;margin-bottom:6px;font-size:13px"><span>${esc(x.nome)}</span><span style="color:#B03420;font-weight:600">${x.consumo} ${x.unidade} · R$ ${x.custo.toFixed(2).replace('.',',')}</span></div>`).join('')}
@@ -2934,7 +2939,7 @@ function _renderFinDetail(){
     const row=document.createElement('div');row.className='rtr fin';row.style.cursor='pointer';
     row.onclick=()=>{showTab('kb');openModal(b.id);};
     row.innerHTML=
-      `<div><div class="r-nm">${esc(b.nome)}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa}</div>`+
+      `<div><div class="r-nm">${esc(_nomeDisp(b))}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa}</div>`+
       `<div style="margin-top:5px;height:4px;background:#e0dbd5;border-radius:3px;overflow:hidden"><div style="height:4px;background:#5a7a52;border-radius:3px;width:${pct}%"></div></div>`+
       `<div class="r-sub" style="margin-top:2px">${pct}% recebido</div></div>`+
       `<div class="r-val" style="color:#3d5c38">${fmtBRL(rec)}</div>`+
@@ -2998,7 +3003,7 @@ function renderFinancial(){
     const el=document.createElement('div');el.className='rtr fin';
     el.onclick=()=>{showTab('kb');openModal(b.id);};
     el.innerHTML=
-      `<div><div class="r-nm">${esc(b.nome)}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa} · ${b.dataCasamento?fmt(b.dataCasamento):'s/ data'}</div></div>`+
+      `<div><div class="r-nm">${esc(_nomeDisp(b))}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa} · ${b.dataCasamento?fmt(b.dataCasamento):'s/ data'}</div></div>`+
       `<div><div style="font-size:12.5px">${pag}</div><div class="r-sub">${dt}</div></div>`+
       `<div class="r-val">${b.valorTotal?fmtBRL(calcValor(b)):'—'}</div>`+
       `<span class="r-pill ${cls}">${lbl}</span>`;
@@ -3024,7 +3029,7 @@ function renderMaterial(){
       const el=document.createElement('div');el.className='rtr mat';
       el.onclick=()=>{showTab('kb');openModal(b.id);};
       el.innerHTML=
-        `<div><div class="r-nm">${esc(b.nome)}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa}</div></div>`+
+        `<div><div class="r-nm">${esc(_nomeDisp(b))}</div><div class="r-sub">${ETLBL[b.etapa]||b.etapa}</div></div>`+
         `<div class="r-sub">${b.dataCasamento?fmt(b.dataCasamento):'s/ data'}</div>`+
         `<span class="r-pill ${cls}">${tag}</span>`;
       body.appendChild(el);
