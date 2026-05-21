@@ -3466,17 +3466,24 @@ async function waAnalyze(){
   btn.innerHTML='<span class="spin">↻</span> Analisando…';
   waSetStatus('loading','Aguarde, a IA está lendo a conversa…');
 
-  const prompt=`Você analisa conversas do WhatsApp entre uma artesã de preservação de buquês de noivas e clientes. Extraia as informações relevantes e retorne APENAS um objeto JSON válido, sem markdown, sem texto adicional.
+  const prompt=`Você analisa conversas do WhatsApp entre uma artesã de preservação de buquês de noivas (Florelle Atelier) e clientes. Extraia as informações relevantes e retorne APENAS um objeto JSON válido, sem markdown, sem texto adicional.
 
-Campos obrigatórios no JSON:
-- "nome": nome da noiva ou cliente (string | null)
-- "dataCasamento": data do casamento no formato YYYY-MM-DD (string | null)
-- "produto": tipo de produto desejado, deve ser exatamente um destes valores — "quadro25x30", "quadro32x42", "quadroSobMedida", "cupulaG", "cupulaM", "multiplos" — ou null se não mencionado
-- "produtoObs": detalhes do produto como cor, medidas, estilo (string — vazio se não houver)
-- "endereco": endereço completo se mencionado (string — vazio se não houver)
-- "formaPagamento": deve ser exatamente "pixAVista", "pix3x" ou "cartao" — ou null se não mencionado
-- "valorTotal": valor mencionado no formato "1.290,00" sem "R$" (string — vazio se não houver)
-- "anotacoes": outras informações relevantes da conversa (string — vazio se não houver)
+Campos do JSON (inclua todos, use null ou "" quando não encontrado):
+- "nome": nome da noiva/cliente (string | null) — procure em saudações como "Boa tarde, Ana!"
+- "telefone": número de telefone da noiva no formato "(00) 00000-0000" — extraia dos cabeçalhos das mensagens dela, ex: "+55 43 9145-1658" → "(43) 91451-658" (string | null)
+- "dataCasamento": data do casamento em YYYY-MM-DD — se só mês/dia sem ano, use o ano mais próximo futuro (string | null)
+- "cidade": cidade e estado da noiva no formato "Cidade/UF", ex: "Arapongas/PR" (string — vazio se não houver)
+- "endereco": endereço completo com rua/número se mencionado, sem repetir a cidade (string — vazio se não houver)
+- "produto": tipo de produto, exatamente um de: "quadro25x30", "quadro32x42", "quadroSobMedida", "cupulaG", "cupulaM", "multiplos" — ou null
+- "produtoObs": detalhes do produto — cor, medidas, estilo, flores do buquê (string — vazio se não houver)
+- "formaPagamento": exatamente "pixAVista", "pix3x" ou "cartao" — ou null se não mencionado
+- "valorTotal": valor total no formato "1.290,00" sem "R$" (string — vazio se não houver)
+- "retiradaBuque": como o buquê chegará à Florelle — "sedex" se a noiva envia pelos Correios, "florelle" se a Florelle vai buscar no evento (string | null)
+- "autorizaReposicao": "sim" se a noiva autoriza substituição de flores danificadas, "nao" se não autoriza (string | null)
+- "floresUtilizadas": flores mencionadas no buquê (string — vazio se não houver)
+- "cerimonialista": nome do(a) cerimonialista se mencionado (string — vazio se não houver)
+- "cerimonialTel": telefone do(a) cerimonialista se mencionado (string — vazio se não houver)
+- "anotacoes": tudo mais que for relevante e não coube nos campos acima — preferências, dúvidas, observações, tom da conversa (string — vazio se não houver)
 
 Conversa do WhatsApp:
 ${text}
@@ -3494,7 +3501,7 @@ Retorne apenas o JSON.`;
       },
       body:JSON.stringify({
         model:'claude-sonnet-4-6',
-        max_tokens:600,
+        max_tokens:900,
         messages:[{role:'user',content:prompt}]
       })
     });
@@ -3520,15 +3527,22 @@ Retorne apenas o JSON.`;
 
     editId=null;mRem=[];
     fillForm({
-      etapa:'lead',
-      nome:         parsed.nome||'',
-      dataCasamento:parsed.dataCasamento||'',
-      endereco:     parsed.endereco||'',
-      produto:      parsed.produto||'',
-      produtoObs:   parsed.produtoObs||'',
-      formaPagamento:parsed.formaPagamento||'',
-      valorTotal:   parsed.valorTotal||'',
-      anotacoes:    parsed.anotacoes||'',
+      etapa:          'lead',
+      nome:           parsed.nome||'',
+      telefone:       parsed.telefone||'',
+      dataCasamento:  parsed.dataCasamento||'',
+      cidade:         parsed.cidade||'',
+      endereco:       parsed.endereco||'',
+      produto:        parsed.produto||'',
+      produtoObs:     parsed.produtoObs||'',
+      formaPagamento: parsed.formaPagamento||'',
+      valorTotal:     parsed.valorTotal||'',
+      retiradaBuque:  parsed.retiradaBuque||'',
+      autorizaReposicao: parsed.autorizaReposicao||'',
+      floresUtilizadas:  parsed.floresUtilizadas||'',
+      cerimonialista:    parsed.cerimonialista||'',
+      cerimonialTel:     parsed.cerimonialTel||'',
+      anotacoes:      parsed.anotacoes||'',
     });
     g('bdel').classList.add('hidden');
     g('ov').classList.remove('hidden');
