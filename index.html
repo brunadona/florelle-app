@@ -1194,7 +1194,7 @@ function renderAll(){
 function buildCol(col){
   const cards=DATA.filter(b=>{
     if(b.etapa!==col.id)return false;
-    if(srch){const q=srch.toLowerCase();return(b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q)||(b.telefone||'').replace(/\D/g,'').includes(q.replace(/\D/g,''))||((b.telefone||'').toLowerCase().includes(q));}
+    if(srch){const q=srch.toLowerCase();const qd=q.replace(/\D/g,'');return(b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q)||(b.telefone||'').toLowerCase().includes(q)||(qd.length>0&&(b.telefone||'').replace(/\D/g,'').includes(qd));}
     return true;
   });
   const wrap=document.createElement('div');
