@@ -1389,7 +1389,7 @@ function buildCol(col){
     if(b.etapa!==col.id)return false;
     if(prodFiltro&&(b.produto||'')!==prodFiltro)return false;
     if(mesFiltro&&!(b.dataCasamento||'').startsWith(mesFiltro))return false;
-    if(srch){const q=srch.toLowerCase();const qd=q.replace(/\D/g,'');return(b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q)||(b.telefone||'').toLowerCase().includes(q)||(qd.length>0&&(b.telefone||'').replace(/\D/g,'').includes(qd));}
+    if(srch){const q=srch.toLowerCase();const qd=q.replace(/\D/g,'');return(b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q)||(b.telefone||'').toLowerCase().includes(q)||(qd.length>=4&&(b.telefone||'').replace(/\D/g,'').includes(qd));}
     return true;
   }).sort((a,b)=>(a.dataCasamento||'9999-99').localeCompare(b.dataCasamento||'9999-99'));
   const wrap=document.createElement('div');
