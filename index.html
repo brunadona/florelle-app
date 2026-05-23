@@ -289,6 +289,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .rth.sum,.rtr.sum{grid-template-columns:170px 44px 1fr}
 .rtr.sum{cursor:default}
 .rtr.sum:hover{background:transparent}
+.rth.prod,.rtr.prod{grid-template-columns:1fr 44px 100px 130px}
+.rtr.prod{cursor:default}
+.rtr.prod:hover{background:transparent}
 .r-nm{font-size:13px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .r-sub{font-size:10.5px;color:var(--txl);margin-top:1px}
 .r-val{font-size:13px;font-weight:600;color:var(--sd)}
@@ -2346,7 +2349,6 @@ function showTab(t){
   g('iv').classList.toggle('hidden',t!=='iv');
   g('tv').classList.toggle('hidden',t!=='tv');
   if(g('fv'))g('fv').classList.toggle('hidden',t!=='fv');
-  if(g('fv'))g('fv').classList.toggle('hidden',t!=='fv');
   ['kb','rv','iv','tv','fv'].forEach(id=>{ const el=g('tab-'+id);if(el)el.classList.toggle('act',id===t); });
   const cn=g('col-nav');if(cn)cn.classList.toggle('cn-off',t!=='kb');
   if(t==='rv')renderReports();
@@ -3167,11 +3169,11 @@ function renderSummary(){
     const ph=document.createElement('div');
     ph.style='padding:14px 18px 5px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txm)';
     ph.textContent='Margem por Produto';body.appendChild(ph);
-    const phd=document.createElement('div');phd.className='rth sum';
+    const phd=document.createElement('div');phd.className='rth prod';
     phd.innerHTML='<span>Produto</span><span>Qtd</span><span>Receita</span><span>Margem est.</span>';
     body.appendChild(phd);
     prodRows.sort((a,b)=>b.totV-a.totV).forEach(r=>{
-      const el=document.createElement('div');el.className='rtr sum';
+      const el=document.createElement('div');el.className='rtr prod';
       const pct=r.totV>0?Math.round(r.totM/r.totV*100):0;
       const mcls=pct>=40?'r-ok':pct>=20?'r-warn':'r-late';
       el.innerHTML=
