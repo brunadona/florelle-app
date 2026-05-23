@@ -515,6 +515,49 @@ body{display:flex;flex-direction:column;overflow:hidden}
   #hd{gap:12px}
 }
 
+/* ── CALENDAR VIEW ── */
+#cv{flex:1;overflow-y:auto;padding:20px 24px;min-height:0}
+.cv-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cv-month-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--tx);text-transform:capitalize}
+.cv-nav-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--bd);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txm);transition:background .16s,border-color .16s}
+.cv-nav-btn:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
+.cv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--bd);border-radius:9px;overflow:hidden;border:1px solid var(--bd)}
+.cv-dow{background:var(--ccol);text-align:center;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txm);padding:7px 3px}
+.cv-day{background:var(--wh);min-height:74px;padding:5px 4px;vertical-align:top}
+.cv-day.cv-other{background:var(--cbg)}
+.cv-day.cv-today{background:#EDF4EB}
+.cv-day-num{font-size:10.5px;font-weight:600;color:var(--txl);margin-bottom:3px}
+.cv-day.cv-today .cv-day-num{color:var(--sd);font-weight:700}
+.cv-chip{display:block;font-size:10px;padding:2px 4px;border-radius:4px;background:var(--sl);color:var(--sdp);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:background .14s;line-height:1.3}
+.cv-chip:hover{background:var(--sm);color:#fff}
+@media(max-width:640px){#cv{padding:10px 10px}.cv-day{min-height:52px;padding:3px 2px}.cv-chip{font-size:9px}}
+
+/* ── ENTREGA CHECKLIST ── */
+#echk-ov{position:fixed;inset:0;background:rgba(44,40,37,.55);z-index:2100;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+#echk-box{background:var(--wh);border-radius:14px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(44,40,37,.2);animation:fu .18s ease;overflow:hidden}
+.echk-hd{padding:18px 22px 14px;border-bottom:1px solid var(--bdl);display:flex;align-items:center;gap:10px}
+.echk-ico{width:34px;height:34px;background:#EDF4EB;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.echk-ttl{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:500;color:var(--tx)}
+.echk-sub{font-size:11px;color:var(--txl)}
+.echk-bdy{padding:16px 22px}
+.echk-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdl)}
+.echk-item:last-child{border-bottom:none}
+.echk-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--sd);cursor:pointer;flex-shrink:0}
+.echk-item label{font-size:13px;color:var(--tx);cursor:pointer;flex:1}
+.echk-ft{padding:12px 22px;border-top:1px solid var(--bdl);display:flex;gap:8px;justify-content:flex-end}
+
+/* ── FUNIL CSS ── */
+.funil-row{display:grid;grid-template-columns:150px 44px 1fr 80px;gap:10px;padding:10px 18px;border-bottom:1px solid var(--bdl);align-items:center}
+.funil-row:last-child{border-bottom:none}
+.funil-bar-wrap{background:var(--cdark);border-radius:4px;height:8px;overflow:hidden}
+.funil-bar{height:100%;border-radius:4px;transition:width .4s}
+.funil-conv{font-size:10.5px;font-weight:600;color:var(--txm);text-align:right;white-space:nowrap}
+
+/* ── REM TEMPLATES ── */
+.rem-tpls{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.rem-tpl{height:26px;padding:0 10px;border:1.5px solid var(--bd);border-radius:13px;background:var(--wh);font-family:'DM Sans',sans-serif;font-size:11px;color:var(--txm);cursor:pointer;transition:all .14s;white-space:nowrap}
+.rem-tpl:hover{border-color:var(--sl);color:var(--sd);background:var(--ccol)}
+
 /* ── TASKS VIEW ── */
 #tv{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:0;min-height:0}
 #tv::-webkit-scrollbar{width:5px}
@@ -662,6 +705,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
     Tarefas
     <span class="tnbdg hidden" id="tv-bdg">0</span>
   </button>
+  <button class="tni" id="tab-cv" onclick="showTab('cv')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Calendário
+  </button>
 </nav>
 
 <!-- COLUMN NAV (mobile only) -->
@@ -697,6 +744,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div class="rsec">
     <div class="rsh"><div class="rs-ico" style="background:#FEEDEA">📦</div><span class="rsti">Pendências de Material</span><span class="rstc" id="mat-ct">—</span></div>
     <div class="rsb" id="mat-bdy"></div>
+  </div>
+  <div class="rsec">
+    <div class="rsh"><div class="rs-ico" style="background:#EAE8F4">🔽</div><span class="rsti">Funil de Conversão</span></div>
+    <div class="rsb" id="funil-bdy"></div>
   </div>
   <div class="rsec">
     <div class="rsh"><div class="rs-ico" style="background:#EDF4EB">📊</div><span class="rsti">Resumo Geral</span></div>
@@ -740,6 +791,20 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <button class="bsec" onclick="addInvItem()">+ Adicionar</button>
     </div>
   </div>
+</div>
+
+<!-- CALENDAR VIEW -->
+<div id="cv" class="hidden">
+  <div class="cv-nav">
+    <button class="cv-nav-btn" onclick="cvNav(-1)" aria-label="Mês anterior">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="cv-month-title" id="cv-title">—</span>
+    <button class="cv-nav-btn" onclick="cvNav(1)" aria-label="Próximo mês">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+  <div id="cv-grid" class="cv-grid"></div>
 </div>
 
 <!-- TASKS VIEW -->
@@ -999,6 +1064,12 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <div class="fsec">
       <div class="sttl">Lembretes</div>
       <div class="rl-lst" id="rl"></div>
+      <div class="rem-tpls">
+        <button class="rem-tpl" onclick="addRemTemplate('Confirmar data do casamento')">📅 Confirmar data</button>
+        <button class="rem-tpl" onclick="addRemTemplate('Cobrar parcela')">💰 Cobrar parcela</button>
+        <button class="rem-tpl" onclick="addRemTemplate('Verificar redoma')">🔍 Verificar redoma</button>
+        <button class="rem-tpl" onclick="addRemTemplate('Tirar foto da peça')">📷 Foto da peça</button>
+      </div>
       <div class="ar-row">
         <input id="nr-txt" type="text" class="fi" placeholder="Descrição do lembrete…">
         <input id="nr-dt" type="date" class="fi dt">
@@ -1115,6 +1186,28 @@ body{display:flex;flex-direction:column;overflow:hidden}
   </div>
 </div>
 
+<!-- ENTREGA CHECKLIST OVERLAY -->
+<div id="echk-ov" class="hidden">
+  <div id="echk-box">
+    <div class="echk-hd">
+      <div class="echk-ico">📦</div>
+      <div>
+        <div class="echk-ttl">Checklist de Entrega</div>
+        <div class="echk-sub">Confirme antes de marcar como entregue</div>
+      </div>
+    </div>
+    <div class="echk-bdy">
+      <div class="echk-item"><input type="checkbox" id="chk-redoma"><label for="chk-redoma">Redoma entregue / em mãos</label></div>
+      <div class="echk-item"><input type="checkbox" id="chk-emb"><label for="chk-emb">Embalagem OK e buquê protegido</label></div>
+      <div class="echk-item"><input type="checkbox" id="chk-foto"><label for="chk-foto">Foto da peça finalizada tirada</label></div>
+    </div>
+    <div class="echk-ft">
+      <button class="bsec" onclick="cancelEntrega()">Cancelar</button>
+      <button class="bsav" onclick="confirmEntrega()">Confirmar entrega ✓</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1139,6 +1232,8 @@ const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
 
 /* ── STATE ───────────────────────────────────── */
 let DATA=[], editId=null, mRem=[], mAnexos=[], dragId=null, srch='', prodFiltro='', rpOpen=false, curTab='kb';
+let calViewDate=new Date(); // calendar month state
+let _pendingEntrega=null;  // entrega checklist callback
 let INV=[];
 let _mDriveFolder=''; // Drive folder ID for current bride being edited
 let _syncFileId=localStorage.getItem('florelle_sync_fid')||null;
@@ -1226,6 +1321,7 @@ function renderAll(){
   if(curTab==='fv')renderFinancialTab();
   if(curTab==='iv')renderInv();
   if(curTab==='tv')renderTasks();
+  if(curTab==='cv')renderCalendar();
   if(isMobile())applyMobileCol();
 }
 function _buildProdFilter(){
@@ -1262,9 +1358,22 @@ function buildCol(col){
   cs.addEventListener('drop',e=>{
     e.preventDefault();cs.classList.remove('dov');
     if(!dragId)return;
-    const b=DATA.find(x=>x.id===dragId);
-    if(b&&b.etapa!==col.id){const _prevEtapa=b.etapa;b.etapaHist=[...(b.etapaHist||[]),{de:b.etapa,para:col.id,em:today()}];b.etapa=col.id;b.upd=Date.now();if(col.id==='entregue'&&_prevEtapa!=='entregue')_deductInvForBride(b);save();renderAll();}
-    dragId=null;
+    const _dId=dragId;dragId=null;
+    const b=DATA.find(x=>x.id===_dId);
+    if(b&&b.etapa!==col.id){
+      const _prevEtapa=b.etapa;
+      const _doMove=()=>{
+        b.etapaHist=[...(b.etapaHist||[]),{de:_prevEtapa,para:col.id,em:today()}];
+        b.etapa=col.id;b.upd=Date.now();
+        if(col.id==='entregue')_deductInvForBride(b);
+        save();renderAll();
+      };
+      if(col.id==='entregue'&&_prevEtapa!=='entregue'){
+        _showEntregaChecklist(_doMove);
+      } else {
+        _doMove();
+      }
+    }
   });
   cards.forEach(b=>cs.appendChild(buildCard(b,col.color)));
   wrap.appendChild(cs);
@@ -1336,7 +1445,7 @@ function buildCard(b,acc){
     <div class="cacc" style="background:${acc}"></div>
     <div class="cname">${esc(_nomeDisp(b))}</div>
     ${b.anotacoes?`<div class="cobs">${esc(b.anotacoes.length>55?b.anotacoes.slice(0,55)+'…':b.anotacoes)}</div>`:''}
-    <div class="cdate">${icn('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',11,11)}
+    <div class="cdate" onclick="event.stopPropagation();_quickDate(event,'${b.id}')" title="Clique para editar data" style="cursor:pointer">${icn('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',11,11)}
       ${b.dataCasamento?fmt(b.dataCasamento):'<em style="opacity:.55">Data indefinida</em>'}${pill}
     </div>
     <div class="ctags">
@@ -1677,6 +1786,10 @@ async function saveModal(){
     if(bEnt)_deductInvForBride(bEnt);
   }
   save();closeModal();renderAll();
+  // Show delivery checklist when transitioning to entregue
+  if(rec.etapa==='entregue'&&_oldEtapa&&_oldEtapa!=='entregue'){
+    setTimeout(()=>_showEntregaChecklist(null),200);
+  }
   _showCalToast(isNew?'Noiva adicionada! 🌸':'Alterações salvas!');
   // Sincronizar Google Calendar automaticamente se conectado
   if(calEvs.length&&brideIdForCal){
@@ -2405,13 +2518,15 @@ function showTab(t){
   g('iv').classList.toggle('hidden',t!=='iv');
   g('tv').classList.toggle('hidden',t!=='tv');
   if(g('fv'))g('fv').classList.toggle('hidden',t!=='fv');
+  if(g('cv'))g('cv').classList.toggle('hidden',t!=='cv');
   if(g('kb-flt'))g('kb-flt').classList.toggle('hidden',t!=='kb');
-  ['kb','rv','iv','tv','fv'].forEach(id=>{ const el=g('tab-'+id);if(el)el.classList.toggle('act',id===t); });
+  ['kb','rv','iv','tv','fv','cv'].forEach(id=>{ const el=g('tab-'+id);if(el)el.classList.toggle('act',id===t); });
   const cn=g('col-nav');if(cn)cn.classList.toggle('cn-off',t!=='kb');
   if(t==='rv')renderReports();
   if(t==='fv')renderFinancialTab();
   if(t==='iv')renderInv();
   if(t==='tv')renderTasks();
+  if(t==='cv')renderCalendar();
 }
 
 /* ── EXPORT / IMPORT ─────────────────────────── */
@@ -3083,7 +3198,7 @@ function _renderFinDetail(){
   });
 }
 
-function renderReports(){renderFinancial();renderMaterial();renderSummary();}
+function renderReports(){renderFinancial();renderMaterial();renderFunil();renderSummary();}
 
 /* ── helpers pagamento ── */
 function _pagNextDate(b){
@@ -3868,10 +3983,148 @@ function _fireOverdueNotifs(){
   try{new Notification('Florelle — Lembretes Vencidos',{body,icon:'/florelle-app/icon-192.png',tag:'florelle-overdue'});}catch(e){}
 }
 
+/* ── CALENDAR VIEW ───────────────────────────── */
+function renderCalendar(){
+  const grid=g('cv-grid');const title=g('cv-title');
+  if(!grid||!title)return;
+  const y=calViewDate.getFullYear(),m=calViewDate.getMonth();
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  title.textContent=meses[m]+' '+y;
+  const t=today();
+  // Build day cells
+  const first=new Date(y,m,1);
+  const last=new Date(y,m+1,0);
+  let startDow=first.getDay(); // 0=Sun...6=Sat
+  const DOWS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let html=DOWS.map(d=>`<div class="cv-dow">${d}</div>`).join('');
+  const pad=(n,z)=>String(n).padStart(z,'0');
+  // Map brides by dataCasamento
+  const brideMap={};
+  DATA.filter(b=>b.dataCasamento&&b.etapa!=='cancelado').forEach(b=>{
+    const k=b.dataCasamento;
+    if(!brideMap[k])brideMap[k]=[];
+    brideMap[k].push(b);
+  });
+  // Previous month filler days
+  for(let i=0;i<startDow;i++){
+    const d=new Date(y,m,-(startDow-1)+i);
+    html+=`<div class="cv-day cv-other"><div class="cv-day-num">${d.getDate()}</div></div>`;
+  }
+  for(let d=1;d<=last.getDate();d++){
+    const key=`${y}-${pad(m+1,2)}-${pad(d,2)}`;
+    const brides=brideMap[key]||[];
+    const isToday=key===t;
+    let chips='';
+    brides.forEach(b=>{
+      chips+=`<span class="cv-chip" onclick="event.stopPropagation();openModal('${b.id}')">${esc(_nomeDisp(b))}</span>`;
+    });
+    html+=`<div class="cv-day${isToday?' cv-today':''}"><div class="cv-day-num">${d}</div>${chips}</div>`;
+  }
+  // Trailing filler
+  const totalCells=startDow+last.getDate();
+  const remainder=totalCells%7;
+  if(remainder!==0){
+    for(let i=1;i<=7-remainder;i++){
+      html+=`<div class="cv-day cv-other"><div class="cv-day-num">${i}</div></div>`;
+    }
+  }
+  grid.innerHTML=html;
+}
+function cvNav(dir){
+  calViewDate=new Date(calViewDate.getFullYear(),calViewDate.getMonth()+dir,1);
+  renderCalendar();
+}
+
+/* ── ENTREGA CHECKLIST ───────────────────────── */
+function _showEntregaChecklist(onConfirm){
+  _pendingEntrega=onConfirm||null;
+  ['chk-redoma','chk-emb','chk-foto'].forEach(id=>{const e=g(id);if(e)e.checked=false;});
+  g('echk-ov').classList.remove('hidden');
+}
+function confirmEntrega(){
+  g('echk-ov').classList.add('hidden');
+  if(_pendingEntrega){_pendingEntrega();_pendingEntrega=null;}
+}
+function cancelEntrega(){
+  g('echk-ov').classList.add('hidden');
+  _pendingEntrega=null;
+}
+
+/* ── FUNIL DE CONVERSÃO ──────────────────────── */
+function renderFunil(){
+  const body=g('funil-bdy');if(!body)return;body.innerHTML='';
+  const ETLBL_LOCAL={lead:'Lead',retomar:'Retomar conversa',contratoEnviado:'Contrato enviado',contratoAssinado:'Contrato assinado',reserva:'Reserva paga',secagem:'Secagem',montagem:'Montagem',embalado:'Embalado',entregue:'Entregue'};
+  const pipeline=COLS.filter(c=>c.id!=='cancelado').map(c=>c.id);
+  const counts=pipeline.map(id=>DATA.filter(b=>b.etapa===id).length);
+  const entregues=DATA.filter(b=>b.etapa==='entregue');
+  const maxCount=Math.max(...counts,1);
+  // Average days per stage using etapaHist
+  function avgDaysIn(stageId){
+    const durs=[];
+    DATA.forEach(b=>{
+      const hist=b.etapaHist||[];
+      const entry=hist.find(h=>h.para===stageId);
+      if(!entry)return;
+      const exit=hist.find(h=>h.de===stageId);
+      const start=entry.em,end=exit?exit.em:today();
+      if(start&&end)durs.push(Math.max(0,Math.round((new Date(end+'T00:00:00')-new Date(start+'T00:00:00'))/86400000)));
+    });
+    if(!durs.length)return null;
+    return Math.round(durs.reduce((a,b)=>a+b,0)/durs.length);
+  }
+  const hd=document.createElement('div');hd.className='rth';
+  hd.style.gridTemplateColumns='150px 44px 1fr 80px';hd.style.padding='7px 18px';
+  hd.innerHTML='<span>Etapa</span><span>Qtd</span><span>Volume</span><span>Tempo médio</span>';
+  body.appendChild(hd);
+  pipeline.forEach((id,i)=>{
+    const col=COLS.find(c=>c.id===id);
+    const n=counts[i];
+    const pct=Math.round(n/maxCount*100);
+    const avg=avgDaysIn(id);
+    const avgTxt=avg!==null?`${avg}d`:'—';
+    const el=document.createElement('div');el.className='funil-row';
+    el.innerHTML=
+      `<div style="font-size:12.5px;color:var(--tx)">${ETLBL_LOCAL[id]||id}</div>`+
+      `<div style="font-size:13px;font-weight:600;color:var(--sd)">${n}</div>`+
+      `<div class="funil-bar-wrap"><div class="funil-bar" style="width:${pct}%;background:${col.color}"></div></div>`+
+      `<div class="funil-conv">${avgTxt}</div>`;
+    body.appendChild(el);
+  });
+  if(!DATA.length){body.innerHTML='<div class="r-emp">Sem dados para exibir.</div>';}
+}
+
+/* ── QUICK DATE EDIT ─────────────────────────── */
+function _quickDate(ev,id){
+  ev.stopPropagation();
+  const b=DATA.find(x=>x.id===id);if(!b)return;
+  // Remove any existing quick-date picker
+  document.querySelectorAll('._qdpicker').forEach(e=>e.remove());
+  const inp=document.createElement('input');
+  inp.type='date';inp.value=b.dataCasamento||'';inp.className='_qdpicker';
+  const r=ev.currentTarget.getBoundingClientRect();
+  inp.style.cssText=`position:fixed;z-index:9999;top:${Math.min(r.bottom+4,window.innerHeight-60)}px;left:${r.left}px;border:2px solid var(--sd);border-radius:7px;padding:5px 9px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--wh);box-shadow:0 4px 16px rgba(0,0,0,.18);color:var(--tx);outline:none`;
+  document.body.appendChild(inp);inp.focus();
+  try{inp.showPicker();}catch(e){}
+  function done(){
+    const v=inp.value;
+    if(v!==b.dataCasamento){b.dataCasamento=v;b.upd=Date.now();save();renderAll();}
+    inp.remove();
+  }
+  inp.addEventListener('change',done);
+  inp.addEventListener('blur',()=>setTimeout(()=>inp.remove(),200));
+}
+
+/* ── REMINDER TEMPLATES ──────────────────────── */
+function addRemTemplate(txt){
+  sv2('nr-txt',txt);
+  g('nr-dt')?.focus();
+}
+
 /* ── KEYBOARD ────────────────────────────────── */
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    if(!g('cal-ov').classList.contains('hidden'))calClose();
+    if(!g('echk-ov').classList.contains('hidden'))cancelEntrega();
+    else if(!g('cal-ov').classList.contains('hidden'))calClose();
     else if(!g('wa-ov').classList.contains('hidden'))closeWaImport();
     else if(!g('ov').classList.contains('hidden'))closeModal();
     else if(rpOpen)toggleRP();
