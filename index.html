@@ -307,6 +307,31 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .fat-lbl{font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txl);margin-bottom:4px}
 .fat-val{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:500}
 
+/* ── PRODUTO FILTER ── */
+#kb-flt{display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap;flex-shrink:0}
+#kb-flt.hidden{display:none}
+.pfchip{height:26px;padding:0 12px;border:1.5px solid var(--bd);border-radius:13px;background:var(--wh);font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:500;color:var(--txm);cursor:pointer;transition:all .16s;white-space:nowrap}
+.pfchip:hover{border-color:var(--sl);color:var(--sd)}
+.pfchip.act{background:var(--sd);border-color:var(--sd);color:#fff}
+
+/* ── CARD OBS ── */
+.cobs{font-size:11px;color:var(--txl);margin:3px 0 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic}
+
+/* ── REVENUE CHART ── */
+.rchart-wrap{padding:14px 18px 6px}
+.rchart-bars{display:flex;align-items:flex-end;gap:6px;height:80px}
+.rchart-bar-grp{display:flex;flex-direction:column;align-items:center;flex:1;gap:2px}
+.rchart-bar{width:100%;border-radius:3px 3px 0 0;min-height:3px;transition:height .3s}
+.rchart-lbl{font-size:9px;color:var(--txl);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rchart-val{font-size:9px;color:var(--txm);font-weight:600;text-align:center}
+
+/* ── CASH FLOW ── */
+.cflow-row{display:flex;gap:10px;padding:10px 18px;border-bottom:1px solid var(--bdl);align-items:center}
+.cflow-row:last-child{border-bottom:none}
+.cflow-lbl{font-size:11px;font-weight:600;color:var(--txm);width:100px;flex-shrink:0}
+.cflow-val{font-size:14px;font-weight:600;color:var(--sd)}
+.cflow-det{font-size:11px;color:var(--txl);flex:1}
+
 /* ── INVENTORY ── */
 .inv-hd{display:grid;grid-template-columns:1fr 72px 64px 72px 1fr 68px 28px;gap:8px;padding:7px 16px;background:var(--ccol);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--txm);border-bottom:1px solid var(--bdl);align-items:center}
 .inv-item{display:grid;grid-template-columns:1fr 72px 64px 72px 1fr 68px 28px;gap:8px;padding:9px 16px;border-bottom:1px solid var(--bdl);align-items:center}
@@ -657,6 +682,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
   </button>
 </div>
 
+<!-- PRODUTO FILTER -->
+<div id="kb-flt"></div>
+
 <!-- KANBAN -->
 <div id="kw"><div id="kb"></div></div>
 
@@ -679,6 +707,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
 <!-- FINANCIAL VIEW -->
 <div id="fv" class="hidden">
   <div id="fin-summary-cards" style="display:flex;gap:14px;padding:18px 18px 0;flex-wrap:wrap"></div>
+  <div id="fin-chart-sec" class="rsec" style="margin-top:14px;display:none">
+    <div class="rsh"><div class="rs-ico" style="background:#EEF0F8">📈</div><span class="rsti">Receita Mensal</span></div>
+    <div id="fin-chart-bdy"></div>
+  </div>
+  <div id="fin-cflow-sec" class="rsec" style="margin-top:14px;display:none">
+    <div class="rsh"><div class="rs-ico" style="background:#FEF3E4">🔮</div><span class="rsti">Projeção de Caixa</span></div>
+    <div id="fin-cflow-bdy"></div>
+  </div>
   <div class="rsec" style="margin-top:14px">
     <div class="rsh">
       <div class="rs-ico" style="background:#EDF4EB">💰</div>
@@ -1008,6 +1044,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <!-- Modal footer -->
   <div class="mft">
     <button class="bdng hidden" id="bdel" onclick="delBride()">Excluir</button>
+    <button class="bctrt hidden" id="bdup" onclick="dupBride()" title="Duplicar noiva">📋 Duplicar</button>
     <div class="fr">
       <button class="bsec" onclick="closeModal()">Cancelar</button>
       <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
@@ -1101,7 +1138,7 @@ const EMBLABEL={naoEncomendada:'À encomendar',encomendada:'Encomendada',emMaos:
 const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
 
 /* ── STATE ───────────────────────────────────── */
-let DATA=[], editId=null, mRem=[], mAnexos=[], dragId=null, srch='', rpOpen=false, curTab='kb';
+let DATA=[], editId=null, mRem=[], mAnexos=[], dragId=null, srch='', prodFiltro='', rpOpen=false, curTab='kb';
 let INV=[];
 let _mDriveFolder=''; // Drive folder ID for current bride being edited
 let _syncFileId=localStorage.getItem('florelle_sync_fid')||null;
@@ -1180,6 +1217,7 @@ function _nomeDisp(b){
 
 /* ── RENDER ──────────────────────────────────── */
 function renderAll(){
+  _buildProdFilter();
   const board=g('kb');board.innerHTML='';
   COLS.forEach(c=>board.appendChild(buildCol(c)));
   bellUpdate();
@@ -1190,13 +1228,22 @@ function renderAll(){
   if(curTab==='tv')renderTasks();
   if(isMobile())applyMobileCol();
 }
+function _buildProdFilter(){
+  const el=g('kb-flt');if(!el)return;
+  const prods=[...new Set(DATA.filter(b=>b.produto&&b.etapa!=='cancelado').map(b=>b.produto))].sort((a,b)=>(PLABEL[a]||a).localeCompare(PLABEL[b]||b));
+  if(prods.length<2){el.innerHTML='';el.classList.add('hidden');if(prodFiltro){prodFiltro='';} return;}
+  el.classList.remove('hidden');
+  el.innerHTML=[{val:'',lbl:'Todas'},...prods.map(p=>({val:p,lbl:PLABEL[p]||p}))].map(c=>`<button class="pfchip${prodFiltro===c.val?' act':''}" onclick="setProdFiltro('${c.val}')">${c.lbl}</button>`).join('');
+}
+function setProdFiltro(val){prodFiltro=val;renderAll();}
 
 function buildCol(col){
   const cards=DATA.filter(b=>{
     if(b.etapa!==col.id)return false;
+    if(prodFiltro&&(b.produto||'')!==prodFiltro)return false;
     if(srch){const q=srch.toLowerCase();const qd=q.replace(/\D/g,'');return(b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q)||(b.telefone||'').toLowerCase().includes(q)||(qd.length>0&&(b.telefone||'').replace(/\D/g,'').includes(qd));}
     return true;
-  });
+  }).sort((a,b)=>(a.dataCasamento||'9999-99').localeCompare(b.dataCasamento||'9999-99'));
   const wrap=document.createElement('div');
   wrap.className='kcol'+(col.id==='cancelado'?' muted':'');
   wrap.dataset.col=col.id;
@@ -1216,7 +1263,7 @@ function buildCol(col){
     e.preventDefault();cs.classList.remove('dov');
     if(!dragId)return;
     const b=DATA.find(x=>x.id===dragId);
-    if(b&&b.etapa!==col.id){b.etapaHist=[...(b.etapaHist||[]),{de:b.etapa,para:col.id,em:today()}];b.etapa=col.id;b.upd=Date.now();save();renderAll();}
+    if(b&&b.etapa!==col.id){const _prevEtapa=b.etapa;b.etapaHist=[...(b.etapaHist||[]),{de:b.etapa,para:col.id,em:today()}];b.etapa=col.id;b.upd=Date.now();if(col.id==='entregue'&&_prevEtapa!=='entregue')_deductInvForBride(b);save();renderAll();}
     dragId=null;
   });
   cards.forEach(b=>cs.appendChild(buildCard(b,col.color)));
@@ -1288,6 +1335,7 @@ function buildCard(b,acc){
   el.innerHTML=`
     <div class="cacc" style="background:${acc}"></div>
     <div class="cname">${esc(_nomeDisp(b))}</div>
+    ${b.anotacoes?`<div class="cobs">${esc(b.anotacoes.length>55?b.anotacoes.slice(0,55)+'…':b.anotacoes)}</div>`:''}
     <div class="cdate">${icn('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',11,11)}
       ${b.dataCasamento?fmt(b.dataCasamento):'<em style="opacity:.55">Data indefinida</em>'}${pill}
     </div>
@@ -1321,6 +1369,7 @@ function openNew(col){
   editId=null;mRem=[];mAnexos=[];_mDriveFolder='';
   fillForm({etapa:col||'lead'});
   g('bdel').classList.add('hidden');
+  if(g('bdup'))g('bdup').classList.add('hidden');
   g('ov').classList.remove('hidden');
 }
 
@@ -1330,6 +1379,7 @@ function openModal(id){
   _mDriveFolder=b.driveFolder||'';
   fillForm(b);
   g('bdel').classList.remove('hidden');
+  if(g('bdup'))g('bdup').classList.remove('hidden');
   g('ov').classList.remove('hidden');
 }
 
@@ -1621,7 +1671,13 @@ async function saveModal(){
   }
 
   const brideIdForCal = editId || newId;
+  // Deduct inventory when a bride is delivered
+  if(rec.etapa==='entregue'&&_oldEtapa&&_oldEtapa!=='entregue'){
+    const bEnt=editId?DATA.find(x=>x.id===editId):null;
+    if(bEnt)_deductInvForBride(bEnt);
+  }
   save();closeModal();renderAll();
+  _showCalToast(isNew?'Noiva adicionada! 🌸':'Alterações salvas!');
   // Sincronizar Google Calendar automaticamente se conectado
   if(calEvs.length&&brideIdForCal){
     if(_gToken){
@@ -2349,6 +2405,7 @@ function showTab(t){
   g('iv').classList.toggle('hidden',t!=='iv');
   g('tv').classList.toggle('hidden',t!=='tv');
   if(g('fv'))g('fv').classList.toggle('hidden',t!=='fv');
+  if(g('kb-flt'))g('kb-flt').classList.toggle('hidden',t!=='kb');
   ['kb','rv','iv','tv','fv'].forEach(id=>{ const el=g('tab-'+id);if(el)el.classList.toggle('act',id===t); });
   const cn=g('col-nav');if(cn)cn.classList.toggle('cn-off',t!=='kb');
   if(t==='rv')renderReports();
@@ -2914,6 +2971,8 @@ function _showListaCompras(b){
 /* ── FINANCIAL TAB ───────────────────────────── */
 function renderFinancialTab(){
   _renderFinSummary();
+  _renderRevenueChart();
+  _renderProjecaoCaixa();
   _renderFinDetail();
 }
 function _totalParcelas(b){
@@ -3692,6 +3751,7 @@ Retorne apenas o JSON.`;
         anotacoes:      parsed.anotacoes||'',
       });
       g('bdel').classList.add('hidden');
+      if(g('bdup'))g('bdup').classList.add('hidden');
     }
     g('ov').classList.remove('hidden');
 
@@ -3702,6 +3762,112 @@ Retorne apenas o JSON.`;
   }
 }
 
+/* ── DUPLICATE BRIDE ─────────────────────────── */
+function dupBride(){
+  if(!editId)return;
+  const b=DATA.find(x=>x.id===editId);if(!b)return;
+  const novo={...JSON.parse(JSON.stringify(b)),id:uid(),crd:Date.now(),nome:(b.nome||'')+(b.nome?' (cópia)':''),etapa:'lead',etapaHist:[{de:null,para:'lead',em:today()}],lembretes:[],upd:Date.now()};
+  DATA.push(novo);save();closeModal();renderAll();
+  _showCalToast('Noiva duplicada!');
+}
+
+/* ── INVENTORY DEDUCTION ON DELIVERY ────────── */
+function _deductInvForBride(b){
+  const prod=b.produto||'';
+  let changed=false;
+  INV.forEach(item=>{
+    if(item.porProduto&&!item.porProduto.includes(prod))return;
+    const c=Number(item.consumo||0);if(!c)return;
+    item.qtdAtual=Math.max(0,Number(item.qtdAtual||0)-c);
+    item.historico=item.historico||[];
+    item.historico.unshift({data:today(),quantidade:-c,obs:'Entrega: '+_nomeDisp(b)});
+    if(item.historico.length>20)item.historico=item.historico.slice(0,20);
+    changed=true;
+  });
+  if(changed){saveInv();updInvBadge();}
+}
+
+/* ── REVENUE CHART ───────────────────────────── */
+function _renderRevenueChart(){
+  const sec=g('fin-chart-sec');const bdy=g('fin-chart-bdy');if(!sec||!bdy)return;
+  // Collect monthly data (last 6 months + future 3)
+  const now=new Date();const months=[];
+  for(let i=-5;i<=2;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);months.push(d.toISOString().slice(0,7));}
+  const ativas=DATA.filter(b=>b.etapa!=='cancelado');
+  const byMonth={};
+  months.forEach(m=>{byMonth[m]={rec:0,proj:0};});
+  ativas.forEach(b=>{
+    const m=b.dataCasamento?.slice(0,7);if(!m||!byMonth[m])return;
+    byMonth[m].rec+=_calcRecebido(b);
+    byMonth[m].proj+=_calcAReceber(b);
+  });
+  const vals=months.map(m=>byMonth[m].rec+byMonth[m].proj);
+  const mx=Math.max(...vals,1);
+  sec.style.display='';
+  bdy.innerHTML=`<div class="rchart-wrap"><div class="rchart-bars">${months.map(m=>{
+    const d=byMonth[m];const tot=d.rec+d.proj;const recH=Math.round(d.rec/mx*76);const projH=Math.round(d.proj/mx*76);
+    const lbl=new Date(m+'-15').toLocaleString('pt-BR',{month:'short'}).replace('.','');
+    const isPast=m<now.toISOString().slice(0,7);
+    return`<div class="rchart-bar-grp" title="${lbl}: ${fmtBRL(tot)}">
+      <div class="rchart-val">${tot>0?'R$'+(tot/1000).toFixed(1)+'k':''}</div>
+      <div style="display:flex;flex-direction:column;align-items:stretch;flex:1;justify-content:flex-end;gap:1px">
+        ${projH>0?`<div class="rchart-bar" style="height:${projH}px;background:${isPast?'#c5d5bb':'#8fa882'};opacity:.55"></div>`:''}
+        ${recH>0?`<div class="rchart-bar" style="height:${recH}px;background:var(--sd)"></div>`:''}
+      </div>
+      <div class="rchart-lbl">${lbl}</div>
+    </div>`;
+  }).join('')}</div><div style="display:flex;gap:12px;padding:6px 0 4px;font-size:10px;color:var(--txl)"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--sd);border-radius:2px;display:inline-block"></span>Recebido</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#8fa882;opacity:.55;border-radius:2px;display:inline-block"></span>A receber</span></div></div>`;
+}
+
+/* ── CASH FLOW PROJECTION ────────────────────── */
+function _renderProjecaoCaixa(){
+  const sec=g('fin-cflow-sec');const bdy=g('fin-cflow-bdy');if(!sec||!bdy)return;
+  const t=today();
+  const d30=addDays(t,30),d60=addDays(t,60),d90=addDays(t,90);
+  let v30=0,v60=0,v90=0,vMais=0;
+  const itens30=[],itens60=[],itens90=[],itensMais=[];
+  DATA.filter(b=>b.etapa!=='cancelado'&&b.etapa!=='entregue').forEach(b=>{
+    const nome=_nomeDisp(b);
+    const all=[];
+    const res=b.reserva||{};
+    if(res.ativa&&!res.paga&&res.valor&&res.data)all.push({data:res.data,val:_parseBRL(res.valor)/100,lbl:'Reserva'});
+    (b.pagamentos||[]).forEach((p,i)=>{if(!p.pago&&p.valor&&p.data)all.push({data:p.data,val:_parseBRL(p.valor)/100,lbl:`Parcela ${i+1}`});});
+    all.forEach(({data,val,lbl})=>{
+      if(data<=t)return; // já vencido, não projetar
+      if(data<=d30){v30+=val;itens30.push(`${nome} — ${lbl}`);}
+      else if(data<=d60){v60+=val;itens60.push(`${nome} — ${lbl}`);}
+      else if(data<=d90){v90+=val;itens90.push(`${nome} — ${lbl}`);}
+      else{vMais+=val;itensMais.push(`${nome} — ${lbl}`);}
+    });
+  });
+  const total=v30+v60+v90+vMais;
+  if(!total){sec.style.display='none';return;}
+  sec.style.display='';
+  const row=(lbl,val,itens)=>val>0?`<div class="cflow-row"><span class="cflow-lbl">${lbl}</span><span class="cflow-val">${fmtBRL(val)}</span><span class="cflow-det">${itens.slice(0,3).join(', ')}${itens.length>3?` +${itens.length-3} mais`:''}</span></div>`:'';
+  bdy.innerHTML=row('Próx. 30 dias',v30,itens30)+row('31–60 dias',v60,itens60)+row('61–90 dias',v90,itens90)+row('Mais de 90d',vMais,itensMais)+`<div class="cflow-row" style="border-top:1px solid var(--bdl);margin-top:2px"><span class="cflow-lbl" style="font-weight:700">Total projetado</span><span class="cflow-val" style="color:var(--txm)">${fmtBRL(total)}</span></div>`;
+}
+
+/* ── BROWSER NOTIFICATIONS ───────────────────── */
+function _requestNotifPerm(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  // Ask only after user interacts (called after first save or load)
+  setTimeout(()=>{
+    Notification.requestPermission().catch(()=>{});
+  },3000);
+}
+function _fireOverdueNotifs(){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const KEY='florelle_notif_day';
+  const td=today();
+  if(localStorage.getItem(KEY)===td)return; // already fired today
+  const t=td;
+  const due=DATA.flatMap(b=>(b.lembretes||[]).filter(r=>!r.done&&r.data&&r.data<t).map(r=>({nome:_nomeDisp(b),text:r.text})));
+  if(!due.length)return;
+  localStorage.setItem(KEY,td);
+  const body=due.length===1?`${due[0].nome}: ${due[0].text}`:`${due.length} lembretes vencidos — ${due.map(d=>d.nome).slice(0,2).join(', ')}${due.length>2?' e mais':''}`;
+  try{new Notification('Florelle — Lembretes Vencidos',{body,icon:'/florelle-app/icon-192.png',tag:'florelle-overdue'});}catch(e){}
+}
+
 /* ── KEYBOARD ────────────────────────────────── */
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
@@ -3709,6 +3875,13 @@ document.addEventListener('keydown',e=>{
     else if(!g('wa-ov').classList.contains('hidden'))closeWaImport();
     else if(!g('ov').classList.contains('hidden'))closeModal();
     else if(rpOpen)toggleRP();
+  }
+  // '/' focuses search (only when modal and inputs are not active)
+  if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
+    const tag=(document.activeElement?.tagName||'').toUpperCase();
+    if(tag!=='INPUT'&&tag!=='TEXTAREA'&&tag!=='SELECT'){
+      e.preventDefault();g('si')?.focus();
+    }
   }
 });
 
@@ -3727,6 +3900,8 @@ document.addEventListener('keydown',e=>{
 /* ── INIT ────────────────────────────────────── */
 load();loadInv();renderAll();updInvBadge();updTvBadge();
 syncInit(); // auto-sync on load (silent if already consented)
+_requestNotifPerm();
+_fireOverdueNotifs();
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/florelle-app/sw.js').catch(()=>{});
