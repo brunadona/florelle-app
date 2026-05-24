@@ -666,6 +666,24 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .tv-open{flex-shrink:0;color:var(--txl);opacity:.5;transition:opacity .14s}
 .tv-item:hover .tv-open{opacity:1}
 @media(max-width:640px){#tv{padding:14px 14px}.tv-item{padding:10px 11px;gap:9px}.tv-group-hd{padding:5px 0}}
+
+/* ── INATIVIDADE BADGE ── */
+.inativo-badge{font-size:9px;color:#888;background:#F0EEE8;border-radius:6px;padding:1px 5px}
+/* ── ORIGEM BADGE ── */
+.orig-badge{font-size:9px;padding:1px 6px;border-radius:8px;background:#EEF0F8;color:#5A5890;font-weight:500}
+/* ── VIP ── */
+.vip-btn{background:none;border:none;font-size:13px;color:#ccc;cursor:pointer;line-height:1;padding:0 1px;transition:color .14s}
+.vip-btn.vip-on{color:#E8B430}
+.bcard.vip{border-color:#E8B430;box-shadow:0 0 0 1.5px #E8B43066,var(--sh0)}
+/* ── COBS ADD ── */
+.cobs-add{color:var(--txl);font-style:italic;font-size:11px;cursor:pointer}
+.cobs-add:hover{color:var(--txm)}
+/* ── PAG ATR CHIP ── */
+.pag-atr-chip{height:26px;padding:0 12px;border:1.5px solid var(--bd);border-radius:13px;background:var(--wh);font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:500;color:var(--txm);cursor:pointer;transition:all .16s;white-space:nowrap}
+.pag-atr-chip:hover{border-color:#F0B8B0;color:#B03420}
+.pag-atr-chip.act{background:#B03420;border-color:#B03420;color:#fff}
+/* ── CONFETTI POP ── */
+@keyframes confettiPop{0%{opacity:1;transform:translate(-50%,-50%) scale(0.5)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
 </style>
 </head>
 <body>
@@ -808,6 +826,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 <!-- PRODUTO FILTER + COMPACTO -->
 <div id="kb-flt-wrap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
   <div id="kb-flt" style="flex:1;min-width:0"></div>
+  <button class="kb-cmp-btn" id="kb-sort-btn" onclick="toggleKbSort()" title="Ordenação" style="margin-right:4px">🔤 Data</button>
   <button class="kb-cmp-btn" id="kb-cmp-btn" onclick="toggleKbCompact()" title="Modo compacto" style="margin-right:16px">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="4" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><rect x="3" y="11" width="7" height="4" rx="1"/><rect x="14" y="11" width="7" height="4" rx="1"/><rect x="3" y="19" width="7" height="2" rx="1" opacity=".4"/><rect x="14" y="19" width="7" height="2" rx="1" opacity=".4"/></svg>
     Compacto
@@ -884,6 +903,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 <!-- INVENTORY VIEW -->
 <div id="iv" class="hidden">
+  <div style="padding:12px 16px 4px"><input id="inv-srch" type="text" class="tv-srch-inp" placeholder="Buscar item…" oninput="_invSrchQ(this.value)"></div>
   <div class="rsec">
     <div class="rsh"><div class="rs-ico" style="background:#EDF4EB">🗃️</div><span class="rsti">Inventário de Materiais</span><span class="rstc" id="inv-ct">—</span></div>
     <div class="inv-hd">
@@ -947,7 +967,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
     </div>
     <div class="mhr">
       <button class="bcls" onclick="closeModal()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
-      <select id="m-etapa" class="stsel">
+      <select id="m-etapa" class="stsel" onchange="_renderPipelineBar(this.value)">
         <option value="lead">Lead</option>
         <option value="retomar">Retomar conversa</option>
         <option value="contratoEnviado">Contrato enviado</option>
@@ -961,6 +981,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
       </select>
     </div>
   </div>
+
+  <div id="m-pipeline-bar" style="padding:0 24px 10px"></div>
 
   <!-- Modal body: two columns -->
   <div class="mbdy-cols">
@@ -984,7 +1006,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">CEP</label><input id="m-cep" type="text" class="fi" placeholder="00000-000"></div>
-        <div class="fg"></div>
+        <div class="fg"><label class="fl">Como nos conheceu</label><select id="m-origem" class="fi"><option value="">Não informado</option><option value="instagram">Instagram</option><option value="indicacao">Indicação</option><option value="google">Google</option><option value="facebook">Facebook</option><option value="outro">Outro</option></select></div>
       </div>
       <div class="frow f1">
         <div class="fg"><label class="fl">Endereço</label><input id="m-end" type="text" class="fi" placeholder="Rua, número…"></div>
@@ -1121,7 +1143,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
       <!-- Valor total -->
       <div class="frow f1" style="margin-bottom:8px">
-        <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" oninput="pagCalc();updateCustoBuque()" placeholder="Ex: 1.290,00"></div>
+        <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" oninput="pagCalc();updateCustoBuque();_calcMargem()" placeholder="Ex: 1.290,00"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Custo de material</label><input id="m-custo" type="text" class="fi" placeholder="R$ 0,00" oninput="_calcMargem()"></div>
+        <div class="fg" id="m-margem-row" style="display:none"><label class="fl">Margem</label><div id="m-margem-disp" style="font-size:13px;font-weight:600;padding:6px 0"></div></div>
       </div>
 
       <!-- Linhas de parcela (renderizadas por pagCalc) -->
@@ -1352,7 +1378,11 @@ let calViewDate=new Date(); // calendar month state
 let _pendingEntrega=null;  // entrega checklist callback
 let mesFiltro='';          // wedding month filter (YYYY-MM)
 let _kbCompact=false;      // compact kanban mode
+let _kbSort='date';        // 'date' | 'name'
+let _pagAtrFiltro=false;   // filtro pagamento em atraso
 let INV=[];
+let _invSrch='';
+let _invSrchTimer=null;
 let _mDriveFolder=''; // Drive folder ID for current bride being edited
 let _syncFileId=localStorage.getItem('florelle_sync_fid')||null;
 let _syncSt='idle'; // 'idle'|'syncing'|'ok'|'error'|'offline'
@@ -1449,8 +1479,10 @@ function _buildProdFilter(){
   const prods=[...new Set(DATA.filter(b=>b.produto&&b.etapa!=='cancelado').map(b=>b.produto))].sort((a,b)=>(PLABEL[a]||a).localeCompare(PLABEL[b]||b));
   if(prods.length<2){el.innerHTML='';el.classList.add('hidden');if(prodFiltro){prodFiltro='';} return;}
   el.classList.remove('hidden');
-  el.innerHTML=[{val:'',lbl:'Todas'},...prods.map(p=>({val:p,lbl:PLABEL[p]||p}))].map(c=>`<button class="pfchip${prodFiltro===c.val?' act':''}" onclick="setProdFiltro('${c.val}')">${c.lbl}</button>`).join('');
+  el.innerHTML=[{val:'',lbl:'Todas'},...prods.map(p=>({val:p,lbl:PLABEL[p]||p}))].map(c=>`<button class="pfchip${prodFiltro===c.val?' act':''}" onclick="setProdFiltro('${c.val}')">${c.lbl}</button>`).join('')+`<button class="pag-atr-chip${_pagAtrFiltro?' act':''}" onclick="togglePagAtrFiltro()">💸 Atrasado</button>`;
 }
+function togglePagAtrFiltro(){_pagAtrFiltro=!_pagAtrFiltro;renderAll();}
+
 function setProdFiltro(val){prodFiltro=val;renderAll();}
 
 function buildCol(col){
@@ -1459,8 +1491,11 @@ function buildCol(col){
     if(prodFiltro&&(b.produto||'')!==prodFiltro)return false;
     if(mesFiltro&&!(b.dataCasamento||'').startsWith(mesFiltro))return false;
     if(srch){const q=srch.toLowerCase();const qd=q.replace(/\D/g,'');return(b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q)||(b.telefone||'').toLowerCase().includes(q)||(qd.length>=4&&(b.telefone||'').replace(/\D/g,'').includes(qd));}
+    if(_pagAtrFiltro){const t=today();const atrasado=((b.pagamentos||[]).some(p=>!p.pago&&p.data&&p.data<t)||(b.reserva?.ativa&&!b.reserva.paga&&b.reserva.data&&b.reserva.data<t));if(!atrasado)return false;}
     return true;
-  }).sort((a,b)=>(a.dataCasamento||'9999-99').localeCompare(b.dataCasamento||'9999-99'));
+  });
+  if(_kbSort==='name') cards.sort((a,b)=>_nomeDisp(a).localeCompare(_nomeDisp(b)));
+  else cards.sort((a,b)=>(a.dataCasamento||'9999').localeCompare(b.dataCasamento||'9999'));
   const wrap=document.createElement('div');
   wrap.className='kcol'+(col.id==='cancelado'?' muted':'');
   wrap.dataset.col=col.id;
@@ -1483,11 +1518,17 @@ function buildCol(col){
     const b=DATA.find(x=>x.id===_dId);
     if(b&&b.etapa!==col.id){
       const _prevEtapa=b.etapa;
+      const _prevData=JSON.parse(JSON.stringify(DATA));
       const _doMove=()=>{
         b.etapaHist=[...(b.etapaHist||[]),{de:_prevEtapa,para:col.id,em:today()}];
         b.etapa=col.id;b.upd=Date.now();
         if(col.id==='entregue')_deductInvForBride(b);
         save();renderAll();
+        _showUndoToast(_prevData,_nomeDisp(b),_prevEtapa,col.id);
+        if(col.id==='entregue'){
+          setTimeout(()=>_celebrateEntrega(_nomeDisp(b)),300);
+          _offerAniverLembrete(b);
+        }
       };
       if(col.id==='entregue'&&_prevEtapa!=='entregue'){
         _showEntregaChecklist(_doMove);
@@ -1515,8 +1556,11 @@ function buildCard(b,acc){
   const _isOverdue=_allPagItems.some(p=>!p.pago&&p.data&&p.data<today());
   // Detectar sílica vencida (buquê chegou há mais de 32 dias e ainda em secagem)
   const _silicaLate = b.dataBuque && addDays(b.dataBuque,32)<today() && b.etapa==='secagem' && !b.dataEntregaReal;
+  // Detectar inatividade
+  const _diasInat=Math.floor((Date.now()-(b.upd||b.crd||Date.now()))/(864e5));
+  const _inativo=_diasInat>14&&b.etapa!=='entregue'&&b.etapa!=='cancelado';
 
-  el.className='bcard'+(_isOverdue?' overdue':_silicaLate?' silica-late':'')+(_kbCompact?' compact':'');
+  el.className='bcard'+(_isOverdue?' overdue':_silicaLate?' silica-late':'')+(_kbCompact?' compact':'')+(b.vip?' vip':'');
   el.dataset.id=b.id;
   el.draggable=true;
   el.addEventListener('dragstart',()=>{dragId=b.id;setTimeout(()=>el.classList.add('drag'),0);});
@@ -1567,13 +1611,20 @@ function buildCard(b,acc){
   }
 
   const _waNum=(b.telefone||'').replace(/\D/g,'');
+  const _origLabels={instagram:'Instagram',indicacao:'Indicação',google:'Google',facebook:'Facebook',outro:'Outro'};
+  const _origBadge=b.origem&&_origLabels[b.origem]?`<span class="orig-badge">${_origLabels[b.origem]}</span>`:'';
+  const _diasInativo=b._updatedAt?Math.floor((Date.now()-b._updatedAt)/86400000):null;
+  const _inativoBadge=_diasInativo!==null&&_diasInativo>14?`<span class="inativo-badge">${_diasInativo}d sem atualização</span>`:'';
   el.innerHTML=`
     <div class="cacc" style="background:${acc}"></div>
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
       <div class="cname" style="flex:1;min-width:0">${esc(_nomeDisp(b))}</div>
-      ${_waNum?`<button class="cwa" onclick="event.stopPropagation();_openWa('${b.id}',event)" title="Mensagens WhatsApp">${icn('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',11,11)}</button>`:''}
+      <div style="display:flex;gap:2px;align-items:center;flex-shrink:0">
+        <button class="vip-btn${b.vip?' vip-on':''}" onclick="event.stopPropagation();_toggleVip('${b.id}')" title="VIP">★</button>
+        ${_waNum?`<button class="cwa" onclick="event.stopPropagation();_openWa('${b.id}',event)" title="Mensagens WhatsApp">${icn('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',11,11)}</button>`:''}
+      </div>
     </div>
-    ${b.anotacoes?`<div class="cobs">${esc(b.anotacoes.length>55?b.anotacoes.slice(0,55)+'…':b.anotacoes)}</div>`:''}
+    <div class="cobs${b.anotacoes?'':' cobs-add'}" onclick="event.stopPropagation();_quickNota(event,'${b.id}')" title="Clique para editar anotações">${b.anotacoes?esc(b.anotacoes.length>55?b.anotacoes.slice(0,55)+'…':b.anotacoes):'+ Nota rápida…'}</div>
     <div class="cpasso" onclick="event.stopPropagation();_quickPasso(event,'${b.id}')" title="Clique para editar próximo passo">
       ${b.proximoPasso?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>${esc(b.proximoPasso)}`:'<span class="cpasso-ph">+ Próximo passo…</span>'}
     </div>
@@ -1583,6 +1634,7 @@ function buildCard(b,acc){
     <div class="ctags">
       ${plb?`<span class="tag t-pr">${esc(plb)}</span>`:''}
       ${palb?`<span class="tag ${pcls}">${esc(palb)}</span>`:''}
+      ${_origBadge}
     </div>
     <div class="cft">
       <div class="cftstatus">
@@ -1591,6 +1643,7 @@ function buildCard(b,acc){
         ${pagLine}
         ${_isOverdue?'<div class="pag-ov-bdg">💸 Pag. vencido</div>':''}
         ${_aberto>0.5&&b.etapa!=='cancelado'&&b.etapa!=='entregue'?`<div class="c-aberto">${icn('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',10,10)} Em aberto: ${fmtBRL(_aberto)}</div>`:''}
+        ${_inativoBadge}
       </div>
       <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
         ${anx?`<div class="anx-badge">${icn('<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',10,10)} ${anx}</div>`:''}
@@ -1605,6 +1658,127 @@ function buildCard(b,acc){
 function doSearch(q){srch=q.trim();renderAll();}
 let _srchTimer=null;
 function _srchQ(q){clearTimeout(_srchTimer);_srchTimer=setTimeout(()=>doSearch(q),120);}
+
+/* ── INV SEARCH ──────────────────────────────── */
+function _invSrchQ(q){clearTimeout(_invSrchTimer);_invSrch=q.trim().toLowerCase();_invSrchTimer=setTimeout(renderInv,120);}
+
+/* ── SORT TOGGLE ─────────────────────────────── */
+function toggleKbSort(){
+  _kbSort=_kbSort==='date'?'name':'date';
+  const btn=g('kb-sort-btn');if(btn)btn.textContent=_kbSort==='date'?'🔤 Data':'🔤 Nome';
+  renderAll();
+}
+
+/* ── VIP TOGGLE ──────────────────────────────── */
+function _toggleVip(id){
+  const b=DATA.find(x=>x.id===id);if(!b)return;
+  b.vip=!b.vip;b._updatedAt=Date.now();save();renderAll();
+}
+
+/* ── QUICK NOTA ──────────────────────────────── */
+function _quickNota(ev,id){
+  ev.stopPropagation();
+  const b=DATA.find(x=>x.id===id);if(!b)return;
+  const existing=document.querySelector('._qnota-pop');if(existing)existing.remove();
+  const pop=document.createElement('div');
+  pop.className='_qnota-pop';
+  pop.style='position:fixed;z-index:900;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 4px 20px #0003;padding:10px;display:flex;flex-direction:column;gap:6px;width:220px';
+  const rect=ev.target.getBoundingClientRect();
+  pop.style.left=Math.min(rect.left,window.innerWidth-240)+'px';
+  pop.style.top=Math.min(rect.bottom+4,window.innerHeight-160)+'px';
+  const ta=document.createElement('textarea');
+  ta.value=b.anotacoes||'';ta.rows=4;ta.placeholder='Anotação rápida…';
+  ta.style='width:100%;resize:none;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:12px;font-family:inherit';
+  const btnRow=document.createElement('div');btnRow.style='display:flex;justify-content:flex-end;gap:6px';
+  const btnSave=document.createElement('button');btnSave.textContent='Salvar';btnSave.className='bpri';btnSave.style='font-size:12px;padding:4px 10px';
+  const btnCan=document.createElement('button');btnCan.textContent='Cancelar';btnCan.className='bsec';btnCan.style='font-size:12px;padding:4px 10px';
+  btnRow.appendChild(btnCan);btnRow.appendChild(btnSave);
+  pop.appendChild(ta);pop.appendChild(btnRow);
+  document.body.appendChild(pop);ta.focus();
+  function _save(){b.anotacoes=ta.value.trim();b._updatedAt=Date.now();save();renderAll();pop.remove();}
+  btnSave.onclick=_save;btnCan.onclick=()=>pop.remove();
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))_save();if(e.key==='Escape')pop.remove();});
+  setTimeout(()=>document.addEventListener('mousedown',function _cl(e){if(!pop.contains(e.target)){pop.remove();document.removeEventListener('mousedown',_cl);}},),50);
+}
+
+/* ── UNDO MOVE ───────────────────────────────── */
+let _undoTimer=null;
+let _undoSnap=null;
+let _undoToastEl=null;
+function _showUndoToast(snap,nome){
+  _undoSnap=snap;
+  clearTimeout(_undoTimer);
+  if(_undoToastEl)_undoToastEl.remove();
+  const t=document.createElement('div');
+  t.style='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;border-radius:20px;padding:10px 18px;font-size:13px;display:flex;gap:12px;align-items:center;z-index:9999;box-shadow:0 4px 16px #0004';
+  t.innerHTML=`<span>Noiva movida</span><button onclick="_undoMove()" style="background:#E8B430;border:none;color:#fff;border-radius:10px;padding:2px 10px;cursor:pointer;font-size:12px">Desfazer</button>`;
+  document.body.appendChild(t);_undoToastEl=t;
+  _undoTimer=setTimeout(()=>{t.remove();_undoSnap=null;_undoToastEl=null;},5000);
+}
+function _undoMove(){
+  if(!_undoSnap)return;
+  DATA.splice(0,DATA.length,..._undoSnap);
+  save();renderAll();
+  if(_undoToastEl)_undoToastEl.remove();
+  clearTimeout(_undoTimer);_undoSnap=null;_undoToastEl=null;
+}
+
+/* ── CELEBRATE ENTREGA ───────────────────────── */
+function _celebrateEntrega(nome){
+  _showCalToast('🎉 '+nome+' entregue! Parabéns!');
+  const emojis=['🌸','💐','🎊','✨','🌷'];
+  for(let i=0;i<8;i++){
+    const el=document.createElement('div');
+    el.style=`position:fixed;left:${20+Math.random()*60}%;top:${30+Math.random()*30}%;font-size:${22+Math.random()*18}px;pointer-events:none;z-index:9999;animation:confettiPop .9s ease forwards;animation-delay:${i*80}ms`;
+    el.textContent=emojis[i%emojis.length];
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1200+i*80);
+  }
+}
+
+/* ── ANIVERSARIO LEMBRETE ────────────────────── */
+function _offerAniverLembrete(b){
+  if(!b.dataCasamento)return;
+  const t=document.createElement('div');
+  t.style='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #E8B430;border-radius:16px;padding:12px 18px;font-size:13px;display:flex;gap:12px;align-items:center;z-index:9999;box-shadow:0 4px 16px #0003;max-width:320px';
+  t.innerHTML=`<span>💝 Criar lembrete de aniversário para <b>${esc(_nomeDisp(b))}</b>?</span><button onclick="_criarAniverLembrete('${b.id}')" style="background:#E8B430;border:none;color:#fff;border-radius:10px;padding:4px 12px;cursor:pointer;font-size:12px;white-space:nowrap">Sim!</button>`;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),8000);
+}
+function _criarAniverLembrete(id){
+  const b=DATA.find(x=>x.id===id);if(!b||!b.dataCasamento)return;
+  const dc=b.dataCasamento; // yyyy-MM-DD
+  const ano=new Date().getFullYear()+1;
+  const dataLemb=ano+'-'+dc.slice(5,10); // next year, same MM-DD
+  const lem={id:uid(),text:'🎂 Aniversário de casamento — '+_nomeDisp(b),data:dataLemb,auto:false,done:false};
+  b.lembretes=b.lembretes||[];b.lembretes.push(lem);
+  b._updatedAt=Date.now();save();
+  _showCalToast('Lembrete de aniversário criado!');
+  document.querySelectorAll('._aniver-pop').forEach(e=>e.remove());
+}
+
+/* ── PIPELINE BAR ────────────────────────────── */
+function _renderPipelineBar(etapa){
+  const el=g('m-pipeline-bar');if(!el)return;
+  const PIPE=['lead','retomar','contratoEnviado','contratoAssinado','reserva','secagem','montagem','embalado','entregue'];
+  const idx=PIPE.indexOf(etapa);
+  if(idx<0){el.innerHTML='';return;}
+  const pct=Math.round((idx/(PIPE.length-1))*100);
+  el.innerHTML=`<div style="font-size:10px;color:#888;margin-bottom:4px">Progresso: ${ETLBL[etapa]||etapa} (${pct}%)</div><div style="height:6px;background:#EEE;border-radius:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--rosa);border-radius:6px;transition:width .3s"></div></div>`;
+}
+
+/* ── CALC MARGEM ─────────────────────────────── */
+function _calcMargem(){
+  const elDisp=g('m-margem-disp');const elRow=g('m-margem-row');if(!elDisp||!elRow)return;
+  const vt=_parseBRL(gv('m-valor')||'')/100;
+  const cu=_parseBRL(gv('m-custo')||'')/100;
+  if(!vt||vt<=0){elRow.style.display='none';return;}
+  elRow.style.display='';
+  const margem=vt-cu;
+  const pct=vt>0?Math.round((margem/vt)*100):0;
+  elDisp.textContent=fmtBRL(margem)+' ('+pct+'%)';
+  elDisp.style.color=margem>=0?'#2a7a2a':'#B03420';
+}
 
 /* ── MODAL OPEN ──────────────────────────────── */
 function openNew(col){
@@ -1651,6 +1825,8 @@ function fillForm(b){
   sv2('m-redoma-dt',  b.redomaDataPedido||'');
   sv2('m-emb-prev',   b.embPrevisao||'');
   sv2('m-valor',      b.valorTotal||'');
+  sv2('m-origem',     b.origem||'');
+  sv2('m-custo',      b.custoMaterial||'');
 
   setRad('prod',      b.produto||'');
   setRad('emb',       b.statusEmbalagem||'naoEncomendada');
@@ -1681,6 +1857,8 @@ function fillForm(b){
   renderRL();
   renderAnexos();
   _renderEtapaHist(b);
+  _renderPipelineBar(b.etapa||'lead');
+  setTimeout(_calcMargem,60);
 }
 
 function syncName(){
@@ -1849,6 +2027,9 @@ async function saveModal(){
     embPedida:      radVal('embPedida'),
     embPrevisao:    gv('m-emb-prev'),
     valorTotal:     gv('m-valor').trim(),
+    origem:         gv('m-origem')||'',
+    custoMaterial:  gv('m-custo').trim(),
+    _updatedAt:     Date.now(),
     reserva:(()=>{
       const resAtiva=radVal('reservaAtiva')==='sim';
       const rows=_getPagRows();
@@ -2686,8 +2867,19 @@ function exportData(){
   a.click();URL.revokeObjectURL(a.href);
 }
 function exportCSV(){
-  const hdrs=['Nome','Etapa','Casamento','Produto','Pagamento','Valor Total','Recebido','A Receber','Telefone','Cidade','Cerimonialista'];
-  const rows=DATA.filter(b=>b.etapa!=='cancelado').map(b=>[
+  const hdrs=['Nome','Etapa','Casamento','Produto','Pagamento','Valor Total','Recebido','A Receber','Telefone','Cidade','Cerimonialista','Origem'];
+  const _origLabelsCSV={instagram:'Instagram',indicacao:'Indicação',google:'Google',facebook:'Facebook',outro:'Outro'};
+  let filtered=DATA.filter(b=>b.etapa!=='cancelado');
+  if(prodFiltro)filtered=filtered.filter(b=>b.produto===prodFiltro);
+  if(mesFiltro)filtered=filtered.filter(b=>(b.dataCasamento||'').startsWith(mesFiltro));
+  if(srch){const q=srch.toLowerCase();filtered=filtered.filter(b=>(_nomeDisp(b)||'').toLowerCase().includes(q)||(b.cidade||'').toLowerCase().includes(q));}
+  if(_pagAtrFiltro)filtered=filtered.filter(b=>{
+    const vt=calcValor(b);const rec=_calcRecebido(b);const ab=vt-rec;
+    if(ab<0.5||b.etapa==='cancelado'||b.etapa==='entregue')return false;
+    const ps=(b.pagamentos||[]).filter(p=>!p.pago&&p.data);
+    return ps.some(p=>p.data<today());
+  });
+  const rows=filtered.map(b=>[
     _nomeDisp(b), ETLBL[b.etapa]||b.etapa,
     b.dataCasamento?fmt(b.dataCasamento):'',
     PLABEL[b.produto]||b.produto||'',
@@ -2695,13 +2887,15 @@ function exportCSV(){
     calcValor(b).toFixed(2).replace('.',','),
     _calcRecebido(b).toFixed(2).replace('.',','),
     _calcAReceber(b).toFixed(2).replace('.',','),
-    b.telefone||'', b.cidade||'', b.cerimonialista||''
+    b.telefone||'', b.cidade||'', b.cerimonialista||'',
+    _origLabelsCSV[b.origem]||''
   ]);
   const csv=[hdrs,...rows].map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='florelle_noivas_'+today().replace(/-/g,'')+'.csv';
+  const suffix=(prodFiltro?'_'+prodFiltro:'')+(mesFiltro?'_'+mesFiltro.replace('-',''):'');
+  a.download='florelle_noivas_'+today().replace(/-/g,'')+suffix+'.csv';
   a.click();URL.revokeObjectURL(a.href);
 }
 function importData(e){
@@ -2953,6 +3147,7 @@ function renderInv(){
   tabBody.appendChild(hd);
 
   INV.forEach(item=>{
+    if(_invSrch&&!(item.nome||'').toLowerCase().includes(_invSrch))return;
     const needed=_invNeeded(item);
     const isAl=needed>0;
     const noivas=_invNoivasQueUsam(item);
@@ -4545,6 +4740,19 @@ document.addEventListener('keydown',e=>{
     if(tag!=='INPUT'&&tag!=='TEXTAREA'&&tag!=='SELECT'){
       e.preventDefault();g('si')?.focus();
     }
+  }
+  // Shortcuts: N = nova noiva; 1-6 = abas
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey){
+    const tag=(document.activeElement?.tagName||'').toUpperCase();
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+    if(g('ov')&&!g('ov').classList.contains('hidden'))return;
+    if(e.key==='n'||e.key==='N'){e.preventDefault();openNew();}
+    if(e.key==='1'){e.preventDefault();showTab('kb');}
+    if(e.key==='2'){e.preventDefault();showTab('rv');}
+    if(e.key==='3'){e.preventDefault();showTab('fv');}
+    if(e.key==='4'){e.preventDefault();showTab('iv');}
+    if(e.key==='5'){e.preventDefault();showTab('tv');}
+    if(e.key==='6'){e.preventDefault();showTab('cv');}
   }
 });
 
