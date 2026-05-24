@@ -601,6 +601,37 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 /* ── MÊS FILTER ── */
 #kb-mes-flt{display:flex;gap:6px;padding:4px 16px 0;flex-wrap:wrap;flex-shrink:0}
+/* ── WA TEMPLATES ── */
+.watpl-ov{position:fixed;inset:0;z-index:4000;background:transparent}
+.watpl-box{position:fixed;z-index:4001;background:var(--wh);border-radius:12px;padding:10px 8px 8px;box-shadow:0 4px 22px rgba(0,0,0,.22);min-width:240px;max-width:320px;border:1px solid var(--bdl)}
+.watpl-ttl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txl);padding:0 6px 6px}
+.watpl-btn{display:block;width:100%;text-align:left;background:none;border:none;border-radius:8px;padding:7px 10px;font-size:11.5px;font-family:'DM Sans',sans-serif;color:var(--tx);cursor:pointer;line-height:1.35;transition:background .13s}
+.watpl-btn:hover{background:var(--chov)}
+.watpl-sep{height:1px;background:var(--bdl);margin:4px 0}
+.watpl-open{color:var(--txm);font-size:11px}
+/* ── TASKS SEARCH ── */
+.tv-srch-wrap{padding:8px 16px 2px;flex-shrink:0}
+.tv-srch-inp{width:100%;padding:7px 12px;border:1.5px solid var(--bd);border-radius:8px;background:var(--cbg);font-family:'DM Sans',sans-serif;font-size:12.5px;color:var(--tx);outline:none;transition:border-color .16s;box-sizing:border-box}
+.tv-srch-inp:focus{border-color:var(--sm)}
+/* ── KANBAN COMPACTO ── */
+.kb-cmp-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:6px;border:1.5px solid var(--bd);background:none;color:var(--txm);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .14s;flex-shrink:0}
+.kb-cmp-btn.act{background:var(--sl);border-color:var(--sm);color:var(--sdp)}
+.kb-cmp-btn:hover{border-color:var(--sm)}
+.bcard.compact .cpasso,.bcard.compact .cobs,.bcard.compact .ctags,.bcard.compact .cft{display:none!important}
+.bcard.compact{padding:7px 8px 7px 12px}
+/* ── RELATÓRIO PRODUTO ── */
+.prod-row{display:grid;grid-template-columns:1fr 60px 90px 90px;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--bdl);font-size:12px}
+.prod-row:last-child{border-bottom:none}
+.prod-bar-wrap{grid-column:1/-1;padding:0 14px 4px}
+.prod-bar-bg{background:var(--cdark);border-radius:4px;height:5px;overflow:hidden}
+.prod-bar-fill{height:100%;border-radius:4px;background:var(--sm);transition:width .4s}
+/* ── WORKLOAD TIMELINE ── */
+.wl-row{display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:11.5px}
+.wl-lbl{width:90px;flex-shrink:0;color:var(--txm);font-size:11px}
+.wl-bar-wrap{flex:1;background:var(--cdark);border-radius:4px;height:18px;overflow:hidden;position:relative}
+.wl-bar{height:100%;border-radius:4px;background:var(--sm);display:flex;align-items:center;padding-left:6px;transition:width .4s;min-width:0}
+.wl-ct{font-size:10.5px;font-weight:600;color:var(--sdp);white-space:nowrap}
+.wl-ct-out{margin-left:6px;font-size:10.5px;font-weight:600;color:var(--txm)}
 #kb-mes-flt.hidden{display:none}
 
 /* ── TASKS VIEW ── */
@@ -774,8 +805,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
   </button>
 </div>
 
-<!-- PRODUTO FILTER -->
-<div id="kb-flt"></div>
+<!-- PRODUTO FILTER + COMPACTO -->
+<div id="kb-flt-wrap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+  <div id="kb-flt" style="flex:1;min-width:0"></div>
+  <button class="kb-cmp-btn" id="kb-cmp-btn" onclick="toggleKbCompact()" title="Modo compacto" style="margin-right:16px">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="4" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><rect x="3" y="11" width="7" height="4" rx="1"/><rect x="14" y="11" width="7" height="4" rx="1"/><rect x="3" y="19" width="7" height="2" rx="1" opacity=".4"/><rect x="14" y="19" width="7" height="2" rx="1" opacity=".4"/></svg>
+    Compacto
+  </button>
+</div>
 
 <!-- MÊS FILTER -->
 <div id="kb-mes-flt" class="hidden"></div>
@@ -803,6 +840,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div class="rsec">
     <div class="rsh"><div class="rs-ico" style="background:#EDF4EB">📊</div><span class="rsti">Resumo Geral</span></div>
     <div class="rsb" id="sum-bdy"></div>
+  </div>
+  <div class="rsec">
+    <div class="rsh"><div class="rs-ico" style="background:#F0EBF8">🏷️</div><span class="rsti">Receita por Produto</span></div>
+    <div class="rsb" id="prod-rel-bdy"></div>
+  </div>
+  <div class="rsec">
+    <div class="rsh"><div class="rs-ico" style="background:#FEF8EE">📅</div><span class="rsti">Carga de Trabalho — próximas 8 semanas</span></div>
+    <div class="rsb" id="wl-bdy"></div>
   </div>
 </div>
 
@@ -874,6 +919,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <button class="tv-filter" id="tvf-semana" onclick="tvFilter('semana')">Esta semana</button>
     <button class="tv-filter" id="tvf-atraso" onclick="tvFilter('atraso')">Em atraso</button>
     <button class="tv-filter" id="tvf-pend" onclick="tvFilter('pend')">Pendentes</button>
+  </div>
+  <div class="tv-srch-wrap">
+    <input id="tv-srch" class="tv-srch-inp" type="text" placeholder="Buscar por noiva ou tarefa…" oninput="_tvSrchQ(this.value)">
   </div>
   <div id="tv-bdy"></div>
 </div>
@@ -1214,6 +1262,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
   </div>
 </div>
 
+<!-- WA TEMPLATE OVERLAY -->
+<div id="watpl-ov" class="watpl-ov hidden" onclick="_waTplClose()"></div>
+<div id="watpl-box" class="watpl-box hidden"></div>
+
 <!-- WHATSAPP IMPORT MODAL -->
 <div id="wa-ov" class="hidden" onclick="waOvClick(event)">
   <div id="wa-panel" onclick="event.stopPropagation()">
@@ -1299,6 +1351,7 @@ let DATA=[], editId=null, mRem=[], mAnexos=[], dragId=null, srch='', prodFiltro=
 let calViewDate=new Date(); // calendar month state
 let _pendingEntrega=null;  // entrega checklist callback
 let mesFiltro='';          // wedding month filter (YYYY-MM)
+let _kbCompact=false;      // compact kanban mode
 let INV=[];
 let _mDriveFolder=''; // Drive folder ID for current bride being edited
 let _syncFileId=localStorage.getItem('florelle_sync_fid')||null;
@@ -1463,7 +1516,7 @@ function buildCard(b,acc){
   // Detectar sílica vencida (buquê chegou há mais de 32 dias e ainda em secagem)
   const _silicaLate = b.dataBuque && addDays(b.dataBuque,32)<today() && b.etapa==='secagem' && !b.dataEntregaReal;
 
-  el.className='bcard'+(_isOverdue?' overdue':_silicaLate?' silica-late':'');
+  el.className='bcard'+(_isOverdue?' overdue':_silicaLate?' silica-late':'')+(_kbCompact?' compact':'');
   el.dataset.id=b.id;
   el.draggable=true;
   el.addEventListener('dragstart',()=>{dragId=b.id;setTimeout(()=>el.classList.add('drag'),0);});
@@ -1518,7 +1571,7 @@ function buildCard(b,acc){
     <div class="cacc" style="background:${acc}"></div>
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
       <div class="cname" style="flex:1;min-width:0">${esc(_nomeDisp(b))}</div>
-      ${_waNum?`<button class="cwa" onclick="event.stopPropagation();_openWa('${b.id}')" title="Abrir WhatsApp">${icn('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',11,11)}</button>`:''}
+      ${_waNum?`<button class="cwa" onclick="event.stopPropagation();_openWa('${b.id}',event)" title="Mensagens WhatsApp">${icn('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',11,11)}</button>`:''}
     </div>
     ${b.anotacoes?`<div class="cobs">${esc(b.anotacoes.length>55?b.anotacoes.slice(0,55)+'…':b.anotacoes)}</div>`:''}
     <div class="cpasso" onclick="event.stopPropagation();_quickPasso(event,'${b.id}')" title="Clique para editar próximo passo">
@@ -2611,7 +2664,7 @@ function showTab(t){
   g('tv').classList.toggle('hidden',t!=='tv');
   if(g('fv'))g('fv').classList.toggle('hidden',t!=='fv');
   if(g('cv'))g('cv').classList.toggle('hidden',t!=='cv');
-  if(g('kb-flt'))g('kb-flt').classList.toggle('hidden',t!=='kb');
+  if(g('kb-flt-wrap'))g('kb-flt-wrap').classList.toggle('hidden',t!=='kb');
   if(g('kb-mes-flt'))g('kb-mes-flt').classList.toggle('hidden',t!=='kb');
   if(g('hoje-panel'))_renderHojePanel();
   ['kb','rv','iv','tv','fv','cv'].forEach(id=>{ const el=g('tab-'+id);if(el)el.classList.toggle('act',id===t); });
@@ -2935,6 +2988,7 @@ function renderInv(){
 
 /* ── TASKS VIEW ──────────────────────────────── */
 let _tvFilter='all';
+let _tvSrch='';
 
 const TASK_TYPES={
   silicaIn:    {ico:'🌿',label:'Colocar na sílica',           bg:'#EDF4EB'},
@@ -3026,14 +3080,21 @@ function tvFilter(f){
   });
   renderTasks();
 }
+let _tvSrchTimer=null;
+function _tvSrchQ(q){clearTimeout(_tvSrchTimer);_tvSrchTimer=setTimeout(()=>{_tvSrch=q.trim();renderTasks();},120);}
 
 function _tvApplyFilter(tasks,f){
   const td=today(),w=addDays(td,7);
-  if(f==='hoje')   return tasks.filter(t=>t.date===td);
-  if(f==='semana') return tasks.filter(t=>t.date>=td&&t.date<=w);
-  if(f==='atraso') return tasks.filter(t=>!t.done&&t.date<td);
-  if(f==='pend')   return tasks.filter(t=>!t.done);
-  return tasks;
+  let res=tasks;
+  if(f==='hoje')   res=res.filter(t=>t.date===td);
+  else if(f==='semana') res=res.filter(t=>t.date>=td&&t.date<=w);
+  else if(f==='atraso') res=res.filter(t=>!t.done&&t.date<td);
+  else if(f==='pend')   res=res.filter(t=>!t.done);
+  if(_tvSrch){
+    const q=_tvSrch.toLowerCase();
+    res=res.filter(t=>(t.nome||'').toLowerCase().includes(q)||(t.label||'').toLowerCase().includes(q));
+  }
+  return res;
 }
 
 const _MONTH_ABREV=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -3293,7 +3354,72 @@ function _renderFinDetail(){
   });
 }
 
-function renderReports(){renderFinancial();renderMaterial();renderFunil();renderSummary();}
+function renderReports(){renderFinancial();renderMaterial();renderFunil();renderSummary();renderProdRelatorio();renderWorkloadTimeline();}
+
+/* ── RECEITA POR PRODUTO ─────────────────────── */
+function renderProdRelatorio(){
+  const body=g('prod-rel-bdy');if(!body)return;body.innerHTML='';
+  const map={};
+  DATA.filter(b=>b.etapa!=='cancelado').forEach(b=>{
+    const k=PLABEL[b.produto]||b.produto||'(sem produto)';
+    if(!map[k])map[k]={count:0,total:0};
+    map[k].count++;
+    map[k].total+=calcValor(b);
+  });
+  const rows=Object.entries(map).sort((a,b)=>b[1].total-a[1].total);
+  if(!rows.length){body.innerHTML='<div class="tv-empty">Sem dados.</div>';return;}
+  const maxTotal=Math.max(...rows.map(r=>r[1].total))||1;
+  const hd=document.createElement('div');
+  hd.className='prod-row';hd.style='font-size:10.5px;font-weight:700;color:var(--txl);border-bottom:1.5px solid var(--bd)';
+  hd.innerHTML='<span>Produto</span><span style="text-align:center">Qtd</span><span style="text-align:right">Total</span><span style="text-align:right">Ticket médio</span>';
+  body.appendChild(hd);
+  rows.forEach(([prod,{count,total}])=>{
+    const avg=count?total/count:0;
+    const pct=Math.round(total/maxTotal*100);
+    const wrap=document.createElement('div');
+    wrap.innerHTML=
+      `<div class="prod-row"><span class="r-nm">${esc(prod)}</span><span style="text-align:center;color:var(--txm)">${count}</span><span style="text-align:right;font-weight:600">${fmtBRL(total)}</span><span style="text-align:right;color:var(--txm)">${fmtBRL(avg)}</span></div>`+
+      `<div class="prod-bar-wrap"><div class="prod-bar-bg"><div class="prod-bar-fill" style="width:${pct}%"></div></div></div>`;
+    body.appendChild(wrap);
+  });
+}
+
+/* ── LINHA DO TEMPO DE CARGA ─────────────────── */
+function renderWorkloadTimeline(){
+  const body=g('wl-bdy');if(!body)return;body.innerHTML='';
+  const t=today();
+  const weeks=[];
+  for(let i=0;i<8;i++){
+    const start=addDays(t,i*7);
+    const end=addDays(t,i*7+6);
+    weeks.push({start,end,brides:[]});
+  }
+  DATA.filter(b=>b.dataBuque&&b.etapa!=='cancelado'&&b.etapa!=='entregue').forEach(b=>{
+    const d=b.dataBuque;
+    weeks.forEach(w=>{if(d>=w.start&&d<=w.end)w.brides.push(b);});
+  });
+  const max=Math.max(...weeks.map(w=>w.brides.length),1);
+  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  if(weeks.every(w=>!w.brides.length)){
+    body.innerHTML='<div class="tv-empty" style="padding:14px">Nenhum buquê agendado nas próximas 8 semanas.</div>';return;
+  }
+  weeks.forEach((w,i)=>{
+    const d1=new Date(w.start+'T12:00');
+    const d2=new Date(w.end+'T12:00');
+    const lbl=`${d1.getDate()} ${meses[d1.getMonth()]}`;
+    const pct=Math.round(w.brides.length/max*100);
+    const row=document.createElement('div');
+    row.className='wl-row';
+    const inBar=pct>=20;
+    row.innerHTML=
+      `<span class="wl-lbl">${lbl}</span>`+
+      `<div class="wl-bar-wrap"><div class="wl-bar" style="width:${Math.max(pct,w.brides.length?4:0)}%">`+
+      (inBar?`<span class="wl-ct">${w.brides.length} buquê${w.brides.length!==1?'s':''}</span>`:'')+'</div>'+
+      (!inBar&&w.brides.length?`<span class="wl-ct-out">${w.brides.length} buquê${w.brides.length!==1?'s':''}</span>`:'')+'</div>';
+    row.title=w.brides.map(b=>_nomeDisp(b)).join(', ')||'';
+    body.appendChild(row);
+  });
+}
 
 /* ── helpers pagamento ── */
 function _pagNextDate(b){
@@ -4078,12 +4204,53 @@ function _fireOverdueNotifs(){
   try{new Notification('Florelle — Lembretes Vencidos',{body,icon:'/florelle-app/icon-192.png',tag:'florelle-overdue'});}catch(e){}
 }
 
-/* ── WHATSAPP CARD BUTTON ────────────────────── */
-function _openWa(id){
+/* ── WHATSAPP CARD BUTTON + TEMPLATES ───────── */
+const _WA_TPLS={
+  lead:        ['Olá {nome}! Vi seu interesse em eternizar o buquê 💐 Me conta mais sobre o seu casamento?','Olá {nome}! Tenho disponibilidade para o seu buquê. Posso te passar mais informações? 🌸'],
+  retomar:     ['Olá {nome}! Queria retomar nossa conversa sobre o buquê do seu casamento. Ainda tem interesse? 😊','Olá {nome}! Passando para saber se ficou com alguma dúvida sobre a eternização 🌿'],
+  contratoEnviado: ['Olá {nome}! O contrato chegou pra você? Ficou com alguma dúvida? 📄','Olá {nome}! Só confirmando que o contrato foi enviado. Me avisa quando assinar! 🌸'],
+  contratoAssinado:['Olá {nome}! Contrato assinado! Confirme a data de entrega do buquê pra eu me programar 📅','Olá {nome}! Tudo certo com o contrato. Lembra de me entregar o buquê logo após a cerimônia 💐'],
+  reserva:     ['Olá {nome}! Reserva confirmada 🎉 Me avise quando estiver chegando com o buquê após a cerimônia!','Olá {nome}! Só lembrando: entregue o buquê pra mim assim que terminar a cerimônia 🌸'],
+  secagem:     ['Olá {nome}! Seu buquê chegou e está na secagem 🌿 Esse processo dura em torno de 3 a 6 semanas. Mantenho você informada!','Olá {nome}! Atualização: seu buquê está na sílica, secando com todo cuidado 🌼'],
+  montagem:    ['Olá {nome}! Boa notícia: seu buquê saiu da secagem e está sendo montado com muito carinho 🖼️','Olá {nome}! A montagem do seu buquê está em andamento. Em breve mando fotos do resultado! 📸'],
+  embalado:    ['Olá {nome}! Seu buquê está pronto e embalado 📦 Quando podemos combinar a entrega?','Olá {nome}! Boa notícia — seu buquê eternizado está finalizado! Vamos marcar a entrega? 🌸'],
+  entregue:    ['Olá {nome}! Espero que esteja amando o buquê 😍 Não esqueça de me marcar nas fotos!','Olá {nome}! Ficou feliz com o resultado? Sua avaliação significa muito pra mim 🌸 Obrigada pela confiança!'],
+  cancelado:   ['Olá {nome}! Passando para saber se houve alguma mudança de planos. Ainda posso te ajudar 😊'],
+};
+function _openWa(id,ev){
   const b=DATA.find(x=>x.id===id);if(!b||!b.telefone)return;
+  const tpls=_WA_TPLS[b.etapa]||_WA_TPLS.lead;
+  const nome=_nomeDisp(b).split(' ')[0];
+  const box=g('watpl-box'),ov=g('watpl-ov');
+  if(!box)return;
+  let html=`<div class="watpl-ttl">Mensagem para ${esc(_nomeDisp(b))}</div>`;
+  tpls.forEach((t,i)=>{
+    const msg=t.replace(/{nome}/g,nome);
+    html+=`<button class="watpl-btn" onclick="_waTplSend('${id}','${encodeURIComponent(msg)}')">${esc(msg)}</button>`;
+  });
+  html+=`<div class="watpl-sep"></div><button class="watpl-btn watpl-open" onclick="_waTplSend('${id}','')">Abrir sem mensagem</button>`;
+  box.innerHTML=html;
+  // Position near the clicked button
+  if(ev){
+    const r=ev.currentTarget.getBoundingClientRect();
+    const top=Math.min(r.bottom+6,window.innerHeight-220);
+    const left=Math.max(4,Math.min(r.left,window.innerWidth-328));
+    box.style.cssText=`top:${top}px;left:${left}px`;
+  }
+  ov.classList.remove('hidden');
+  box.classList.remove('hidden');
+}
+function _waTplSend(id,msgEnc){
+  _waTplClose();
+  const b=DATA.find(x=>x.id===id);if(!b)return;
   const num=b.telefone.replace(/\D/g,'');
   const full=num.startsWith('55')?num:'55'+num;
-  window.open('https://wa.me/'+full,'_blank','noopener');
+  const msg=msgEnc?'&text='+msgEnc:'';
+  window.open('https://wa.me/'+full+(msg?'?text='+msgEnc:''),'_blank','noopener');
+}
+function _waTplClose(){
+  g('watpl-ov')?.classList.add('hidden');
+  g('watpl-box')?.classList.add('hidden');
 }
 
 /* ── PRÓXIMO PASSO INLINE ────────────────────── */
@@ -4117,6 +4284,13 @@ function _buildMesFilter(){
   })].map(c=>`<button class="pfchip${mesFiltro===c.val?' act':''}" onclick="setMesFiltro('${c.val}')">${c.lbl}</button>`).join('');
 }
 function setMesFiltro(val){mesFiltro=val;renderAll();}
+
+/* ── MODO COMPACTO ───────────────────────────── */
+function toggleKbCompact(){
+  _kbCompact=!_kbCompact;
+  const btn=g('kb-cmp-btn');if(btn)btn.classList.toggle('act',_kbCompact);
+  renderAll();
+}
 
 /* ── PAINEL HOJE ─────────────────────────────── */
 function _renderHojePanel(){
@@ -4358,6 +4532,7 @@ function addRemTemplate(txt){
 /* ── KEYBOARD ────────────────────────────────── */
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
+    if(!g('watpl-box')?.classList.contains('hidden')){_waTplClose();return;}
     if(!g('echk-ov').classList.contains('hidden'))cancelEntrega();
     else if(!g('cal-ov').classList.contains('hidden'))calClose();
     else if(!g('wa-ov').classList.contains('hidden'))closeWaImport();
