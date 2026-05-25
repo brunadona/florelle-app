@@ -1796,6 +1796,7 @@ function _calcMargem(){
 /* ── MODAL OPEN ──────────────────────────────── */
 function openNew(col){
   editId=null;mRem=[];mAnexos=[];_mDriveFolder='';
+  updateCustoBuque._lastProd=null;
   fillForm({etapa:col||'lead'});
   g('bdel').classList.add('hidden');
   if(g('bdup'))g('bdup').classList.add('hidden');
@@ -3028,12 +3029,11 @@ function updateCustoBuque(){
     el.style.color        = sel ? '#fff'       : '';
     el.style.borderColor  = sel ? 'var(--sd)'  : 'var(--bd)';
   });
-  // Auto-fill valor e custo ao selecionar produto
-  if(produto&&updateCustoBuque._lastProd!==produto){
-    // Custo de material: sempre atualiza com o custo calculado do inventário
+  // Custo de material: sempre sincroniza com o cálculo do inventário
+  if(produto){
     const custo=calcCustoBuque(produto);
     sv2('m-custo',_fmtBRLInput(custo));
-    // Valor total: preenche com preço sugerido se campo estiver vazio
+    // Valor total: preenche com preço sugerido apenas se estiver vazio
     if(!gv('m-valor').trim()){
       const sug=PRECO_SUGERIDO[produto];
       if(sug){
