@@ -1373,6 +1373,9 @@ const COLS=[
 ];
 
 const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G',cupulaM:'Cúpula M',multiplos:'Múltiplos',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
+// Preços sugeridos por produto (editável aqui)
+const PRECO_SUGERIDO={quadro25x30:'1.290,00',quadro32x42:'1.590,00',cupulaG:'1.590,00',cupulaM:'1.290,00',quadroSobMedida:'',multiplos:''};
+const PRECO_PECA_ADICIONAL=50;
 const PAGLABEL={pixAVista:'Pix à vista',pix3x:'Pix 3×',cartao:'Cartão'};
 const EMBLABEL={naoEncomendada:'À encomendar',encomendada:'Encomendada',emMaos:'Em mãos'};
 const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
@@ -1857,6 +1860,7 @@ function fillForm(b){
   embChg();
   buqueDisp(b.dataBuque||'');
   redomaChg();
+  updateCustoBuque._lastProd=b.produto||''; // não auto-preenche ao carregar noiva existente
   setTimeout(updateCustoBuque,50);
   pagCalc(allPagRows.length?allPagRows:null);
   pecaVis();
@@ -1881,10 +1885,18 @@ function embChg(){
 }
 
 function pecaChg(el){
+  const valAtual=_parseBRL(gv('m-valor'))/100;
   if(el.value==='nenhuma'&&el.checked){
+    const antes=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;
     document.querySelectorAll('input[name="pecas"]').forEach(c=>{if(c.value!=='nenhuma')c.checked=false;});
-  } else if(el.value!=='nenhuma'&&el.checked){
+    if(valAtual>0){sv2('m-valor',_fmtBRLInput(Math.max(0,valAtual-antes*PRECO_PECA_ADICIONAL)));setTimeout(pagCalc,0);setTimeout(_calcMargem,0);}
+  } else if(el.value!=='nenhuma'){
     g('cb-nh').checked=false;
+    if(valAtual>0){
+      const delta=el.checked?PRECO_PECA_ADICIONAL:-PRECO_PECA_ADICIONAL;
+      sv2('m-valor',_fmtBRLInput(Math.max(0,valAtual+delta)));
+      setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
+    }
   }
   pecaVis();
 }
@@ -2992,6 +3004,18 @@ function updateCustoBuque(){
     el.style.color        = sel ? '#fff'       : '';
     el.style.borderColor  = sel ? 'var(--sd)'  : 'var(--bd)';
   });
+  // Auto-fill valor sugerido ao selecionar produto (via clique no radio, não no fillForm)
+  if(produto&&updateCustoBuque._lastProd!==produto){
+    const sug=PRECO_SUGERIDO[produto];
+    if(sug){
+      const pecasCount=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;
+      const sugCents=_parseBRL(sug);
+      const totalCents=sugCents+(pecasCount*PRECO_PECA_ADICIONAL*100);
+      sv2('m-valor',_fmtBRLInput(totalCents/100));
+      setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
+    }
+  }
+  updateCustoBuque._lastProd=produto;
   const custoEl = g('m-custo-val');
   const margemEl = g('m-margem-buque');
   if(!produto){
@@ -3398,6 +3422,7 @@ function calcValor(b){
   return Number.isFinite(n)?n:0;
 }
 function fmtBRL(n){return'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function _fmtBRLInput(n){return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
 
 
@@ -4177,6 +4202,8 @@ Campos do JSON (inclua todos, use null ou "" quando não encontrado):
 - "nome": nome da noiva/cliente (string | null) — procure em saudações como "Boa tarde, Ana!"
 - "telefone": número de telefone da noiva no formato "(00) 00000-0000" — extraia dos cabeçalhos das mensagens dela, ex: "+55 43 9145-1658" → "(43) 91451-658" (string | null)
 - "dataCasamento": data do casamento em YYYY-MM-DD — se só mês/dia sem ano, use o ano mais próximo futuro (string | null)
+- "cpf": CPF da noiva somente números, 11 dígitos, ex: "12345678901" (string — vazio se não houver)
+- "cep": CEP somente números, 8 dígitos, ex: "86046520" (string — vazio se não houver)
 - "cidade": cidade e estado da noiva no formato "Cidade/UF", ex: "Arapongas/PR" (string — vazio se não houver)
 - "endereco": endereço completo com rua/número se mencionado, sem repetir a cidade (string — vazio se não houver)
 - "produto": tipo de produto, exatamente um de: "quadro25x30", "quadro32x42", "quadroSobMedida", "cupulaG", "cupulaM", "multiplos" — ou null
@@ -4247,6 +4274,8 @@ Retorne apenas o JSON.`;
       const ov=(k,v)=>{if(v)merged[k]=v;};
       ov('nome',           parsed.nome);
       ov('telefone',       parsed.telefone);
+      ov('cpf',            parsed.cpf);
+      ov('cep',            parsed.cep);
       ov('dataCasamento',  parsed.dataCasamento);
       ov('cidade',         parsed.cidade);
       ov('endereco',       parsed.endereco);
@@ -4273,6 +4302,8 @@ Retorne apenas o JSON.`;
         etapa:          'lead',
         nome:           parsed.nome||'',
         telefone:       parsed.telefone||'',
+        cpf:            parsed.cpf||'',
+        cep:            parsed.cep||'',
         dataCasamento:  parsed.dataCasamento||'',
         cidade:         parsed.cidade||'',
         endereco:       parsed.endereco||'',
