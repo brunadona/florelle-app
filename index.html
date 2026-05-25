@@ -1052,7 +1052,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <label class="fl">Tipo de produto</label>
         <div class="rg">
           <label class="ro"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadro32x34" onchange="updateCustoBuque()"><span class="rl">Quadro 32×34</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42</span></label>
           <label class="ro"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
           <label class="ro"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()"><span class="rl">Cúpula G</span></label>
           <label class="ro"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula M</span></label>
@@ -1107,7 +1107,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <label class="fl" style="margin-bottom:6px">Produto para cálculo de custo</label>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
           <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q25"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()" style="display:none"> Quadro 25×30</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q32"><input type="radio" name="prod" value="quadro32x34" onchange="updateCustoBuque()" style="display:none"> Quadro 32×34</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q32"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()" style="display:none"> Quadro 32×42</label>
           <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-qsm"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()" style="display:none"> Sob medida</label>
           <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cg"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()" style="display:none"> Cúpula G</label>
           <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cm"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()" style="display:none"> Cúpula M</label>
@@ -1372,7 +1372,7 @@ const COLS=[
   {id:'cancelado',       label:'Cancelado / Rejeitado',color:'#A8A098'},
 ];
 
-const PLABEL={quadro25x30:'Quadro 25×30',quadro32x34:'Quadro 32×34',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G',cupulaM:'Cúpula M',multiplos:'Múltiplos',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
+const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G',cupulaM:'Cúpula M',multiplos:'Múltiplos',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
 const PAGLABEL={pixAVista:'Pix à vista',pix3x:'Pix 3×',cartao:'Cartão'};
 const EMBLABEL={naoEncomendada:'À encomendar',encomendada:'Encomendada',emMaos:'Em mãos'};
 const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
@@ -1401,7 +1401,7 @@ function migrateOld(){
     const colMap={'lead':'lead','retomar':'retomar','contrato_env':'contratoEnviado','contrato_ass':'contratoAssinado','reserva':'reserva','secagem':'secagem','montagem':'montagem','embalado':'embalado','entregue':'entregue','cancelado':'cancelado'};
     const embMap={'nao_encomendada':'naoEncomendada','encomendada':'encomendada','em_maos':'emMaos'};
     const pagMap={'pix_avista':'pixAVista','pix_3x':'pix3x','cartao':'cartao'};
-    const prMap={'quadro_25x30':'quadro25x30','quadro_32x42':'quadro32x34','quadro_maior':'quadroSobMedida','cupula_g':'cupulaG','cupula_m':'cupulaM','multiplo':'multiplos'};
+    const prMap={'quadro_25x30':'quadro25x30','quadro_32x42':'quadro32x42','quadro_maior':'quadroSobMedida','cupula_g':'cupulaG','cupula_m':'cupulaM','multiplo':'multiplos'};
     return old.map(b=>({
       id:b.id||uid(),crd:Date.now(),
       nome:b.name||'',
@@ -1433,12 +1433,7 @@ function migrateOld(){
 function load(){
   try{
     const stored=localStorage.getItem('florelle_v3');
-    if(stored){
-      DATA=JSON.parse(stored);
-      let dirty=false;
-      DATA.forEach(b=>{if(b.produto==='quadro32x42'){b.produto='quadro32x34';dirty=true;}});
-      if(dirty)save();
-    }
+    if(stored){DATA=JSON.parse(stored);}
     else{DATA=migrateOld();if(DATA.length)save();}
   }catch{DATA=[];}
 }
@@ -2208,7 +2203,7 @@ function _buildContratoHTML(){
   const produto   = radVal('prod');
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
-  const prodMap={'cupula':'Cúpula G','cupolam':'Cúpula M','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×34 cm','multiplos':'Múltiplos'};
+  const prodMap={'cupula':'Cúpula G','cupolam':'Cúpula M','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×42 cm','multiplos':'Múltiplos'};
   const modeloTxt = prodMap[produto]||produto||'';
   const chkSim=rep==='sim',chkNao=rep==='nao';
   const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
@@ -2414,7 +2409,7 @@ function gerarContrato(){
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
 
-  const prodMap={'cupula':'Cúpula G','cupolam':'Cúpula M','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×34 cm','multiplos':'Múltiplos'};
+  const prodMap={'cupula':'Cúpula G','cupolam':'Cúpula M','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×42 cm','multiplos':'Múltiplos'};
   const modeloTxt = prodMap[produto]||produto||'';
 
   const chkSim    = rep==='sim';
@@ -2950,13 +2945,13 @@ const INV_DEFAULT=[
   {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:''},
   {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:''},
   // DEPENDENTES DO PRODUTO
-  {nome:'Redoma 32×34',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   comprarAntes:false, porProduto:['quadro32x34'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   comprarAntes:false, porProduto:['quadro32x42'], obs:'Comprar após buquê chegar'},
   {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   comprarAntes:false, porProduto:['quadro25x30'], obs:'Comprar após buquê chegar'},
   {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
   {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Para cúpula'},
-  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['quadro25x30','quadro32x34'], obs:'Para quadros'},
+  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Para quadros'},
   {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
-  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['quadro25x30','quadro32x34'], obs:'Comprar após buquê chegar'},
+  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Comprar após buquê chegar'},
 ];
 function loadInv(){
   try{
@@ -2968,11 +2963,6 @@ function loadInv(){
         INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));
       } else {
         INV=parsed;
-        // Migrar: renomear quadro32x42 → quadro32x34 em porProduto e no nome da Redoma
-        INV.forEach(item=>{
-          if(item.porProduto){item.porProduto=item.porProduto.map(p=>p==='quadro32x42'?'quadro32x34':p);}
-          if(item.nome==='Redoma 32×42')item.nome='Redoma 32×34';
-        });
         // Remover duplicatas por nome (manter o primeiro encontrado)
         const seen=new Set();INV=INV.filter(x=>{if(seen.has(x.nome))return false;seen.add(x.nome);return true;});
         // Adicionar itens novos que não existem ainda
@@ -2994,7 +2984,7 @@ function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
 function updateCustoBuque(){
   const produto = radVal('prod')||'';
   // Atualiza visual dos pills de produto no painel de pagamento
-  const pillMap={quadro25x30:'m-cp-q25',quadro32x34:'m-cp-q32',quadroSobMedida:'m-cp-qsm',cupulaG:'m-cp-cg',cupulaM:'m-cp-cm',multiplos:'m-cp-mu'};
+  const pillMap={quadro25x30:'m-cp-q25',quadro32x42:'m-cp-q32',quadroSobMedida:'m-cp-qsm',cupulaG:'m-cp-cg',cupulaM:'m-cp-cm',multiplos:'m-cp-mu'};
   Object.entries(pillMap).forEach(([v,id])=>{
     const el=g(id); if(!el) return;
     const sel = v===produto;
@@ -4189,7 +4179,7 @@ Campos do JSON (inclua todos, use null ou "" quando não encontrado):
 - "dataCasamento": data do casamento em YYYY-MM-DD — se só mês/dia sem ano, use o ano mais próximo futuro (string | null)
 - "cidade": cidade e estado da noiva no formato "Cidade/UF", ex: "Arapongas/PR" (string — vazio se não houver)
 - "endereco": endereço completo com rua/número se mencionado, sem repetir a cidade (string — vazio se não houver)
-- "produto": tipo de produto, exatamente um de: "quadro25x30", "quadro32x34", "quadroSobMedida", "cupulaG", "cupulaM", "multiplos" — ou null
+- "produto": tipo de produto, exatamente um de: "quadro25x30", "quadro32x42", "quadroSobMedida", "cupulaG", "cupulaM", "multiplos" — ou null
 - "produtoObs": detalhes do produto — cor, medidas, estilo, flores do buquê (string — vazio se não houver)
 - "formaPagamento": exatamente "pixAVista", "pix3x" ou "cartao" — ou null se não mencionado
 - "valorTotal": valor total no formato "1.290,00" sem "R$" (string — vazio se não houver)
