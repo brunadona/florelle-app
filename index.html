@@ -1495,7 +1495,7 @@ function buildCol(col){
     if(b.etapa!==col.id)return false;
     if(prodFiltro&&(b.produto||'')!==prodFiltro)return false;
     if(mesFiltro&&!(b.dataCasamento||'').startsWith(mesFiltro))return false;
-    if(srch){const q=srch.toLowerCase();const qd=q.replace(/\D/g,'');return(b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q)||(b.telefone||'').toLowerCase().includes(q)||(qd.length>=4&&(b.telefone||'').replace(/\D/g,'').includes(qd));}
+    if(srch){const q=srch.toLowerCase();const qd=q.replace(/\D/g,'');if(!((b.nome||'').toLowerCase().includes(q)||(b.endereco||'').toLowerCase().includes(q)||(b.telefone||'').toLowerCase().includes(q)||(qd.length>=4&&(b.telefone||'').replace(/\D/g,'').includes(qd))))return false;}
     if(_pagAtrFiltro){const t=today();const atrasado=((b.pagamentos||[]).some(p=>!p.pago&&p.data&&p.data<t)||(b.reserva?.ativa&&!b.reserva.paga&&b.reserva.data&&b.reserva.data<t));if(!atrasado)return false;}
     return true;
   });
@@ -1618,8 +1618,7 @@ function buildCard(b,acc){
   const _waNum=(b.telefone||'').replace(/\D/g,'');
   const _origLabels={instagram:'Instagram',indicacao:'Indicação',google:'Google',facebook:'Facebook',outro:'Outro'};
   const _origBadge=b.origem&&_origLabels[b.origem]?`<span class="orig-badge">${_origLabels[b.origem]}</span>`:'';
-  const _diasInativo=b._updatedAt?Math.floor((Date.now()-b._updatedAt)/86400000):null;
-  const _inativoBadge=_diasInativo!==null&&_diasInativo>14?`<span class="inativo-badge">${_diasInativo}d sem atualização</span>`:'';
+  const _inativoBadge=_inativo?`<span class="inativo-badge">${_diasInat}d sem atualização</span>`:'';
   el.innerHTML=`
     <div class="cacc" style="background:${acc}"></div>
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
