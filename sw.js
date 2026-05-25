@@ -1,4 +1,4 @@
-// 20260525233000
+// 20260525234500
 self.addEventListener("install", e => { self.skipWaiting(); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(k => Promise.all(k.map(n => caches.delete(n)))));

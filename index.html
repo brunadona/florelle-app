@@ -3009,16 +3009,22 @@ function updateCustoBuque(){
     el.style.color        = sel ? '#fff'       : '';
     el.style.borderColor  = sel ? 'var(--sd)'  : 'var(--bd)';
   });
-  // Auto-fill valor sugerido ao selecionar produto (via clique no radio, não no fillForm)
+  // Auto-fill valor e custo ao selecionar produto
   if(produto&&updateCustoBuque._lastProd!==produto){
-    const sug=PRECO_SUGERIDO[produto];
-    if(sug){
-      const pecasCount=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;
-      const sugCents=_parseBRL(sug);
-      const totalCents=sugCents+(pecasCount*PRECO_PECA_ADICIONAL*100);
-      sv2('m-valor',_fmtBRLInput(totalCents/100));
-      setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
+    // Custo de material: sempre atualiza com o custo calculado do inventário
+    const custo=calcCustoBuque(produto);
+    sv2('m-custo',_fmtBRLInput(custo));
+    // Valor total: preenche com preço sugerido se campo estiver vazio
+    if(!gv('m-valor').trim()){
+      const sug=PRECO_SUGERIDO[produto];
+      if(sug){
+        const pecasCount=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;
+        const sugCents=_parseBRL(sug);
+        const totalCents=sugCents+(pecasCount*PRECO_PECA_ADICIONAL*100);
+        sv2('m-valor',_fmtBRLInput(totalCents/100));
+      }
     }
+    setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
   }
   updateCustoBuque._lastProd=produto;
   const custoEl = g('m-custo-val');
