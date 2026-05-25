@@ -2970,13 +2970,13 @@ const INV_DEFAULT=[
   {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null, obs:''},
   {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null, obs:''},
   // DEPENDENTES DO PRODUTO
-  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porProduto:['quadro32x42'], obs:'Comprar após buquê chegar'},
-  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porProduto:['quadro25x30'], obs:'Comprar após buquê chegar'},
-  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   qtdCompra:1,   precoCompra:147,  comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
-  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Para cúpula'},
-  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Para quadros'},
-  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
-  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porPedido:true, porProduto:['quadro32x42'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'], obs:'Comprar após buquê chegar'},
+  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   qtdCompra:1,   precoCompra:147,  comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
+  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaG','cupulaM'], obs:'Para cúpula'},
+  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42'], obs:'Para quadros'},
+  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
+  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['quadro25x30','quadro32x42'], obs:'Comprar após buquê chegar'},
 ];
 function loadInv(){
   try{
@@ -3003,6 +3003,7 @@ function loadInv(){
           } else {
             if(existing.qtdCompra===undefined)existing.qtdCompra=def.qtdCompra??null;
             if(existing.precoCompra===undefined)existing.precoCompra=def.precoCompra??null;
+            if(existing.porPedido===undefined)existing.porPedido=def.porPedido??false;
           }
         });
       }
@@ -3097,8 +3098,9 @@ function _invCustoCompra(item, needed){
   return {valor:needed*item.precoUnit, label:`R$ ${(needed*item.precoUnit).toFixed(2).replace('.',',')}`};
 }
 
-// Retorna quanto falta para ter estoque para 2 noivas
+// Retorna quanto falta para ter estoque para 2 noivas (porPedido = sem alerta)
 function _invNeeded(item){
+  if(item.porPedido)return 0;
   const atual = Number(item.qtdAtual||0);
   const minStock = (item.consumo||0) * 2;
   return Math.max(0, minStock - atual);
@@ -3228,9 +3230,11 @@ function renderInv(){
     el.dataset.id=item.id;
     el.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:8px';
     const noivas=Math.floor(Number(item.qtdAtual||0)/(item.consumo||1));
-    const statusTxt=isAl
-      ?`<span class="r-pill r-late">Comprar! Só para ${noivas} noiva${noivas!==1?'s':''}</span>`
-      :`<span class="r-pill r-ok">Para ${noivas} noiva${noivas!==1?'s':''}</span>`;
+    const statusTxt=item.porPedido
+      ?`<span class="r-pill" style="background:#F0EBF8;color:#6B5B8E">Por pedido</span>`
+      :isAl
+        ?`<span class="r-pill r-late">Comprar! Só para ${noivas} noiva${noivas!==1?'s':''}</span>`
+        :`<span class="r-pill r-ok">Para ${noivas} noiva${noivas!==1?'s':''}</span>`;
     el.innerHTML=
       `<div><div class="r-nm inv-nm${isAl?' al-nm':''}">${esc(item.nome)}</div>`+
       (item.comprarAntes?'<div class="r-sub" style="color:#B03420">⚠️ Antes do buquê</div>':'')+
