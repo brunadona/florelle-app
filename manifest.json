@@ -1,25 +1,13 @@
 {
-  "name": "Florelle",
+  "name": "Florelle — Gestão de Noivas",
   "short_name": "Florelle",
-  "description": "Gestão de Noivas — Preservação de Buquês",
+  "description": "Gestão de pedidos de preservação de buquês",
   "start_url": "/florelle-app/",
-  "scope": "/florelle-app/",
   "display": "standalone",
-  "background_color": "#faf8f4",
-  "theme_color": "#5a7a5c",
-  "orientation": "portrait-primary",
+  "background_color": "#FAF8F5",
+  "theme_color": "#C8837A",
   "icons": [
-    {
-      "src": "/florelle-app/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/florelle-app/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
