@@ -2959,24 +2959,24 @@ const INV_KEY='florelle_inv_v2';
 // porProduto: objeto com consumo diferente por produto (null = mesmo para todos)
 const INV_DEFAULT=[
   // CONSUMÍVEIS (todos os produtos) — qtdCompra/precoCompra = unidade de venda
-  {nome:'Sílica',          qtdAtual:4,    unidade:'kg',   precoUnit:37.67, consumo:4,   qtdCompra:12,  precoCompra:452,  comprarAntes:true,  porProduto:null, obs:'Balde 12kg = R$452'},
-  {nome:'Plástico filme',  qtdAtual:150,  unidade:'m',    precoUnit:0.20,  consumo:24,  qtdCompra:300, precoCompra:60,   comprarAntes:false, porProduto:null, obs:'Rolo 300m = R$60'},
-  {nome:'Cola acrílica',   qtdAtual:230,  unidade:'ml',   precoUnit:0.30,  consumo:3,   qtdCompra:250, precoCompra:75,   comprarAntes:false, porProduto:null, obs:'Frasco 250ml = R$75'},
-  {nome:'Papel kraft',     qtdAtual:95,   unidade:'m',    precoUnit:0.80,  consumo:3,   qtdCompra:100, precoCompra:80,   comprarAntes:false, porProduto:null, obs:'Rolo 100m = R$80'},
-  {nome:'Foto instax',     qtdAtual:10,   unidade:'foto', precoUnit:7.00,  consumo:1,   qtdCompra:10,  precoCompra:70,   comprarAntes:false, porProduto:null, obs:'Pack 10 = R$70'},
-  {nome:'Verniz',          qtdAtual:300,  unidade:'ml',   precoUnit:0.333, consumo:100, qtdCompra:300, precoCompra:100,  comprarAntes:false, porProduto:null, obs:'Frasco 300ml = R$100'},
-  {nome:'Junco',           qtdAtual:1,    unidade:'maço', precoUnit:42.00, consumo:1,   qtdCompra:1,   precoCompra:42,   comprarAntes:false, porProduto:null, obs:'R$42/maço'},
-  {nome:'Bastão cola quente',qtdAtual:200,unidade:'un',   precoUnit:0.08,  consumo:10,  qtdCompra:500, precoCompra:40,   comprarAntes:false, porProduto:null, obs:'500un = R$40'},
-  {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null, obs:''},
-  {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null, obs:''},
+  {nome:'Sílica',          qtdAtual:4,    unidade:'kg',   precoUnit:37.67, consumo:4,   qtdCompra:12,  precoCompra:452,  comprarAntes:true,  porProduto:null,                             linkCompra:''},
+  {nome:'Plástico filme',  qtdAtual:150,  unidade:'m',    precoUnit:0.20,  consumo:24,  qtdCompra:300, precoCompra:60,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Cola acrílica',   qtdAtual:230,  unidade:'ml',   precoUnit:0.30,  consumo:3,   qtdCompra:250, precoCompra:75,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Papel kraft',     qtdAtual:95,   unidade:'m',    precoUnit:0.80,  consumo:3,   qtdCompra:100, precoCompra:80,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Foto instax',     qtdAtual:10,   unidade:'foto', precoUnit:7.00,  consumo:1,   qtdCompra:10,  precoCompra:70,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Verniz',          qtdAtual:300,  unidade:'ml',   precoUnit:0.333, consumo:100, qtdCompra:300, precoCompra:100,  comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Junco',           qtdAtual:1,    unidade:'maço', precoUnit:42.00, consumo:1,   qtdCompra:1,   precoCompra:42,   comprarAntes:false, porProduto:null,                             linkCompra:'https://shopee.com.br/Kit-Hastes-Junco-Para-Buqu%C3%AA-Desidratado-Junco-Artesanal-16cm-X-12cm-i.1173738155.58260587892?extraParams=%7B%22display_model_id%22%3A189189369930%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Bastão cola quente',qtdAtual:200,unidade:'un',   precoUnit:0.08,  consumo:10,  qtdCompra:500, precoCompra:40,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null,                             linkCompra:'https://shopee.com.br/Tag-Personalizada-Nome-Acr%C3%ADlico-Espelhado-Etiqueta-Decorativa-Aplique-Redondo-4CM-i.1173738155.22293754539?extraParams=%7B%22display_model_id%22%3A119722812121%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null,                             linkCompra:''},
   // DEPENDENTES DO PRODUTO
-  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porPedido:true, porProduto:['quadro32x42'], obs:'Comprar após buquê chegar'},
-  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'], obs:'Comprar após buquê chegar'},
-  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   qtdCompra:1,   precoCompra:147,  comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
-  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaG','cupulaM'], obs:'Para cúpula'},
-  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42'], obs:'Para quadros'},
-  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
-  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['quadro25x30','quadro32x42'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porPedido:true, porProduto:['quadro32x42'],  linkCompra:'https://shopee.com.br/Moldura-P-Buqu%C3%AA-Eternizado-Inclinada-Acr%C3%ADlico-Transparante-e-Fundo-Borda-Espalho-Prata-43x33x12-cm-cm-i.1173738155.19999605793?extraParams=%7B%22display_model_id%22%3A149547184988%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'],  linkCompra:'https://shopee.com.br/Moldura-Acr%C3%ADlico-Buqu%C3%AA-Eternizado-Tam-24x34x13-i.1173738155.19899311665?extraParams=%7B%22display_model_id%22%3A209176646629%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   qtdCompra:1,   precoCompra:147,  comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'],linkCompra:''},
+  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaG','cupulaM'],linkCompra:''},
+  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42'],linkCompra:''},
+  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'],linkCompra:''},
+  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['quadro25x30','quadro32x42'],linkCompra:''},
 ];
 function loadInv(){
   try{
@@ -3004,6 +3004,7 @@ function loadInv(){
             if(existing.qtdCompra===undefined)existing.qtdCompra=def.qtdCompra??null;
             if(existing.precoCompra===undefined)existing.precoCompra=def.precoCompra??null;
             if(existing.porPedido===undefined)existing.porPedido=def.porPedido??false;
+            if(existing.linkCompra===undefined)existing.linkCompra=def.linkCompra??'';
           }
         });
       }
@@ -3158,6 +3159,20 @@ function updInv(id,field,val){
       pill.className='r-pill '+(isAl?'r-late':'r-ok');
       pill.textContent=isAl?`Comprar! Só para ${noivas} noiva${noivas!==1?'s':''}`:`Para ${noivas} noiva${noivas!==1?'s':''}`;
     }
+    if(field==='linkCompra'){
+      const linkWrap=row.querySelectorAll('div[style*="display:flex"]');
+      const wrap=linkWrap[linkWrap.length-1];
+      if(wrap){
+        const existing=wrap.querySelector('a');
+        if(item.linkCompra&&!existing){
+          const a=document.createElement('a');
+          a.href=item.linkCompra;a.target='_blank';a.rel='noopener';
+          a.style='flex-shrink:0;color:var(--sd)';a.title='Abrir link';
+          a.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+          wrap.appendChild(a);
+        } else if(existing){existing.href=item.linkCompra;if(!item.linkCompra)existing.remove();}
+      }
+    }
   }
 }
 function restockInv(id){
@@ -3217,8 +3232,8 @@ function renderInv(){
 
   // Cabeçalho
   const hd=document.createElement('div');hd.className='rth';
-  hd.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 80px;font-size:10.5px';
-  hd.innerHTML='<span>Item</span><span>Estoque atual</span><span>Consumo/buquê</span><span>Qtd/emb.</span><span>R$/emb.</span><span>Status</span><span></span>';
+  hd.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 80px;font-size:10.5px';
+  hd.innerHTML='<span>Item</span><span>Estoque atual</span><span>Consumo/buquê</span><span>Qtd/emb.</span><span>R$/emb.</span><span>Link de compra</span><span>Status</span><span></span>';
   tabBody.appendChild(hd);
 
   INV.forEach(item=>{
@@ -3228,7 +3243,7 @@ function renderInv(){
     const el=document.createElement('div');
     el.className='inv-item rtr'+(isAl?' al':'');
     el.dataset.id=item.id;
-    el.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:8px';
+    el.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:8px';
     const noivas=Math.floor(Number(item.qtdAtual||0)/(item.consumo||1));
     const statusTxt=item.porPedido
       ?`<span class="r-pill" style="background:#F0EBF8;color:#6B5B8E">Por pedido</span>`
@@ -3243,6 +3258,10 @@ function renderInv(){
       `<input type="number" class="inv-in" value="${item.consumo}" min="0" step="0.5" style="width:80px" onchange="updInv('${item.id}','consumo',this.value)" title="Consumo por buquê">`+
       `<input type="number" class="inv-in" value="${item.qtdCompra||''}" min="0" step="1" placeholder="—" style="width:80px" onchange="updInv('${item.id}','qtdCompra',this.value)" title="Quantidade por embalagem">`+
       `<input type="number" class="inv-in" value="${item.precoCompra||''}" min="0" step="0.01" placeholder="—" style="width:80px" onchange="updInv('${item.id}','precoCompra',this.value)" title="Preço da embalagem">`+
+      `<div style="display:flex;align-items:center;gap:4px;min-width:0">`+
+        `<input type="url" class="inv-in" value="${esc(item.linkCompra||'')}" placeholder="Cole o link…" style="flex:1;min-width:0;font-size:11px" onchange="updInv('${item.id}','linkCompra',this.value)" title="Link de compra">`+
+        (item.linkCompra?`<a href="${esc(item.linkCompra)}" target="_blank" rel="noopener" style="flex-shrink:0;color:var(--sd)" title="Abrir link"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`:'')+
+      `</div>`+
       statusTxt+
       `<button class="bsec" style="height:28px;padding:0 8px;font-size:11px" onclick="restockInv('${item.id}')">+ Repor</button>`;
     tabBody.appendChild(el);
