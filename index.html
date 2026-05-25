@@ -3139,7 +3139,7 @@ function delInvItem(id){
 }
 function updInv(id,field,val){
   const item=INV.find(x=>x.id===id);if(!item)return;
-  const numFields=['qtdAtual','consumo','precoUnit'];
+  const numFields=['qtdAtual','consumo','precoUnit','qtdCompra','precoCompra'];
   item[field]=numFields.includes(field)?(parseFloat(String(val).replace(',','.'))||0):val;
   saveInv();
   updInvBadge();
@@ -3147,10 +3147,15 @@ function updInv(id,field,val){
   if(row){
     const needed=_invNeeded(item);
     const isAl=needed>0;
+    const noivas=Math.floor(Number(item.qtdAtual||0)/(item.consumo||1));
     row.classList.toggle('al',isAl);
     const nm=row.querySelector('.inv-nm');if(nm)nm.classList.toggle('al-nm',isAl);
     const qtdIn=row.querySelector('.inv-in-qt');if(qtdIn)qtdIn.classList.toggle('al',isAl);
-    const rt=row.querySelector('.repor-tag');if(rt){rt.textContent=isAl?'COMPRAR '+needed.toFixed(1)+' '+item.unidade:'';rt.classList.toggle('hidden',!isAl);}
+    const pill=row.querySelector('.r-pill');
+    if(pill){
+      pill.className='r-pill '+(isAl?'r-late':'r-ok');
+      pill.textContent=isAl?`Comprar! Só para ${noivas} noiva${noivas!==1?'s':''}`:`Para ${noivas} noiva${noivas!==1?'s':''}`;
+    }
   }
 }
 function restockInv(id){
