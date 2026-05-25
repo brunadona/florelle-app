@@ -2958,25 +2958,25 @@ const INV_KEY='florelle_inv_v2';
 // qtdAtual: estoque atual | comprarAntes: true = precisa antes do buquê chegar
 // porProduto: objeto com consumo diferente por produto (null = mesmo para todos)
 const INV_DEFAULT=[
-  // CONSUMÍVEIS (todos os produtos)
-  {nome:'Sílica',          qtdAtual:4,    unidade:'kg',   precoUnit:38.08, consumo:4,   comprarAntes:true,  porProduto:null, obs:'8kg por buquê, reutiliza 1x (4kg efetivo). Balde 12kg = R$457'},
-  {nome:'Plástico filme',  qtdAtual:150,  unidade:'m',    precoUnit:0.20,  consumo:24,  comprarAntes:false, porProduto:null, obs:'Rolo 300m = R$60'},
-  {nome:'Cola acrílica',   qtdAtual:230,  unidade:'ml',   precoUnit:0.30,  consumo:3,   comprarAntes:false, porProduto:null, obs:'Frasco 250ml = R$75'},
-  {nome:'Papel kraft',     qtdAtual:95,   unidade:'m',    precoUnit:0.80,  consumo:3,   comprarAntes:false, porProduto:null, obs:'Rolo 100m = R$80'},
-  {nome:'Foto instax',     qtdAtual:10,   unidade:'foto', precoUnit:7.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:'Pack 10 fotos = R$70'},
-  {nome:'Verniz',          qtdAtual:300,  unidade:'ml',   precoUnit:0.333, consumo:100, comprarAntes:false, porProduto:null, obs:'Frasco 300ml = R$100'},
-  {nome:'Junco',           qtdAtual:1,    unidade:'maço', precoUnit:42.00, consumo:1,   comprarAntes:false, porProduto:null, obs:'R$42/maço'},
-  {nome:'Bastão cola quente',qtdAtual:200,unidade:'un',   precoUnit:0.08,  consumo:10,  comprarAntes:false, porProduto:null, obs:'500un = R$40'},
-  {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:''},
-  {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   comprarAntes:false, porProduto:null, obs:''},
+  // CONSUMÍVEIS (todos os produtos) — qtdCompra/precoCompra = unidade de venda
+  {nome:'Sílica',          qtdAtual:4,    unidade:'kg',   precoUnit:37.67, consumo:4,   qtdCompra:12,  precoCompra:452,  comprarAntes:true,  porProduto:null, obs:'Balde 12kg = R$452'},
+  {nome:'Plástico filme',  qtdAtual:150,  unidade:'m',    precoUnit:0.20,  consumo:24,  qtdCompra:300, precoCompra:60,   comprarAntes:false, porProduto:null, obs:'Rolo 300m = R$60'},
+  {nome:'Cola acrílica',   qtdAtual:230,  unidade:'ml',   precoUnit:0.30,  consumo:3,   qtdCompra:250, precoCompra:75,   comprarAntes:false, porProduto:null, obs:'Frasco 250ml = R$75'},
+  {nome:'Papel kraft',     qtdAtual:95,   unidade:'m',    precoUnit:0.80,  consumo:3,   qtdCompra:100, precoCompra:80,   comprarAntes:false, porProduto:null, obs:'Rolo 100m = R$80'},
+  {nome:'Foto instax',     qtdAtual:10,   unidade:'foto', precoUnit:7.00,  consumo:1,   qtdCompra:10,  precoCompra:70,   comprarAntes:false, porProduto:null, obs:'Pack 10 = R$70'},
+  {nome:'Verniz',          qtdAtual:300,  unidade:'ml',   precoUnit:0.333, consumo:100, qtdCompra:300, precoCompra:100,  comprarAntes:false, porProduto:null, obs:'Frasco 300ml = R$100'},
+  {nome:'Junco',           qtdAtual:1,    unidade:'maço', precoUnit:42.00, consumo:1,   qtdCompra:1,   precoCompra:42,   comprarAntes:false, porProduto:null, obs:'R$42/maço'},
+  {nome:'Bastão cola quente',qtdAtual:200,unidade:'un',   precoUnit:0.08,  consumo:10,  qtdCompra:500, precoCompra:40,   comprarAntes:false, porProduto:null, obs:'500un = R$40'},
+  {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null, obs:''},
+  {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null, obs:''},
   // DEPENDENTES DO PRODUTO
-  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   comprarAntes:false, porProduto:['quadro32x42'], obs:'Comprar após buquê chegar'},
-  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   comprarAntes:false, porProduto:['quadro25x30'], obs:'Comprar após buquê chegar'},
-  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
-  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Para cúpula'},
-  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Para quadros'},
-  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
-  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porProduto:['quadro32x42'], obs:'Comprar após buquê chegar'},
+  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porProduto:['quadro25x30'], obs:'Comprar após buquê chegar'},
+  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   qtdCompra:1,   precoCompra:147,  comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
+  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Para cúpula'},
+  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Para quadros'},
+  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porProduto:['cupulaG','cupulaM'], obs:'Comprar após buquê chegar'},
+  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porProduto:['quadro25x30','quadro32x42'], obs:'Comprar após buquê chegar'},
 ];
 function loadInv(){
   try{
@@ -2995,10 +2995,14 @@ function loadInv(){
         });
         // Remover duplicatas por nome (manter o primeiro encontrado)
         const seen=new Set();INV=INV.filter(x=>{if(seen.has(x.nome))return false;seen.add(x.nome);return true;});
-        // Adicionar itens novos que não existem ainda
+        // Adicionar itens novos e migrar campos ausentes (qtdCompra, precoCompra)
         INV_DEFAULT.forEach(def=>{
-          if(!INV.find(x=>x.nome===def.nome)){
+          const existing=INV.find(x=>x.nome===def.nome);
+          if(!existing){
             INV.push({id:uid(),historico:[],...def});
+          } else {
+            if(existing.qtdCompra===undefined)existing.qtdCompra=def.qtdCompra??null;
+            if(existing.precoCompra===undefined)existing.precoCompra=def.precoCompra??null;
           }
         });
       }
@@ -3082,6 +3086,15 @@ function _invNoivasQueUsam(item){
   const ativas = DATA.filter(b=>!['entregue','cancelado'].includes(b.etapa));
   if(!item.porProduto) return ativas.length;
   return ativas.filter(b=>item.porProduto.includes(b.produto||'')).length;
+}
+
+// Retorna o custo de compra para repor o item (baseado na unidade de venda)
+function _invCustoCompra(item, needed){
+  if(item.qtdCompra&&item.precoCompra){
+    const pacotes=Math.ceil(needed/item.qtdCompra);
+    return {valor:pacotes*item.precoCompra, label:`${pacotes}× R$ ${item.precoCompra.toFixed(2).replace('.',',')}`};
+  }
+  return {valor:needed*item.precoUnit, label:`R$ ${(needed*item.precoUnit).toFixed(2).replace('.',',')}`};
 }
 
 // Retorna quanto falta para ter estoque para 2 noivas
@@ -3169,7 +3182,7 @@ function renderInv(){
     const cBody=document.createElement('div');cBody.className='rsb';
     precisaComprar.forEach(item=>{
       const needed=_invNeeded(item);
-      const custo=(needed*item.precoUnit).toFixed(2).replace('.',',');
+      const {label:custoLabel}=_invCustoCompra(item,needed);
       const urgente=item.comprarAntes;
       const row=document.createElement('div');
       row.className='rtr';row.style='align-items:center;gap:10px';
@@ -3179,7 +3192,7 @@ function renderInv(){
                  '<div class="r-sub">Comprar após buquê chegar</div>')+
         `</div>`+
         `<div class="r-val" style="color:#B03420">Faltam ${needed.toFixed(1)} ${item.unidade}</div>`+
-        `<div class="r-val" style="color:#888">R$ ${custo}</div>`;
+        `<div class="r-val" style="color:#888">${custoLabel}</div>`;
       cBody.appendChild(row);
     });
     secCompras.appendChild(cBody);
