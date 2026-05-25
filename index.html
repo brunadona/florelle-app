@@ -1687,7 +1687,8 @@ function _quickNota(ev,id){
   const pop=document.createElement('div');
   pop.className='_qnota-pop';
   pop.style='position:fixed;z-index:900;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 4px 20px #0003;padding:10px;display:flex;flex-direction:column;gap:6px;width:220px';
-  const rect=ev.target.getBoundingClientRect();
+  const _qnEl=ev?.target||ev?.currentTarget;
+  const rect=_qnEl?.getBoundingClientRect?.()||{left:100,bottom:200};
   pop.style.left=Math.min(rect.left,window.innerWidth-240)+'px';
   pop.style.top=Math.min(rect.bottom+4,window.innerHeight-160)+'px';
   const ta=document.createElement('textarea');
@@ -2111,18 +2112,12 @@ async function saveModal(){
     setTimeout(()=>_showEntregaChecklist(null),200);
   }
   _showCalToast(isNew?'Noiva adicionada! 🌸':'Alterações salvas!');
-  // Sincronizar Google Calendar automaticamente se conectado
+  // Sincronizar Google Calendar apenas se já conectado (não abre popup automático)
   if(calEvs.length&&brideIdForCal){
     if(_gToken){
       syncCalendar(brideIdForCal, rec.nome, calEvs, oldCalIds);
     } else {
-      // Sem token — tenta silencioso primeiro, se falhar mostra botão
-      _ensureToken().then(()=>{
-        syncCalendar(brideIdForCal, rec.nome, calEvs, oldCalIds);
-      }).catch(()=>{
-        _showReconnectBtn();
-        setTimeout(()=>_showCalToast('Reconecte ao Google para sincronizar o Calendar','err'),200);
-      });
+      _showReconnectBtn();
     }
   }
 
@@ -3964,19 +3959,14 @@ function setSyncStatus(s){
 
 async function syncInit(){
   if(!navigator.onLine){setSyncStatus('offline');return;}
-  // Wait for GIS to load (it's async)
+  // Just initialise the GIS client — never auto-open a popup on load.
+  // The user must click the Drive button to authenticate.
   await new Promise(res=>{
     const check=()=>window.google?.accounts?.oauth2?res():setTimeout(check,300);
-    check();
+    setTimeout(check,500); // give GIS script time to load
   });
-  try{
-    _initGClient();
-    await _requestToken(''); // silent — works if user previously consented in this browser
-    setSyncStatus('syncing');
-    await _loadFromDrive();
-  }catch{
-    setSyncStatus('idle'); // not signed in yet, wait for user to click
-  }
+  _initGClient();
+  setSyncStatus(_gToken?'ok':'idle');
 }
 
 async function syncLogin(){
@@ -4441,8 +4431,9 @@ function _openWa(id,ev){
   html+=`<div class="watpl-sep"></div><button class="watpl-btn watpl-open" onclick="_waTplSend('${id}','')">Abrir sem mensagem</button>`;
   box.innerHTML=html;
   // Position near the clicked button
-  if(ev){
-    const r=ev.currentTarget.getBoundingClientRect();
+  const _evEl=ev?.currentTarget||ev?.target;
+  if(_evEl?.getBoundingClientRect){
+    const r=_evEl.getBoundingClientRect();
     const top=Math.min(r.bottom+6,window.innerHeight-220);
     const left=Math.max(4,Math.min(r.left,window.innerWidth-328));
     box.style.cssText=`top:${top}px;left:${left}px`;
@@ -4455,8 +4446,7 @@ function _waTplSend(id,msgEnc){
   const b=DATA.find(x=>x.id===id);if(!b)return;
   const num=b.telefone.replace(/\D/g,'');
   const full=num.startsWith('55')?num:'55'+num;
-  const msg=msgEnc?'&text='+msgEnc:'';
-  window.open('https://wa.me/'+full+(msg?'?text='+msgEnc:''),'_blank','noopener');
+  window.open('https://wa.me/'+full+(msgEnc?'?text='+msgEnc:''),'_blank','noopener');
 }
 function _waTplClose(){
   g('watpl-ov')?.classList.add('hidden');
@@ -4470,7 +4460,8 @@ function _quickPasso(ev,id){
   document.querySelectorAll('._qppicker').forEach(e=>e.remove());
   const inp=document.createElement('input');
   inp.type='text';inp.value=b.proximoPasso||'';inp.placeholder='Próximo passo…';inp.className='_qppicker';
-  const r=ev.currentTarget.getBoundingClientRect();
+  const _qpEl=ev?.currentTarget||ev?.target||{getBoundingClientRect:()=>({top:200,left:100,width:200})};
+  const r=_qpEl.getBoundingClientRect();
   inp.style.cssText=`position:fixed;z-index:9999;top:${Math.min(r.top,window.innerHeight-60)}px;left:${r.left}px;width:${Math.max(r.width,200)}px;border:2px solid var(--sd);border-radius:7px;padding:5px 9px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--wh);box-shadow:0 4px 16px rgba(0,0,0,.18);color:var(--tx);outline:none`;
   document.body.appendChild(inp);inp.focus();inp.select();
   function done(){
@@ -4720,7 +4711,8 @@ function _quickDate(ev,id){
   document.querySelectorAll('._qdpicker').forEach(e=>e.remove());
   const inp=document.createElement('input');
   inp.type='date';inp.value=b.dataCasamento||'';inp.className='_qdpicker';
-  const r=ev.currentTarget.getBoundingClientRect();
+  const _qdEl=ev?.currentTarget||ev?.target;
+  const r=_qdEl?.getBoundingClientRect?.()||{bottom:200,left:100};
   inp.style.cssText=`position:fixed;z-index:9999;top:${Math.min(r.bottom+4,window.innerHeight-60)}px;left:${r.left}px;border:2px solid var(--sd);border-radius:7px;padding:5px 9px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--wh);box-shadow:0 4px 16px rgba(0,0,0,.18);color:var(--tx);outline:none`;
   document.body.appendChild(inp);inp.focus();
   try{inp.showPicker();}catch(e){}
