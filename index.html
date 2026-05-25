@@ -1694,7 +1694,7 @@ function _quickNota(ev,id){
   ta.value=b.anotacoes||'';ta.rows=4;ta.placeholder='Anotação rápida…';
   ta.style='width:100%;resize:none;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:12px;font-family:inherit';
   const btnRow=document.createElement('div');btnRow.style='display:flex;justify-content:flex-end;gap:6px';
-  const btnSave=document.createElement('button');btnSave.textContent='Salvar';btnSave.className='bpri';btnSave.style='font-size:12px;padding:4px 10px';
+  const btnSave=document.createElement('button');btnSave.textContent='Salvar';btnSave.className='bprim';btnSave.style='font-size:12px;padding:4px 10px';
   const btnCan=document.createElement('button');btnCan.textContent='Cancelar';btnCan.className='bsec';btnCan.style='font-size:12px;padding:4px 10px';
   btnRow.appendChild(btnCan);btnRow.appendChild(btnSave);
   pop.appendChild(ta);pop.appendChild(btnRow);
@@ -1768,7 +1768,7 @@ function _renderPipelineBar(etapa){
   const idx=PIPE.indexOf(etapa);
   if(idx<0){el.innerHTML='';return;}
   const pct=Math.round((idx/(PIPE.length-1))*100);
-  el.innerHTML=`<div style="font-size:10px;color:#888;margin-bottom:4px">Progresso: ${ETLBL[etapa]||etapa} (${pct}%)</div><div style="height:6px;background:#EEE;border-radius:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--rosa);border-radius:6px;transition:width .3s"></div></div>`;
+  el.innerHTML=`<div style="font-size:10px;color:#888;margin-bottom:4px">Progresso: ${ETLBL[etapa]||etapa} (${pct}%)</div><div style="height:6px;background:#EEE;border-radius:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--sd);border-radius:6px;transition:width .3s"></div></div>`;
 }
 
 /* ── CALC MARGEM ─────────────────────────────── */
