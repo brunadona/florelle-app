@@ -3084,15 +3084,11 @@ function _invNoivasQueUsam(item){
   return ativas.filter(b=>item.porProduto.includes(b.produto||'')).length;
 }
 
-// Retorna quanto precisa comprar (negativo = tem sobra, positivo = falta)
+// Retorna quanto falta para ter estoque para 2 noivas
 function _invNeeded(item){
-  const qtdNecessaria = item.consumo * _invNoivasQueUsam(item);
-  return Math.max(0, qtdNecessaria - Number(item.qtdAtual||0));
-}
-
-// Retorna custo total do item para todas as noivas ativas
-function _invCusto(item){
-  return item.consumo * item.precoUnit * _invNoivasQueUsam(item);
+  const atual = Number(item.qtdAtual||0);
+  const minStock = (item.consumo||0) * 2;
+  return Math.max(0, minStock - atual);
 }
 
 // Gera lista de compras para uma noiva específica
@@ -3188,7 +3184,7 @@ function renderInv(){
     });
     secCompras.appendChild(cBody);
   } else {
-    secCompras.innerHTML=`<div class="rsh"><div class="rs-ico" style="background:#EDF4EB">✅</div><span class="rsti">Estoque OK para todas as noivas ativas</span></div>`;
+    secCompras.innerHTML=`<div class="rsh"><div class="rs-ico" style="background:#EDF4EB">✅</div><span class="rsti">Estoque OK — tudo suficiente para 2+ noivas</span></div>`;
   }
   body.appendChild(secCompras);
 
@@ -3209,14 +3205,14 @@ function renderInv(){
     if(_invSrch&&!(item.nome||'').toLowerCase().includes(_invSrch))return;
     const needed=_invNeeded(item);
     const isAl=needed>0;
-    const noivas=_invNoivasQueUsam(item);
     const el=document.createElement('div');
     el.className='inv-item rtr'+(isAl?' al':'');
     el.dataset.id=item.id;
     el.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:8px';
+    const noivas=Math.floor(Number(item.qtdAtual||0)/(item.consumo||1));
     const statusTxt=isAl
-      ?`<span class="r-pill r-late">Faltam ${needed.toFixed(1)} ${item.unidade}</span>`
-      :`<span class="r-pill r-ok">OK (${noivas} noiva${noivas!==1?'s':''})</span>`;
+      ?`<span class="r-pill r-late">Comprar! Só para ${Math.floor(Number(item.qtdAtual||0)/(item.consumo||1))} noiva${Math.floor(Number(item.qtdAtual||0)/(item.consumo||1))!==1?'s':''}</span>`
+      :`<span class="r-pill r-ok">Para ${noivas} noiva${noivas!==1?'s':''}</span>`;
     el.innerHTML=
       `<div><div class="r-nm inv-nm${isAl?' al-nm':''}">${esc(item.nome)}</div>`+
       (item.obs?`<div class="r-sub">${esc(item.obs)}</div>`:'')+
