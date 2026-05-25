@@ -1803,7 +1803,7 @@ function openModal(id){
   g('ov').classList.remove('hidden');
 }
 
-function closeModal(){g('ov').classList.add('hidden');editId=null;mRem=[];}
+function closeModal(){g('ov').classList.add('hidden');editId=null;mRem=[];mAnexos=[];_mDriveFolder='';}
 
 /* ── FORM FILL ───────────────────────────────── */
 function fillForm(b){
@@ -4317,6 +4317,8 @@ function dupBride(){
 
 /* ── INVENTORY DEDUCTION ON DELIVERY ────────── */
 function _deductInvForBride(b){
+  if(b.invDeducted)return;
+  b.invDeducted=true;
   const prod=b.produto||'';
   let changed=false;
   INV.forEach(item=>{
