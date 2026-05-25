@@ -1150,6 +1150,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
         </div>
       </div>
 
+      <!-- Parcelas cartão -->
+      <div id="cartao-parcelas" style="display:none;margin-bottom:11px">
+        <div class="frow">
+          <div class="fg" style="flex:0 0 140px"><label class="fl">Nº de parcelas</label><input id="m-cartao-n" type="number" min="1" max="24" class="fi" placeholder="Ex: 10" oninput="pagCalc()"></div>
+          <div class="fg"><label class="fl">Valor da parcela (R$)</label><input id="m-cartao-vp" type="text" class="fi" placeholder="Ex: 159,00" oninput="pagCalc()"></div>
+        </div>
+      </div>
+
       <!-- Valor total -->
       <div class="frow f1" style="margin-bottom:8px">
         <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" oninput="pagCalc();updateCustoBuque();_calcMargem()" placeholder="Ex: 1.290,00"></div>
@@ -1845,6 +1853,9 @@ function fillForm(b){
   setRad('prod',      b.produto||'');
   setRad('emb',       b.statusEmbalagem||'naoEncomendada');
   setRad('pag',       b.formaPagamento||'');
+  g('cartao-parcelas').style.display=b.formaPagamento==='cartao'?'':'none';
+  sv2('m-cartao-n',   b.cartaoNParcelas!=null?String(b.cartaoNParcelas):'');
+  sv2('m-cartao-vp',  b.cartaoValorParcela||'');
   setRad('rep',       b.autorizaReposicao||'');
   setRad('retiradaBuque', b.retiradaBuque||'');
   setRad('redomaStatus', b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':b.redomaPedida==='nao'?'naoEncomendada':''));
@@ -2036,6 +2047,8 @@ async function saveModal(){
     statusEmbalagem:radVal('emb')||'naoEncomendada',
     dataEntregaEmbalagem:gv('m-emb-d'),
     formaPagamento: radVal('pag'),
+    cartaoNParcelas: radVal('pag')==='cartao'?(parseInt(gv('m-cartao-n'))||null):null,
+    cartaoValorParcela: radVal('pag')==='cartao'?gv('m-cartao-vp').trim():'',
     autorizaReposicao:radVal('rep'),
     pecasAdicionais:pecas,
     pecasOutro:     gv('m-outro').trim(),
@@ -2235,8 +2248,12 @@ function _buildContratoHTML(){
     pagRows.filter(p=>p.valor).forEach((p,i)=>{pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
   }
   const fpMap={'pix3x':'Pix parcelado','pixvista':'Pix à vista','cartao':'Cartão'};
-  const fpTxt=fpMap[radVal('pag')]||radVal('pag')||'';
-  const pagHTML=(fpTxt?fpTxt+'<br>':'')+pagLinhas.join('<br>');
+  const fpRaw=radVal('pag');
+  const fpTxt=fpMap[fpRaw]||fpRaw||'';
+  const cartaoN=parseInt(gv('m-cartao-n'))||null;
+  const cartaoVP=gv('m-cartao-vp').trim();
+  const cartaoParcelaStr=(fpRaw==='cartao'&&cartaoN&&cartaoVP)?`${cartaoN}× de R$ ${cartaoVP}`:'';
+  const pagHTML=(fpTxt?fpTxt+'<br>':'')+(cartaoParcelaStr?cartaoParcelaStr+'<br>':'')+pagLinhas.join('<br>');
   const hoje=new Date();
   const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const dataHoje=hoje.getDate()+' de '+meses[hoje.getMonth()]+' de '+hoje.getFullYear();
@@ -2446,8 +2463,12 @@ function gerarContrato(){
     pagRows.filter(p=>p.valor).forEach((p,i)=>{pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
   }
   const fpMap={'pix3x':'Pix parcelado','pixvista':'Pix à vista','cartao':'Cartão'};
-  const fpTxt = fpMap[radVal('pag')]||radVal('pag')||'';
-  const pagHTML = (fpTxt?fpTxt+'<br>':'')+pagLinhas.join('<br>');
+  const fpRaw2=radVal('pag');
+  const fpTxt = fpMap[fpRaw2]||fpRaw2||'';
+  const cartaoN2=parseInt(gv('m-cartao-n'))||null;
+  const cartaoVP2=gv('m-cartao-vp').trim();
+  const cartaoParcelaStr2=(fpRaw2==='cartao'&&cartaoN2&&cartaoVP2)?`${cartaoN2}× de R$ ${cartaoVP2}`:'';
+  const pagHTML = (fpTxt?fpTxt+'<br>':'')+(cartaoParcelaStr2?cartaoParcelaStr2+'<br>':'')+pagLinhas.join('<br>');
 
   const hoje=new Date();
   const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -2587,6 +2608,8 @@ function reservaChg(){
   pagCalc();
 }
 function pagChg(){
+  const fp=radVal('pag');
+  g('cartao-parcelas').style.display=fp==='cartao'?'':'none';
   const reservaAtiva=radVal('reservaAtiva')==='sim';
   if(reservaAtiva){
     // preserve reserva row, clear installment rows
