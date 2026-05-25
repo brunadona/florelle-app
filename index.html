@@ -2975,6 +2975,11 @@ function loadInv(){
         INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));
       } else {
         INV=parsed;
+        // Migrar: corrigir resíduos de renomeação quadro32x34→quadro32x42
+        INV.forEach(item=>{
+          if(item.porProduto){item.porProduto=item.porProduto.map(p=>p==='quadro32x34'?'quadro32x42':p);}
+          if(item.nome==='Redoma 32×34')item.nome='Redoma 32×42';
+        });
         // Remover duplicatas por nome (manter o primeiro encontrado)
         const seen=new Set();INV=INV.filter(x=>{if(seen.has(x.nome))return false;seen.add(x.nome);return true;});
         // Adicionar itens novos que não existem ainda
