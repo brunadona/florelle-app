@@ -1060,8 +1060,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label class="ro"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30</span></label>
           <label class="ro"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42</span></label>
           <label class="ro"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
-          <label class="ro"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()"><span class="rl">Cúpula G</span></label>
-          <label class="ro"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula M</span></label>
+          <label class="ro"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()"><span class="rl">Cúpula G (grande)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula M 18×30</span></label>
           <label class="ro"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque()"><span class="rl">Múltiplos</span></label>
         </div>
       </div>
@@ -1115,8 +1115,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q25"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()" style="display:none"> Quadro 25×30</label>
           <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q32"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()" style="display:none"> Quadro 32×42</label>
           <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-qsm"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()" style="display:none"> Sob medida</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cg"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()" style="display:none"> Cúpula G</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cm"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()" style="display:none"> Cúpula M</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cg"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()" style="display:none"> Cúpula G (grande)</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cm"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()" style="display:none"> Cúpula M 18×30</label>
           <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-mu"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque()" style="display:none"> Múltiplos</label>
         </div>
         <div class="frow">
@@ -1394,7 +1394,7 @@ const COLS=[
   {id:'cancelado',       label:'Cancelado / Rejeitado',color:'#A8A098'},
 ];
 
-const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G',cupulaM:'Cúpula M',multiplos:'Múltiplos',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
+const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G (grande)',cupulaM:'Cúpula M 18×30',multiplos:'Múltiplos',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
 // Preços sugeridos por produto (editável aqui)
 const PRECO_SUGERIDO={quadro25x30:'1.290,00',quadro32x42:'1.590,00',cupulaG:'1.590,00',cupulaM:'1.290,00',quadroSobMedida:'',multiplos:''};
 const PRECO_PECA_ADICIONAL=50;
@@ -2385,8 +2385,10 @@ p{margin-bottom:4px;text-align:justify}
 </div>
 
 <div class="sec">
-<div class="sec-t">8. Retirada do Buquê no Evento</div>
-<p>Caso a FLORELLE seja responsável pela busca do buquê junto à noiva, madrinha ou mãe, será cobrada taxa fixa de R$ 30,00 (trinta reais) dentro de Cascavel, sendo em outra cidade ou estado, a noiva se encarrega de enviar o buquê via Sedex arcando com os custos de entrega e também devolução. Para devolução do buquê via Sedex saindo de Cascavel, o valor será enviado para reembolso</p>
+<div class="sec-t">8. Retirada do Buquê no Evento e Frete</div>
+<p>Caso a FLORELLE seja responsável pela busca do buquê junto à noiva, madrinha ou mãe, será cobrada taxa fixa de R$ 30,00 (trinta reais) dentro de Cascavel.</p>
+<p>Tratando-se de outra cidade ou estado, a CONTRATANTE se encarrega de enviar o buquê via Sedex à FLORELLE ATELIER, arcando com os custos de envio.</p>
+<p><b>Entrega do buquê finalizado:</b> o custo do frete de devolução do buquê eternizado ao endereço da CONTRATANTE é de responsabilidade desta. A FLORELLE ATELIER poderá realizar o envio antecipando o valor do frete, sendo este valor reembolsado integralmente pela CONTRATANTE no prazo de 5 (cinco) dias úteis após a postagem, mediante apresentação do comprovante.</p>
 </div>
 
 <div class="sec">
@@ -2403,18 +2405,27 @@ p{margin-bottom:4px;text-align:justify}
 </div>
 
 <div class="sec">
-<div class="sec-t">11. Desistência</div>
+<div class="sec-t">11. Inadimplência, Atraso e Execução de Cobrança</div>
+<p>Cada parcela deverá ser paga até a data de vencimento acordada. O não pagamento de qualquer parcela no prazo estipulado caracteriza inadimplência parcial, sujeitando a CONTRATANTE às seguintes consequências:</p>
+<p>a) <b>Atraso na entrega:</b> o prazo de entrega do buquê eternizado será automaticamente postergado por tantos dias quantos forem os dias de atraso acumulados no pagamento das parcelas. A nova data de entrega será comunicada pela FLORELLE ATELIER tão logo os valores estejam quitados;</p>
+<p>b) <b>Execução de cobrança:</b> decorridos 30 (trinta) dias do vencimento de cada parcela sem o devido pagamento, a FLORELLE ATELIER estará autorizada a adotar as medidas cabíveis para execução da cobrança, incluindo protesto de título, negativação em órgãos de proteção ao crédito (SPC/Serasa) e ajuizamento de ação de cobrança, nos termos da legislação civil vigente;</p>
+<p>c) <b>Encargos:</b> sobre os valores em atraso incidirão multa de 2% (dois por cento) e juros de mora de 1% (um por cento) ao mês, calculados pro rata die, além de honorários advocatícios em caso de cobrança judicial;</p>
+<p>d) Todos os custos decorrentes das medidas de cobrança serão de responsabilidade exclusiva da CONTRATANTE.</p>
+</div>
+
+<div class="sec">
+<div class="sec-t">12. Desistência</div>
 <p>Em caso de desistência por parte da CONTRATANTE, os valores pagos até a data da retirada do buquê não serão reembolsados, por destinarem-se ao custeio de materiais, insumos e mão de obra já empregados.</p>
 </div>
 
 <div class="sec">
-<div class="sec-t">12. Prazo para Retirada do Buquê Finalizado</div>
+<div class="sec-t">13. Prazo para Retirada do Buquê Finalizado</div>
 <p>O buquê eternizado deverá ser retirado no prazo máximo de 120 (cento e vinte) dias após a conclusão do serviço.</p>
 <p>O descumprimento deste prazo autoriza a FLORELLE a descartar o buquê, sem aviso prévio e sem direito a indenização ou restituição de valores.</p>
 </div>
 
 <div class="sec">
-<div class="sec-t">13. Aceite e Assinatura Eletrônica</div>
+<div class="sec-t">14. Aceite e Assinatura Eletrônica</div>
 <p>As partes declaram que leram, compreenderam e concordam integralmente com os termos deste contrato, reconhecendo sua validade mediante assinatura eletrônica simples, inclusive com inserção de assinatura digitalizada ou imagem da assinatura manuscrita.</p>
 </div>
 
