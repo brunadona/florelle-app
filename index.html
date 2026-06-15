@@ -2388,14 +2388,14 @@ async function enviarAutentique(){
       // Sem e-mail: pula alert e vai direto para WhatsApp
       if(signUrl&&tel){
         const msg=encodeURIComponent('Olá, '+nome.split(' ')[0]+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link abaixo para assinar pelo celular:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐');
-        window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_blank');
+        window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_wpp');
       }
     } else {
       alert('✅ Contrato enviado!\n\n'+nome+' receberá um e-mail em '+email+' para assinar.'+(signUrl?'\n\nLink: '+signUrl:''));
       if(signUrl&&tel){
         const msg=encodeURIComponent('Olá, '+nome.split(' ')[0]+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link abaixo para assinar pelo celular:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐');
         if(confirm('Deseja enviar o link de assinatura via WhatsApp também?')){
-          window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_blank');
+          window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_wpp');
         }
       }
     }
@@ -2416,7 +2416,7 @@ function enviarContratoWpp(){
   );
   // Abre WhatsApp e contrato de forma síncrona (dentro do evento de clique)
   // para o browser não bloquear como popup
-  window.open(`https://web.whatsapp.com/send?phone=55${tel}&text=${msg}`, '_blank');
+  window.open(`https://web.whatsapp.com/send?phone=55${tel}&text=${msg}`, '_wpp');
   gerarContrato();
 }
 
