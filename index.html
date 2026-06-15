@@ -2312,29 +2312,31 @@ async function enviarAutentique(){
     if(styleEl)injStyle.textContent=styleEl.textContent;
     document.head.appendChild(injStyle);
 
-    // Injetar elemento .page
+    // Injetar elemento .page em container absoluto (evita clipping de position:fixed)
     const wrap=document.createElement('div');
-    wrap.style.cssText='position:fixed;left:-9999px;top:0;width:700px;z-index:-1';
+    wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1;visibility:hidden';
     if(pageEl)wrap.appendChild(pageEl);
     document.body.appendChild(wrap);
 
     // Aguarda fontes (Google Fonts) e imagens
     await new Promise(r=>setTimeout(r,2500));
 
-    // Calcular posição dinâmica da linha de assinatura do CONTRATANTE
+    // Calcular posição dinâmica da linha de assinatura via getBoundingClientRect
     const pageDiv=wrap.querySelector('.page');
     const lineEl=wrap.querySelector('#ass-cte-line');
-    const totalH=(pageDiv?pageDiv.offsetHeight:0)||wrap.offsetHeight||1;
-    // offsetTop do lineEl é relativo ao seu offsetParent (provavelmente .page)
-    // Precisamos da posição relativa ao topo do .page
-    let lineAbsTop=0;
-    if(lineEl&&pageDiv){
-      let el=lineEl;
-      while(el&&el!==pageDiv){lineAbsTop+=el.offsetTop;el=el.offsetParent;}
+    let sigY=88;
+    if(pageDiv&&lineEl){
+      const pR=pageDiv.getBoundingClientRect();
+      const lR=lineEl.getBoundingClientRect();
+      const totalH=pageDiv.scrollHeight||pR.height||1;
+      // lineEl.offsetTop é relativo ao offsetParent que agora é o wrap (absolute)
+      const lineAbsTop=lR.top-pR.top+window.scrollY;
+      const lineTopPct=(lineAbsTop/totalH)*100;
+      // A linha tem margin-top:72px, então a assinatura deve ficar no meio desse espaço
+      const marginPct=(72/totalH)*100;
+      sigY=Math.round(lineTopPct-marginPct/2);
+      console.log('sig totalH='+totalH.toFixed(0)+' lineAbsTop='+lineAbsTop.toFixed(0)+' lineTopPct='+lineTopPct.toFixed(1)+' marginPct='+marginPct.toFixed(1)+' sigY='+sigY);
     }
-    const lineTopPct=lineAbsTop>0?((lineAbsTop/totalH)*100):91;
-    const sigY=Math.max(1,Math.round(lineTopPct)-4); // acima da linha (no espaço de 72px)
-    console.log('Posição assinatura: totalH='+totalH+' lineAbsTop='+lineAbsTop+' lineTopPct='+lineTopPct.toFixed(1)+' sigY='+sigY);
 
     const canvas=await html2canvas(wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
     document.body.removeChild(wrap);
