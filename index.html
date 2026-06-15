@@ -2355,9 +2355,12 @@ async function enviarAutentique(){
       body:formData
     });
     const json=await res.json();
-    if(json.errors){throw new Error(json.errors[0].message);}
+    console.log('Autentique response:', JSON.stringify(json));
+    if(json.errors){throw new Error(json.errors.map(e=>e.message).join(', '));}
+    if(!json.data){throw new Error('Resposta inesperada da API: '+JSON.stringify(json));}
 
     const doc=json.data.createDocument;
+    if(!doc){throw new Error('Documento não criado. Resposta: '+JSON.stringify(json.data));}
     const signUrl=doc?.signatures?.[0]?.link?.sign_url||'';
 
     // 5. Salvar link no registro da noiva
