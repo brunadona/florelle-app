@@ -2344,7 +2344,7 @@ async function enviarAutentique(){
     const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
     const variables={
       document:{name:'Contrato Florelle — '+nome},
-      signers:[{name:nome,email:email||'brunadonaa@gmail.com',action:'SIGN',delivery_method:'DELIVERY_METHOD_LINK'}],
+      signers:[Object.assign({name:nome,action:'SIGN',delivery_method:'DELIVERY_METHOD_LINK'},email?{email}:{})],
       file:null
     };
     const formData=new FormData();
@@ -2364,7 +2364,7 @@ async function enviarAutentique(){
 
     const doc=json.data.createDocument;
     if(!doc){throw new Error('Documento não criado. Resposta: '+JSON.stringify(json.data));}
-    const sig=doc?.signatures?.[0];
+    const sig=doc?.signatures?.find(s=>s?.link?.short_link)||doc?.signatures?.[0];
     const signUrl=sig?.link?.short_link||'';
 
     // 5. Salvar link no registro da noiva
