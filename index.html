@@ -2290,8 +2290,9 @@ async function enviarAutentique(){
   const email = gv('m-email').trim()||'';
   const tel   = (gv('m-tel')||'').trim().replace(/\D/g,'');
   if(!nome){alert('Preencha o nome da noiva antes de enviar.');return;}
-  if(!email&&!tel){alert('Preencha pelo menos o telefone ou e-mail da noiva.');return;}
-  const somenteWpp=!email;
+  if(!email){alert('Para enviar para assinatura digital, é necessário o e-mail da noiva.\n\nA Autentique usa o e-mail para identificar a signatária — ela receberá o link de assinatura via WhatsApp e pode assinar sem criar conta.');return;}
+  if(!tel){alert('Preencha o telefone da noiva para enviar o link pelo WhatsApp.');return;}
+  const somenteWpp=true;
 
   const btn=document.getElementById('btn-autentique');
   if(btn){btn.textContent='⏳ Enviando…';btn.disabled=true;}
@@ -2344,7 +2345,7 @@ async function enviarAutentique(){
     const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
     const variables={
       document:{name:'Contrato Florelle — '+nome},
-      signers:[Object.assign({name:nome,action:'SIGN',delivery_method:'DELIVERY_METHOD_LINK'},email?{email}:{})],
+      signers:[{name:nome,email:email,action:'SIGN',delivery_method:'DELIVERY_METHOD_LINK'}],
       file:null
     };
     const formData=new FormData();
