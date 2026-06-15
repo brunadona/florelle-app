@@ -2329,20 +2329,12 @@ async function enviarAutentique(){
     // Verificar se canvas tem conteúdo
     if(canvas.width<100||canvas.height<100)throw new Error('Falha ao renderizar o contrato. Tente novamente.');
 
-    // 3. Gerar PDF com jsPDF — imagem inteira posicionada com offset por página
+    // 3. Gerar PDF com jsPDF — página única com altura exata do conteúdo (sem cortes)
     const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF({unit:'px',format:'a4',orientation:'portrait'});
-    const pageW=pdf.internal.pageSize.getWidth();
-    const pageH=pdf.internal.pageSize.getHeight();
-    const ratio=pageW/canvas.width;
-    const scaledH=canvas.height*ratio;
-    const imgData=canvas.toDataURL('image/jpeg',0.92);
-    let yOffset=0;
-    while(yOffset<scaledH){
-      if(yOffset>0)pdf.addPage();
-      pdf.addImage(imgData,'JPEG',0,-yOffset,pageW,scaledH);
-      yOffset+=pageH;
-    }
+    const pxW=canvas.width;
+    const pxH=canvas.height;
+    const pdf=new jsPDF({unit:'px',format:[pxW,pxH],orientation:'portrait'});
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,pxW,pxH);
     const pdfBlob=pdf.output('blob');
     console.log('PDF gerado, tamanho:', pdfBlob.size, 'bytes');
     if(pdfBlob.size<5000)throw new Error('PDF gerado está vazio ou corrompido ('+pdfBlob.size+' bytes). Tente novamente.');
