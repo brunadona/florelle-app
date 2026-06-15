@@ -2301,17 +2301,33 @@ async function enviarAutentique(){
     const html=_buildContratoHTML();
     if(!html){alert('Preencha os dados do contrato antes de enviar.');return;}
 
-    // 2. Renderizar HTML em elemento oculto e capturar com html2canvas
+    // 2. Renderizar HTML via DOMParser + iframe para preservar estilos
+    const parsedDoc=new DOMParser().parseFromString(html,'text/html');
+    const pageEl=parsedDoc.querySelector('.page');
+    const styleEl=parsedDoc.querySelector('style');
+
+    // Injetar estilos do contrato na página atual
+    const injStyle=document.createElement('style');
+    injStyle.id='_aut_style';
+    if(styleEl)injStyle.textContent=styleEl.textContent;
+    document.head.appendChild(injStyle);
+
+    // Injetar elemento .page
     const wrap=document.createElement('div');
-    wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1';
-    wrap.innerHTML=html;
+    wrap.style.cssText='position:fixed;left:-9999px;top:0;width:700px;z-index:-1';
+    if(pageEl)wrap.appendChild(pageEl);
     document.body.appendChild(wrap);
 
-    // Aguarda fontes e imagens
-    await new Promise(r=>setTimeout(r,1200));
+    // Aguarda fontes (Google Fonts) e imagens
+    await new Promise(r=>setTimeout(r,2500));
 
-    const canvas=await html2canvas(wrap.querySelector('.page')||wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
+    const canvas=await html2canvas(wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
     document.body.removeChild(wrap);
+    const injEl=document.getElementById('_aut_style');
+    if(injEl)injEl.remove();
+
+    // Verificar se canvas tem conteúdo
+    if(canvas.width<100||canvas.height<100)throw new Error('Falha ao renderizar o contrato. Tente novamente.');
 
     // 3. Gerar PDF com jsPDF
     const {jsPDF}=window.jspdf;
@@ -2335,6 +2351,8 @@ async function enviarAutentique(){
       yPos+=sliceH;
     }
     const pdfBlob=pdf.output('blob');
+    console.log('PDF gerado, tamanho:', pdfBlob.size, 'bytes');
+    if(pdfBlob.size<5000)throw new Error('PDF gerado está vazio ou corrompido ('+pdfBlob.size+' bytes). Tente novamente.');
 
     // 4. Upload para Autentique via GraphQL multipart
     const apiKey=_getAutentiqueKey();
