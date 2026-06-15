@@ -2312,30 +2312,28 @@ async function enviarAutentique(){
     if(styleEl)injStyle.textContent=styleEl.textContent;
     document.head.appendChild(injStyle);
 
-    // Injetar elemento .page em container absoluto (evita clipping de position:fixed)
+    // Injetar elemento .page (position:absolute, sem visibility:hidden para getBoundingClientRect funcionar)
     const wrap=document.createElement('div');
-    wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1;visibility:hidden';
+    wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
     if(pageEl)wrap.appendChild(pageEl);
     document.body.appendChild(wrap);
 
     // Aguarda fontes (Google Fonts) e imagens
     await new Promise(r=>setTimeout(r,2500));
 
-    // Calcular posição dinâmica da linha de assinatura via getBoundingClientRect
+    // Calcular posição da linha de assinatura do CONTRATANTE
     const pageDiv=wrap.querySelector('.page');
     const lineEl=wrap.querySelector('#ass-cte-line');
     let sigY=88;
     if(pageDiv&&lineEl){
       const pR=pageDiv.getBoundingClientRect();
       const lR=lineEl.getBoundingClientRect();
-      const totalH=pageDiv.scrollHeight||pR.height||1;
-      // lineEl.offsetTop é relativo ao offsetParent que agora é o wrap (absolute)
-      const lineAbsTop=lR.top-pR.top+window.scrollY;
-      const lineTopPct=(lineAbsTop/totalH)*100;
-      // A linha tem margin-top:72px, então a assinatura deve ficar no meio desse espaço
-      const marginPct=(72/totalH)*100;
-      sigY=Math.round(lineTopPct-marginPct/2);
-      console.log('sig totalH='+totalH.toFixed(0)+' lineAbsTop='+lineAbsTop.toFixed(0)+' lineTopPct='+lineTopPct.toFixed(1)+' marginPct='+marginPct.toFixed(1)+' sigY='+sigY);
+      const totalH=pageDiv.scrollHeight||1;
+      const lineTop=lR.top-pR.top;          // px do topo da .page até a linha
+      const lineTopPct=(lineTop/totalH)*100; // % do total
+      const midSpace=(36/totalH)*100;        // metade do margin-top:72px em %
+      sigY=Math.round(lineTopPct-midSpace);  // centro do espaço acima da linha
+      console.log('Autentique pos: totalH='+totalH+' lineTop='+lineTop.toFixed(0)+' lineTopPct='+lineTopPct.toFixed(1)+' sigY='+sigY);
     }
 
     const canvas=await html2canvas(wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
