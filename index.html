@@ -2349,7 +2349,7 @@ async function enviarAutentique(){
     formData.append('map',JSON.stringify({'0':['variables.file']}));
     formData.append('0',new File([pdfBlob],'contrato_'+nome.replace(/\s+/g,'_')+'.pdf',{type:'application/pdf'}));
 
-    const res=await fetch('https://api.autentique.com.br/v2/graphql',{
+    const res=await fetch('https://corsproxy.io/?url=https://api.autentique.com.br/v2/graphql',{
       method:'POST',
       headers:{'Authorization':'Bearer '+apiKey},
       body:formData
