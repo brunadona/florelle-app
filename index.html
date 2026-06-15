@@ -2290,9 +2290,8 @@ async function enviarAutentique(){
   const email = gv('m-email').trim()||'';
   const tel   = (gv('m-tel')||'').trim().replace(/\D/g,'');
   if(!nome){alert('Preencha o nome da noiva antes de enviar.');return;}
-  if(!email){alert('Para enviar para assinatura digital, é necessário o e-mail da noiva.\n\nA Autentique usa o e-mail para identificar a signatária — ela receberá o link de assinatura via WhatsApp e pode assinar sem criar conta.');return;}
-  if(!tel){alert('Preencha o telefone da noiva para enviar o link pelo WhatsApp.');return;}
-  const somenteWpp=true;
+  if(!tel){alert('Preencha o telefone da noiva — a Autentique envia o link de assinatura direto no WhatsApp dela.');return;}
+  const somenteWpp=!email;
 
   const btn=document.getElementById('btn-autentique');
   if(btn){btn.textContent='⏳ Enviando…';btn.disabled=true;}
@@ -2345,7 +2344,7 @@ async function enviarAutentique(){
     const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
     const variables={
       document:{name:'Contrato Florelle — '+nome},
-      signers:[{name:nome,email:email,action:'SIGN',delivery_method:'DELIVERY_METHOD_LINK'}],
+      signers:[Object.assign({name:nome,action:'SIGN'},email?{email,delivery_method:'DELIVERY_METHOD_LINK'}:{phone:'+55'+tel,delivery_method:'DELIVERY_METHOD_WHATSAPP'})],
       file:null
     };
     const formData=new FormData();
@@ -2378,18 +2377,15 @@ async function enviarAutentique(){
     }
 
     if(somenteWpp){
-      // Sem e-mail: pula alert e vai direto para WhatsApp
+      // Sem e-mail: Autentique envia diretamente via WhatsApp para a noiva
+      alert('✅ Contrato enviado!\n\n'+nome+' receberá uma mensagem no WhatsApp da Autentique para assinar.\n\nEla pode assinar sem criar conta.');
+    } else {
+      // Com e-mail: gera link e envia pelo WhatsApp da Florelle
       if(signUrl&&tel){
         const msg=encodeURIComponent('Olá, '+nome.split(' ')[0]+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link abaixo para assinar pelo celular:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐');
         window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_wpp');
-      }
-    } else {
-      alert('✅ Contrato enviado!\n\n'+nome+' receberá um e-mail em '+email+' para assinar.'+(signUrl?'\n\nLink: '+signUrl:''));
-      if(signUrl&&tel){
-        const msg=encodeURIComponent('Olá, '+nome.split(' ')[0]+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link abaixo para assinar pelo celular:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐');
-        if(confirm('Deseja enviar o link de assinatura via WhatsApp também?')){
-          window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_wpp');
-        }
+      } else {
+        alert('✅ Contrato enviado!\n\n'+nome+' receberá um e-mail em '+email+' para assinar.'+(signUrl?'\n\nLink: '+signUrl:''));
       }
     }
   }catch(e){
