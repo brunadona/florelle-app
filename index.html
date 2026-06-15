@@ -687,6 +687,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
 /* ── CONFETTI POP ── */
 @keyframes confettiPop{0%{opacity:1;transform:translate(-50%,-50%) scale(0.5)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -1013,6 +1015,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">Telefone / WhatsApp</label><input id="m-tel" type="text" class="fi" placeholder="(00) 00000-0000"></div>
+        <div class="fg"><label class="fl">E-mail</label><input id="m-email" type="email" class="fi" placeholder="email@exemplo.com"></div>
+      </div>
+      <div class="frow">
         <div class="fg"><label class="fl">Cidade/UF</label><input id="m-cidade" type="text" class="fi" placeholder="Ex: Cascavel/PR"></div>
       </div>
       <div class="frow">
@@ -1278,6 +1283,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
       <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲 WhatsApp</button>
       <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salvar contrato no Google Drive">☁️ Drive</button>
+      <button class="bctrt" id="btn-autentique" onclick="enviarAutentique()" title="Enviar para assinatura digital via Autentique">✍️ Autentique</button>
       <button class="bsav" onclick="saveModal()">Salvar</button>
     </div>
   </div>
@@ -1823,6 +1829,7 @@ function openNew(col){
 
 function openModal(id){
   const b=DATA.find(x=>x.id===id);if(!b)return;
+  window._curModalId=id;
   editId=id;mRem=JSON.parse(JSON.stringify(b.lembretes||[]));mAnexos=JSON.parse(JSON.stringify(b.anexos||[]));
   _mDriveFolder=b.driveFolder||'';
   fillForm(b);
@@ -1841,6 +1848,7 @@ function fillForm(b){
   sv2('m-cpf',        b.cpf||'');
   sv2('m-rg',         b.rg||'');
   sv2('m-tel',        b.telefone||'');
+  sv2('m-email',      b.email||'');
   sv2('m-cidade',     b.cidade||'');
   sv2('m-cep',        b.cep||'');
   sv2('m-flores',     b.floresUtilizadas||'');
@@ -2046,6 +2054,7 @@ async function saveModal(){
     cpf:            gv('m-cpf').trim(),
     rg:             gv('m-rg').trim(),
     telefone:       gv('m-tel').trim(),
+    email:          gv('m-email').trim(),
     cidade:         gv('m-cidade').trim(),
     cep:            gv('m-cep').trim(),
     floresUtilizadas: gv('m-flores').trim(),
@@ -2271,6 +2280,109 @@ function _buildContratoHTML(){
   const cb=checked=>checked?'(X)':'( )';
   // Retornar o mesmo HTML da função gerarContrato
   return _contratoHTMLStr({nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,dataHoje,f,cb});
+}
+
+const AUTENTIQUE_KEY='florelle_autentique_key';
+function _getAutentiqueKey(){return localStorage.getItem(AUTENTIQUE_KEY)||'16c1bfbe67528dbd549112e05f07fd36cc4c930d39558ff8e9672c1aa7dbb97d';}
+
+async function enviarAutentique(){
+  const nome  = gv('m-nome').trim()||'';
+  const email = gv('m-email').trim()||'';
+  if(!nome){alert('Preencha o nome da noiva antes de enviar.');return;}
+  if(!email){alert('Preencha o e-mail da noiva para enviar pelo Autentique.');return;}
+
+  const btn=document.getElementById('btn-autentique');
+  if(btn){btn.textContent='⏳ Enviando…';btn.disabled=true;}
+
+  try{
+    // 1. Gerar HTML do contrato
+    const html=_buildContratoHTML();
+    if(!html){alert('Preencha os dados do contrato antes de enviar.');return;}
+
+    // 2. Renderizar HTML em elemento oculto e capturar com html2canvas
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1';
+    wrap.innerHTML=html;
+    document.body.appendChild(wrap);
+
+    // Aguarda fontes e imagens
+    await new Promise(r=>setTimeout(r,1200));
+
+    const canvas=await html2canvas(wrap.querySelector('.page')||wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
+    document.body.removeChild(wrap);
+
+    // 3. Gerar PDF com jsPDF
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:'px',format:'a4',orientation:'portrait'});
+    const pageW=pdf.internal.pageSize.getWidth();
+    const pageH=pdf.internal.pageSize.getHeight();
+    const imgW=canvas.width;
+    const imgH=canvas.height;
+    const ratio=pageW/imgW;
+    const scaledH=imgH*ratio;
+    let yPos=0;
+    while(yPos<imgH){
+      if(yPos>0)pdf.addPage();
+      const remaining=imgH-yPos;
+      const sliceH=Math.min(pageH/ratio,remaining);
+      const sliceCanvas=document.createElement('canvas');
+      sliceCanvas.width=imgW;
+      sliceCanvas.height=sliceH;
+      sliceCanvas.getContext('2d').drawImage(canvas,0,yPos,imgW,sliceH,0,0,imgW,sliceH);
+      pdf.addImage(sliceCanvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,pageW,sliceH*ratio);
+      yPos+=sliceH;
+    }
+    const pdfBlob=pdf.output('blob');
+
+    // 4. Upload para Autentique via GraphQL multipart
+    const apiKey=_getAutentiqueKey();
+    const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signatories:[SignatoryInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signatories:$signatories,file:$file){id name signatures{public_id link{sign_url}}}}`;
+    const variables={
+      document:{name:'Contrato Florelle — '+nome},
+      signatories:[{email:email,action:'SIGN'}],
+      file:null
+    };
+    const formData=new FormData();
+    formData.append('operations',JSON.stringify({query,variables}));
+    formData.append('map',JSON.stringify({'0':['variables.file']}));
+    formData.append('0',new File([pdfBlob],'contrato_'+nome.replace(/\s+/g,'_')+'.pdf',{type:'application/pdf'}));
+
+    const res=await fetch('https://api.autentique.com.br/v2/graphql',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+apiKey},
+      body:formData
+    });
+    const json=await res.json();
+    if(json.errors){throw new Error(json.errors[0].message);}
+
+    const doc=json.data.createDocument;
+    const signUrl=doc?.signatures?.[0]?.link?.sign_url||'';
+
+    // 5. Salvar link no registro da noiva
+    if(signUrl){
+      const id=window._curModalId;
+      if(id){
+        const b=DATA.find(x=>x.id===id);
+        if(b){b.autentiqueLink=signUrl;b.autentiqueDocId=doc.id;save();}
+      }
+    }
+
+    alert('✅ Contrato enviado!\n\n'+nome+' receberá um e-mail em '+email+' para assinar.\n\n'+(signUrl?'Link: '+signUrl:''));
+
+    // 6. Oferecer envio via WhatsApp
+    const tel=(gv('m-tel')||'').trim().replace(/\D/g,'');
+    if(signUrl&&tel){
+      const msg=encodeURIComponent('Olá, '+nome.split(' ')[0]+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link abaixo para assinar pelo celular:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐');
+      if(confirm('Deseja enviar o link de assinatura via WhatsApp agora?')){
+        window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_blank');
+      }
+    }
+  }catch(e){
+    console.error(e);
+    alert('❌ Erro ao enviar para o Autentique:\n'+e.message);
+  }finally{
+    if(btn){btn.textContent='✍️ Autentique';btn.disabled=false;}
+  }
 }
 
 function enviarContratoWpp(){
