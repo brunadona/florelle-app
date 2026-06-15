@@ -2356,10 +2356,10 @@ async function enviarAutentique(){
 
     // 4. Upload para Autentique via GraphQL multipart
     const apiKey=_getAutentiqueKey();
-    const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signatories:[SignatoryInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signatories:$signatories,file:$file){id name signatures{public_id link{sign_url}}}}`;
+    const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
     const variables={
       document:{name:'Contrato Florelle — '+nome},
-      signatories:[{email:email||'brunadonaa@gmail.com',action:'SIGN'}],
+      signers:[{email:email||'brunadonaa@gmail.com',action:'SIGN'}],
       file:null
     };
     const formData=new FormData();
@@ -2379,7 +2379,8 @@ async function enviarAutentique(){
 
     const doc=json.data.createDocument;
     if(!doc){throw new Error('Documento não criado. Resposta: '+JSON.stringify(json.data));}
-    const signUrl=doc?.signatures?.[0]?.link?.sign_url||'';
+    const sig=doc?.signatures?.[0];
+    const signUrl=sig?.link?.short_link||(sig?.public_id?'https://assinar.autentique.com.br/'+sig.public_id:'');
 
     // 5. Salvar link no registro da noiva
     if(signUrl){
