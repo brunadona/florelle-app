@@ -2344,7 +2344,7 @@ async function enviarAutentique(){
     const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
     const variables={
       document:{name:'Contrato Florelle — '+nome},
-      signers:[Object.assign({name:nome,action:'SIGN',positions:[{x:55,y:88,z:1,element:'SIGNATURE'},{x:55,y:92,z:1,element:'NAME'}]},email?{email,delivery_method:'DELIVERY_METHOD_LINK'}:{phone:'+55'+tel,delivery_method:'DELIVERY_METHOD_WHATSAPP'})],
+      signers:[Object.assign({name:nome,action:'SIGN',positions:[{x:55,y:90,z:1,element:'SIGNATURE'},{x:55,y:94,z:1,element:'NAME'}]},email?{email,delivery_method:'DELIVERY_METHOD_LINK'}:{phone:'+55'+tel,delivery_method:'DELIVERY_METHOD_WHATSAPP'})],
       file:null
     };
     const formData=new FormData();
