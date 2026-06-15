@@ -2252,7 +2252,7 @@ function _buildContratoHTML(){
   const produto   = radVal('prod');
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
-  const prodMap={'cupula':'Cúpula G','cupolam':'Cúpula M','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×42 cm','multiplos':'Múltiplos'};
+  const prodMap={'cupulaG':'Cúpula G (grande)','cupulaM':'Cúpula M 18×30','quadro25x30':'Quadro 25×30 cm','quadro32x42':'Quadro 32×42 cm','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos'};
   const modeloTxt = prodMap[produto]||produto||'';
   const chkSim=rep==='sim',chkNao=rep==='nao';
   const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
@@ -2583,7 +2583,7 @@ function gerarContrato(){
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
 
-  const prodMap={'cupula':'Cúpula G','cupolam':'Cúpula M','quadro25':'Quadro 25×30 cm','quadro32':'Quadro 32×42 cm','multiplos':'Múltiplos'};
+  const prodMap={'cupulaG':'Cúpula G (grande)','cupulaM':'Cúpula M 18×30','quadro25x30':'Quadro 25×30 cm','quadro32x42':'Quadro 32×42 cm','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos'};
   const modeloTxt = prodMap[produto]||produto||'';
 
   const chkSim    = rep==='sim';
