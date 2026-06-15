@@ -2321,6 +2321,14 @@ async function enviarAutentique(){
     // Aguarda fontes (Google Fonts) e imagens
     await new Promise(r=>setTimeout(r,2500));
 
+    // Calcular posição dinâmica da linha de assinatura do CONTRATANTE
+    const lineEl=wrap.querySelector('#ass-cte-line');
+    const totalH=wrap.scrollHeight||wrap.offsetHeight||1;
+    const lineTopPct=lineEl?((lineEl.offsetTop/totalH)*100):91;
+    const sigY=Math.round(lineTopPct-2.5); // assinatura acima da linha
+    const nameY=Math.round(lineTopPct+0.5); // nome abaixo da linha
+    console.log('Posição assinatura calculada: lineTopPct='+lineTopPct+' sigY='+sigY+' nameY='+nameY);
+
     const canvas=await html2canvas(wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
     document.body.removeChild(wrap);
     const injEl=document.getElementById('_aut_style');
@@ -2344,7 +2352,7 @@ async function enviarAutentique(){
     const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
     const variables={
       document:{name:'Contrato Florelle — '+nome},
-      signers:[Object.assign({name:nome,action:'SIGN',positions:[{x:57,y:91,z:1,element:'SIGNATURE'},{x:57,y:94,z:1,element:'NAME'}]},email?{email,delivery_method:'DELIVERY_METHOD_LINK'}:{phone:'+55'+tel,delivery_method:'DELIVERY_METHOD_WHATSAPP'})],
+      signers:[Object.assign({name:nome,action:'SIGN',positions:[{x:57,y:sigY,z:1,element:'SIGNATURE'},{x:57,y:nameY,z:1,element:'NAME'}]},email?{email,delivery_method:'DELIVERY_METHOD_LINK'}:{phone:'+55'+tel,delivery_method:'DELIVERY_METHOD_WHATSAPP'})],
       file:null
     };
     const formData=new FormData();
@@ -2561,7 +2569,7 @@ p{margin-bottom:4px;text-align:justify}
 </div>
 <div class="ass-col">
 <p><b>CONTRATANTE:</b><br>Assinatura:</p>
-<div style="border-top:1px solid #444;margin-top:72px;padding-top:6px;font-size:10.5pt">`+f(nome)+`<br>CPF: `+(cpf||'')+`</div>
+<div id="ass-cte-line" style="border-top:1px solid #444;margin-top:72px;padding-top:6px;font-size:10.5pt">`+f(nome)+`<br>CPF: `+(cpf||'')+`</div>
 </div>
 </div>
 </div>
