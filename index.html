@@ -2331,7 +2331,7 @@ async function enviarAssinar(){
     const brunaWpp=_getBrunaWpp();
     const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,brideId:window._curModalId||'',brunaWpp};
     const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
-    const signUrl='https://brunadona.github.io/florelle-app/?sign='+encoded;
+    const signUrl='https://brunadona.github.io/florelle-app/?sign='+encodeURIComponent(encoded);
 
     // Salvar link no registro da noiva
     const id=window._curModalId;
@@ -2453,7 +2453,7 @@ function _showSigOverlay(){
   </div>
 </div>`;
   document.body.appendChild(ov);
-  setTimeout(_sigInitCanvas,60);
+  requestAnimationFrame(()=>requestAnimationFrame(_sigInitCanvas));
 }
 
 function _hideSigOverlay(){
@@ -2569,6 +2569,10 @@ async function _sigConfirm(){
     const wppMsg=encodeURIComponent('Olá, Florelle! ✅ Assinei o contrato.\n\nAcesse para confirmar no app:\n'+confirmUrl);
     const brunaWpp=(p.brunaWpp||'').replace(/\D/g,'');
 
+    // Bloquear botão inferior para evitar dupla assinatura
+    const bottomBtn=document.querySelector('button[onclick="_showSigOverlay()"]');
+    if(bottomBtn){bottomBtn.textContent='✅ Contrato Assinado';bottomBtn.disabled=true;bottomBtn.style.background='#aaa';}
+
     // Substituir overlay pelo tela de sucesso
     const ov=document.getElementById('sp-overlay');
     if(ov){
@@ -2593,6 +2597,9 @@ async function _sigConfirm(){
     }
   }catch(e){
     console.error(e);
+    // Limpa elementos off-screen que podem ter ficado no DOM
+    try{document.getElementById('_sp_st')?.remove();}catch(_){}
+    try{const w=document.querySelector('div[style*="-9999px"]');if(w)w.remove();}catch(_){}
     alert('Erro ao gerar PDF:\n'+e.message);
     if(btn){btn.textContent='✅ Confirmar Assinatura';btn.disabled=false;}
   }
@@ -2619,10 +2626,16 @@ async function _shareOrDownload(){
 
 function _handleSignedConfirmation(brideId,ts,nome){
   const b=DATA.find(x=>x.id===brideId);
-  const dt=ts?new Date(parseInt(ts)).toLocaleString('pt-BR'):'';
+  const tsNum=parseInt(ts);
+  const dt=ts&&!isNaN(tsNum)?new Date(tsNum).toLocaleString('pt-BR'):'';
   if(b){
     b.contratoAssinado=true;
     b.contratoAssinadoEm=ts;
+    // Avança a etapa para "Contrato assinado" se ainda não passou
+    const PIPE=['lead','retomar','contratoEnviado','contratoAssinado','reserva','secagem','montagem','embalado','entregue'];
+    const cur=PIPE.indexOf(b.etapa);
+    const tgt=PIPE.indexOf('contratoAssinado');
+    if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
     save();renderAll();
     setTimeout(()=>{alert('✅ Contrato assinado!\n\n'+(b.nome||nome)+' assinou'+(dt?' em '+dt:'')+'.\n\nRegistro atualizado no app.');},200);
   }else{
