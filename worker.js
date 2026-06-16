@@ -102,6 +102,28 @@ export default {
       return json({ html });
     }
 
+    // POST /pending-confirm  →  salva confirmação pendente (quando app aberto sem dados)
+    if (request.method === 'POST' && url.pathname === '/pending-confirm') {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: 'JSON inválido' }, 400); }
+      if (!body.brideId) return json({ error: 'brideId obrigatório' }, 400);
+      const raw = await env.SIGN_KV.get('pc_list');
+      const list = raw ? JSON.parse(raw) : [];
+      const idx = list.findIndex(x => x.brideId === body.brideId);
+      const entry = { brideId: body.brideId, ts: body.ts || '', nome: body.nome || '' };
+      if (idx >= 0) list[idx] = entry; else list.push(entry);
+      await env.SIGN_KV.put('pc_list', JSON.stringify(list), { expirationTtl: 2592000 });
+      return json({ ok: true });
+    }
+
+    // GET /pending-confirms  →  retorna e apaga lista de confirmações pendentes
+    if (request.method === 'GET' && url.pathname === '/pending-confirms') {
+      const raw = await env.SIGN_KV.get('pc_list');
+      if (!raw) return json({ confirms: [] });
+      await env.SIGN_KV.delete('pc_list');
+      return json({ confirms: JSON.parse(raw) });
+    }
+
     return new Response('Florelle Sign API', { headers: CORS });
   },
 };

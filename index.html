@@ -2758,7 +2758,13 @@ function _handleSignedConfirmation(brideId,ts,nome){
     _uploadContratoAssinadoDrive(b).catch(e=>console.warn('Upload Drive:',e));
     setTimeout(()=>{alert('✅ Contrato assinado!\n\n'+(b.nome||nome)+' assinou'+(dt?' em '+dt:'')+'.\n\nRegistro atualizado no app.');},200);
   }else{
-    setTimeout(()=>{alert('✅ Confirmação recebida!\n\n'+(nome||'A noiva')+' assinou o contrato'+(dt?' em '+dt:'')+'.');},200);
+    // Noiva não encontrada neste dispositivo — salva confirmação pendente no KV
+    // para ser processada quando o app abrir no computador com os dados
+    fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({brideId,ts,nome})
+    }).catch(()=>{});
+    setTimeout(()=>{alert('✅ Confirmação recebida!\n\n'+(nome||'A noiva')+' assinou o contrato.\n\nAbra o app Florelle no seu computador para ver o registro atualizado automaticamente.');},200);
   }
   history.replaceState({},'',location.pathname);
 }
@@ -5466,11 +5472,43 @@ document.addEventListener('keydown',e=>{
 const _PIN_KEY='florelle_pin';
 const _AUTH_KEY='florelle_authed_v1';
 
+async function _processPendingConfirms(){
+  try{
+    const r=await fetch('https://florelle.brunadonaa.workers.dev/pending-confirms');
+    const {confirms}=await r.json();
+    if(!confirms||!confirms.length)return;
+    let changed=false;
+    const unprocessed=[];
+    const PIPE=['lead','retomar','contratoEnviado','contratoAssinado','reserva','secagem','montagem','embalado','entregue'];
+    for(const c of confirms){
+      const b=DATA.find(x=>x.id===c.brideId);
+      if(!b){unprocessed.push(c);continue;}
+      if(b.contratoAssinado)continue;
+      b.contratoAssinado=true;
+      b.contratoAssinadoEm=c.ts;
+      const cur=PIPE.indexOf(b.etapa);
+      const tgt=PIPE.indexOf('contratoAssinado');
+      if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
+      _uploadContratoAssinadoDrive(b).catch(()=>{});
+      changed=true;
+    }
+    if(changed){save();renderAll();_showCalToast('✅ Contrato(s) assinado(s) registrado(s)!');}
+    // Devolve ao KV os que não foram encontrados localmente
+    for(const c of unprocessed){
+      fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(c)
+      }).catch(()=>{});
+    }
+  }catch(e){console.warn('Pending confirms:',e);}
+}
+
 function _bootApp(){
   load();loadInv();renderAll();updInvBadge();updTvBadge();
   syncInit();
   _requestNotifPerm();
   _fireOverdueNotifs();
+  _processPendingConfirms();
   const _sid=new URLSearchParams(location.search).get('signed');
   if(_sid){
     const _ts=new URLSearchParams(location.search).get('ts')||'';
