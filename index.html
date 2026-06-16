@@ -1283,7 +1283,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
       <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲 WhatsApp</button>
       <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salvar contrato no Google Drive">☁️ Drive</button>
-      <button class="bctrt" id="btn-autentique" onclick="enviarAutentique()" title="Enviar para assinatura digital via Autentique">✍️ Autentique</button>
+      <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️ Assinar</button>
       <button class="bsav" onclick="saveModal()">Salvar</button>
     </div>
   </div>
@@ -2282,132 +2282,69 @@ function _buildContratoHTML(){
   return _contratoHTMLStr({nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,dataHoje,f,cb});
 }
 
-const AUTENTIQUE_KEY='florelle_autentique_key';
-function _getAutentiqueKey(){return localStorage.getItem(AUTENTIQUE_KEY)||'16c1bfbe67528dbd549112e05f07fd36cc4c930d39558ff8e9672c1aa7dbb97d';}
-
-async function enviarAutentique(){
-  const nome  = gv('m-nome').trim()||'';
-  const email = gv('m-email').trim()||'';
-  const tel   = (gv('m-tel')||'').trim().replace(/\D/g,'');
+async function enviarAssinar(){
+  const nome=gv('m-nome').trim()||'';
+  const tel=(gv('m-tel')||'').trim().replace(/\D/g,'');
   if(!nome){alert('Preencha o nome da noiva antes de enviar.');return;}
-  if(!tel){alert('Preencha o telefone da noiva — a Autentique envia o link de assinatura direto no WhatsApp dela.');return;}
-  const somenteWpp=!email;
+  if(!tel){alert('Preencha o telefone da noiva para enviar o link de assinatura.');return;}
 
   const btn=document.getElementById('btn-autentique');
-  if(btn){btn.textContent='⏳ Enviando…';btn.disabled=true;}
+  if(btn){btn.textContent='⏳ Gerando…';btn.disabled=true;}
 
   try{
-    // 1. Gerar HTML do contrato
-    const html=_buildContratoHTML();
-    if(!html){alert('Preencha os dados do contrato antes de enviar.');return;}
-
-    // 2. Renderizar HTML via DOMParser + iframe para preservar estilos
-    const parsedDoc=new DOMParser().parseFromString(html,'text/html');
-    const pageEl=parsedDoc.querySelector('.page');
-    const styleEl=parsedDoc.querySelector('style');
-
-    // Injetar estilos do contrato na página atual
-    const injStyle=document.createElement('style');
-    injStyle.id='_aut_style';
-    if(styleEl)injStyle.textContent=styleEl.textContent;
-    document.head.appendChild(injStyle);
-
-    // Injetar elemento .page (position:absolute, sem visibility:hidden para getBoundingClientRect funcionar)
-    const wrap=document.createElement('div');
-    wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
-    if(pageEl)wrap.appendChild(pageEl);
-    document.body.appendChild(wrap);
-
-    // Aguarda fontes (Google Fonts) e imagens
-    await new Promise(r=>setTimeout(r,2500));
-
-    // Calcular posição da linha de assinatura do CONTRATANTE
-    const pageDiv=wrap.querySelector('.page');
-    const lineEl=wrap.querySelector('#ass-cte-line');
-    let sigY=88;
-    if(pageDiv&&lineEl){
-      const pR=pageDiv.getBoundingClientRect();
-      const lR=lineEl.getBoundingClientRect();
-      const totalH=pageDiv.scrollHeight||1;
-      const lineTop=lR.top-pR.top;          // px do topo da .page até a linha
-      const lineTopPct=(lineTop/totalH)*100; // % do total
-      const midSpace=(36/totalH)*100;        // metade do margin-top:72px em %
-      sigY=Math.round(lineTopPct-midSpace);  // centro do espaço acima da linha
-      console.log('Autentique pos: totalH='+totalH+' lineTop='+lineTop.toFixed(0)+' lineTopPct='+lineTopPct.toFixed(1)+' sigY='+sigY);
-    }
-
-    const canvas=await html2canvas(wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
-    document.body.removeChild(wrap);
-    const injEl=document.getElementById('_aut_style');
-    if(injEl)injEl.remove();
-
-    // Verificar se canvas tem conteúdo
-    if(canvas.width<100||canvas.height<100)throw new Error('Falha ao renderizar o contrato. Tente novamente.');
-
-    // 3. Gerar PDF com jsPDF — página única com altura exata do conteúdo (sem cortes)
-    const {jsPDF}=window.jspdf;
-    const pxW=canvas.width;
-    const pxH=canvas.height;
-    const pdf=new jsPDF({unit:'px',format:[pxW,pxH],orientation:'portrait'});
-    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,pxW,pxH);
-    const pdfBlob=pdf.output('blob');
-    console.log('PDF gerado, tamanho:', pdfBlob.size, 'bytes');
-    if(pdfBlob.size<5000)throw new Error('PDF gerado está vazio ou corrompido ('+pdfBlob.size+' bytes). Tente novamente.');
-
-    // 4. Upload para Autentique via GraphQL multipart
-    const apiKey=_getAutentiqueKey();
-    const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:true,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
-    const variables={
-      document:{name:'Contrato Florelle — '+nome},
-      signers:[Object.assign({name:nome,action:'SIGN',positions:[{x:57,y:sigY,z:1,element:'SIGNATURE'}]},email?{email,delivery_method:'DELIVERY_METHOD_LINK'}:{phone:'+55'+tel,delivery_method:'DELIVERY_METHOD_WHATSAPP'})],
-      file:null
-    };
-    const formData=new FormData();
-    formData.append('operations',JSON.stringify({query,variables}));
-    formData.append('map',JSON.stringify({'0':['variables.file']}));
-    formData.append('0',new File([pdfBlob],'contrato_'+nome.replace(/\s+/g,'_')+'.pdf',{type:'application/pdf'}));
-
-    const res=await fetch('https://florelle.brunadonaa.workers.dev/',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+apiKey},
-      body:formData
-    });
-    const json=await res.json();
-    console.log('Autentique response:', JSON.stringify(json));
-    if(json.errors){throw new Error(json.errors.map(e=>e.message).join(', '));}
-    if(!json.data){throw new Error('Resposta inesperada da API: '+JSON.stringify(json));}
-
-    const doc=json.data.createDocument;
-    if(!doc){throw new Error('Documento não criado. Resposta: '+JSON.stringify(json.data));}
-    const sig=doc?.signatures?.find(s=>s?.link?.short_link)||doc?.signatures?.[0];
-    const signUrl=sig?.link?.short_link||'';
-
-    // 5. Salvar link no registro da noiva
-    if(signUrl){
-      const id=window._curModalId;
-      if(id){
-        const b=DATA.find(x=>x.id===id);
-        if(b){b.autentiqueLink=signUrl;b.autentiqueDocId=doc.id;save();}
-      }
-    }
-
-    if(somenteWpp){
-      // Sem e-mail: Autentique envia diretamente via WhatsApp para a noiva
-      alert('✅ Contrato enviado!\n\n'+nome+' receberá uma mensagem no WhatsApp da Autentique para assinar.\n\nEla pode assinar sem criar conta.');
+    const cpf=gv('m-cpf').trim()||'';
+    const rg=gv('m-rg').trim()||'';
+    const endereco=gv('m-end').trim()||'';
+    const cidade=gv('m-cidade').trim()||'';
+    const cep=gv('m-cep').trim()||'';
+    const telefone=gv('m-tel').trim()||'';
+    const flores=gv('m-flores').trim()||'';
+    const cerimNome=gv('m-cerim-nome').trim()||'';
+    const cerimTel=gv('m-cerim-tel').trim()||'';
+    const valor=gv('m-valor').trim()||'';
+    const rep=radVal('rep');
+    const produto=radVal('prod');
+    const pecas=Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
+    const pecasOutro=gv('m-outro').trim();
+    const prodMap={'cupulaG':'Cúpula G (grande)','cupulaM':'Cúpula M 18×30','quadro25x30':'Quadro 25×30 cm','quadro32x42':'Quadro 32×42 cm','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos'};
+    const modeloTxt=prodMap[produto]||produto||'';
+    const chkSim=rep==='sim',chkNao=rep==='nao';
+    const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
+    const outroTxt=pecas.includes('outro')&&pecasOutro?pecasOutro:'não';
+    const pagRows=_getPagRows(),resAtiva=radVal('reservaAtiva')==='sim';
+    const pagLinhas=[];
+    if(resAtiva&&pagRows.length){
+      const res=pagRows[0];
+      if(res.valor)pagLinhas.push('Reserva: R$ '+res.valor+(res.data?' — '+fmt(res.data):'')+(res.pago?' ✓':''));
+      pagRows.slice(1).forEach((p,i)=>{if(p.valor)pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
     } else {
-      // Com e-mail: gera link e envia pelo WhatsApp da Florelle
-      if(signUrl&&tel){
-        const msg=encodeURIComponent('Olá, '+nome.split(' ')[0]+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link abaixo para assinar pelo celular:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐');
-        window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_wpp');
-      } else {
-        alert('✅ Contrato enviado!\n\n'+nome+' receberá um e-mail em '+email+' para assinar.'+(signUrl?'\n\nLink: '+signUrl:''));
-      }
+      pagRows.filter(p=>p.valor).forEach((p,i)=>{pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
     }
+    const fpMap={'pix3x':'Pix parcelado','pixvista':'Pix à vista','cartao':'Cartão'};
+    const fpRaw=radVal('pag');
+    const fpTxt=fpMap[fpRaw]||fpRaw||'';
+    const cartaoN=parseInt(gv('m-cartao-n'))||null;
+    const cartaoVP=gv('m-cartao-vp').trim();
+    const cartaoParcelaStr=(fpRaw==='cartao'&&cartaoN&&cartaoVP)?`${cartaoN}× de R$ ${cartaoVP}`:'';
+    const pagHTML=(fpTxt?fpTxt+'<br>':'')+(cartaoParcelaStr?cartaoParcelaStr+'<br>':'')+pagLinhas.join('<br>');
+
+    const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML};
+    const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
+    const signUrl='https://brunadona.github.io/florelle-app/?sign='+encoded;
+
+    // Salvar link no registro da noiva
+    const id=window._curModalId;
+    if(id){const b=DATA.find(x=>x.id===id);if(b){b.autentiqueLink=signUrl;save();}}
+
+    const primeiroNome=nome.split(' ')[0];
+    const msg=encodeURIComponent('Olá, '+primeiroNome+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link para ler e assinar:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐\n_Florelle Atelier_');
+    window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_wpp');
+
   }catch(e){
     console.error(e);
-    alert('❌ Erro ao enviar para o Autentique:\n'+e.message);
+    alert('❌ Erro ao gerar link:\n'+e.message);
   }finally{
-    if(btn){btn.textContent='✍️ Autentique';btn.disabled=false;}
+    if(btn){btn.textContent='✍️ Assinar';btn.disabled=false;}
   }
 }
 
@@ -2422,6 +2359,217 @@ function enviarContratoWpp(){
   // para o browser não bloquear como popup
   window.open(`https://web.whatsapp.com/send?phone=55${tel}&text=${msg}`, '_wpp');
   gerarContrato();
+}
+
+/* ── PÁGINA DE ASSINATURA DIGITAL ──────────────── */
+let _signPageData=null;
+
+function _initSigningPage(signData){
+  let p;
+  try{p=JSON.parse(decodeURIComponent(escape(atob(signData))));}
+  catch(e){
+    document.body.innerHTML='<div style="padding:60px 20px;font-family:sans-serif;text-align:center;color:#c44"><h2>Link inválido</h2><p style="color:#666;margin-top:12px">Este link de assinatura não é válido ou foi corrompido.</p></div>';
+    return;
+  }
+  _signPageData=p;
+
+  const hoje=new Date();
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  p.dataHoje=hoje.getDate()+' de '+meses[hoje.getMonth()]+' de '+hoje.getFullYear();
+  p.f=v=>v||'___________________________';
+  p.cb=checked=>checked?'(X)':'( )';
+
+  const contratoHTML=_contratoHTMLStr(p);
+
+  document.title='Assinar Contrato — Florelle Atelier';
+  document.body.innerHTML='';
+  document.body.style.cssText='margin:0;padding:0;background:#F8F4EF';
+
+  const hdr=document.createElement('div');
+  hdr.style.cssText='background:#5a7a5c;color:#fff;padding:13px 20px;text-align:center;font-size:14px;font-weight:500;font-family:"DM Sans",sans-serif;letter-spacing:.01em;position:sticky;top:0;z-index:10';
+  hdr.textContent='Florelle Atelier — Assinatura Digital';
+  document.body.appendChild(hdr);
+
+  // Exibe o contrato via iframe (srcdoc)
+  const iframeWrap=document.createElement('div');
+  iframeWrap.style.cssText='background:#b8b0a4;padding:0';
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='width:100%;min-height:70vh;border:none;display:block';
+  iframe.srcdoc=contratoHTML;
+  iframeWrap.appendChild(iframe);
+  document.body.appendChild(iframeWrap);
+
+  // Painel de assinatura
+  const panel=document.createElement('div');
+  panel.id='sign-panel';
+  panel.style.cssText='background:#fff;border-top:2px solid #5a7a5c;padding:20px 20px 36px;box-shadow:0 -4px 20px rgba(0,0,0,.12)';
+  panel.innerHTML=`
+<div style="font-size:14px;color:#555;margin-bottom:10px;text-align:center;font-family:'DM Sans',sans-serif">
+  Assine abaixo para confirmar que leu e aceita o contrato:
+</div>
+<div style="position:relative;border:2px dashed #ccc;border-radius:8px;background:#fafafa;cursor:crosshair">
+  <canvas id="sig-canvas" style="display:block;width:100%;touch-action:none" height="160"></canvas>
+  <button onclick="_sigClear()" style="position:absolute;top:6px;right:8px;background:none;border:none;color:#bbb;font-size:12px;cursor:pointer;padding:4px 8px;font-family:inherit">✕ Limpar</button>
+</div>
+<button id="sign-btn" onclick="_sigConfirm()" style="display:block;width:100%;margin-top:14px;background:#5a7a5c;color:#fff;border:none;border-radius:8px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
+  ✅ Confirmar Assinatura
+</button>
+<div style="font-size:11px;color:#ccc;margin-top:8px;text-align:center;font-family:'DM Sans',sans-serif">
+  Ao confirmar, você declara que leu e concorda integralmente com todos os termos do contrato acima.
+</div>`;
+  document.body.appendChild(panel);
+
+  // Ajustar altura do iframe após carregamento
+  iframe.addEventListener('load',()=>{
+    try{
+      const h=iframe.contentDocument?.documentElement?.scrollHeight||0;
+      if(h>100)iframe.style.height=h+'px';
+    }catch(e){}
+  });
+
+  setTimeout(_sigInitCanvas,100);
+}
+
+function _sigInitCanvas(){
+  const canvas=document.getElementById('sig-canvas');
+  if(!canvas)return;
+  const w=canvas.parentElement.getBoundingClientRect().width||350;
+  canvas.width=Math.round(w);
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fafafa';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  let drawing=false,lx=0,ly=0;
+  const pos=e=>{
+    const r=canvas.getBoundingClientRect();
+    const s=e.touches?e.touches[0]:e;
+    return{x:(s.clientX-r.left)*(canvas.width/r.width),y:(s.clientY-r.top)*(canvas.height/r.height)};
+  };
+  const draw=(e,start)=>{
+    if(start){const p=pos(e);lx=p.x;ly=p.y;return;}
+    if(!drawing)return;
+    const p=pos(e);
+    ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();
+    lx=p.x;ly=p.y;
+  };
+  canvas.addEventListener('mousedown',e=>{drawing=true;draw(e,true);});
+  canvas.addEventListener('mousemove',e=>{if(drawing)draw(e,false);});
+  canvas.addEventListener('mouseup',()=>drawing=false);
+  canvas.addEventListener('mouseleave',()=>drawing=false);
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;draw(e,true);},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();if(drawing)draw(e,false);},{passive:false});
+  canvas.addEventListener('touchend',e=>{e.preventDefault();drawing=false;},{passive:false});
+}
+
+function _sigClear(){
+  const canvas=document.getElementById('sig-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fafafa';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+function _sigIsEmpty(){
+  const canvas=document.getElementById('sig-canvas');
+  if(!canvas)return true;
+  const d=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=0;i<d.length;i+=4){if(d[i]<240||d[i+1]<240||d[i+2]<240)return false;}
+  return true;
+}
+
+async function _sigConfirm(){
+  if(_sigIsEmpty()){alert('Por favor, assine no campo acima antes de confirmar.');return;}
+  const btn=document.getElementById('sign-btn');
+  if(btn){btn.textContent='⏳ Gerando PDF…';btn.disabled=true;}
+  try{
+    const p=_signPageData;
+    const sigCanvas=document.getElementById('sig-canvas');
+    const sigDataUrl=sigCanvas.toDataURL('image/png');
+
+    // Gerar HTML do contrato com assinatura injetada
+    const contratoHTML=_contratoHTMLStr(p);
+    const doc2=new DOMParser().parseFromString(contratoHTML,'text/html');
+    doc2.querySelector('.pbt')?.remove();
+    const assLine=doc2.querySelector('#ass-cte-line');
+    if(assLine){
+      const img=doc2.createElement('img');
+      img.src=sigDataUrl;
+      img.style.cssText='height:65px;width:auto;display:block;margin-bottom:4px';
+      assLine.parentNode.insertBefore(img,assLine);
+    }
+    const styleEl=doc2.querySelector('style');
+    const pageEl=doc2.querySelector('.page');
+    if(!pageEl)throw new Error('Estrutura do contrato não encontrada.');
+
+    // Renderizar off-screen
+    const injSt=document.createElement('style');
+    injSt.id='_sp_st';
+    if(styleEl)injSt.textContent=styleEl.textContent;
+    document.head.appendChild(injSt);
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
+    wrap.appendChild(pageEl);
+    document.body.appendChild(wrap);
+
+    await new Promise(r=>setTimeout(r,2000));
+
+    const rc=await html2canvas(wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
+    document.body.removeChild(wrap);
+    document.getElementById('_sp_st')?.remove();
+
+    // Gerar PDF
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:'px',format:[rc.width,rc.height],orientation:'portrait'});
+    pdf.addImage(rc.toDataURL('image/jpeg',0.92),'JPEG',0,0,rc.width,rc.height);
+    const pdfBlob=pdf.output('blob');
+    window._signedPdfBlob=pdfBlob;
+    window._signedPdfName='Contrato_Florelle_'+(p.nome||'').replace(/\s+/g,'_')+'.pdf';
+
+    // Download automático
+    const dlUrl=URL.createObjectURL(pdfBlob);
+    const a=document.createElement('a');
+    a.href=dlUrl;a.download=window._signedPdfName;a.click();
+    setTimeout(()=>URL.revokeObjectURL(dlUrl),30000);
+
+    // Tela de sucesso
+    const panel=document.getElementById('sign-panel');
+    if(panel){
+      panel.innerHTML=`<div style="text-align:center;padding:24px 10px;font-family:'DM Sans',sans-serif">
+<div style="font-size:44px;margin-bottom:14px">✅</div>
+<h2 style="color:#5a7a5c;margin-bottom:10px;font-size:20px;font-weight:600">Contrato Assinado!</h2>
+<p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:24px">
+  O PDF foi baixado no seu dispositivo.<br>
+  Por favor, envie o arquivo para a Florelle Atelier via WhatsApp.
+</p>
+<button onclick="_shareOrDownload()" style="display:block;width:100%;max-width:320px;margin:0 auto;padding:13px 20px;border-radius:8px;background:#25d366;color:#fff;border:none;font-size:15px;cursor:pointer;font-family:inherit;font-weight:600">
+  📤 Compartilhar PDF
+</button></div>`;
+    }
+  }catch(e){
+    console.error(e);
+    alert('Erro ao gerar PDF:\n'+e.message);
+    if(btn){btn.textContent='✅ Confirmar Assinatura';btn.disabled=false;}
+  }
+}
+
+async function _shareOrDownload(){
+  const b=window._signedPdfBlob;
+  const name=window._signedPdfName||'Contrato_Florelle.pdf';
+  if(!b){alert('PDF não disponível. Tente confirmar a assinatura novamente.');return;}
+  try{
+    if(navigator.share&&navigator.canShare){
+      const f=new File([b],name,{type:'application/pdf'});
+      if(navigator.canShare({files:[f]})){
+        await navigator.share({title:'Contrato Florelle Atelier',files:[f]});
+        return;
+      }
+    }
+  }catch(e){if(e.name==='AbortError')return;}
+  const url=URL.createObjectURL(b);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
 function _contratoHTMLStr(p){
@@ -5073,13 +5221,17 @@ document.addEventListener('keydown',e=>{
 })();
 
 /* ── INIT ────────────────────────────────────── */
-load();loadInv();renderAll();updInvBadge();updTvBadge();
-syncInit(); // auto-sync on load (silent if already consented)
-_requestNotifPerm();
-_fireOverdueNotifs();
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/florelle-app/sw.js').catch(()=>{});
+const _SIGN_PARAM=new URLSearchParams(location.search).get('sign');
+if(_SIGN_PARAM){
+  _initSigningPage(_SIGN_PARAM);
+}else{
+  load();loadInv();renderAll();updInvBadge();updTvBadge();
+  syncInit();
+  _requestNotifPerm();
+  _fireOverdueNotifs();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/florelle-app/sw.js').catch(()=>{});
+  }
 }
 </script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
