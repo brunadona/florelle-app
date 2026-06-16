@@ -2356,7 +2356,7 @@ async function enviarAutentique(){
 
     // 4. Upload para Autentique via GraphQL multipart
     const apiKey=_getAutentiqueKey();
-    const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:false,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
+    const query=`mutation CreateDocumentMutation($document:DocumentInput!,$signers:[SignerInput!]!,$file:Upload!){createDocument(sandbox:true,document:$document,signers:$signers,file:$file){id name signatures{public_id link{short_link}}}}`;
     const variables={
       document:{name:'Contrato Florelle — '+nome},
       signers:[Object.assign({name:nome,action:'SIGN',positions:[{x:57,y:sigY,z:1,element:'SIGNATURE'}]},email?{email,delivery_method:'DELIVERY_METHOD_LINK'}:{phone:'+55'+tel,delivery_method:'DELIVERY_METHOD_WHATSAPP'})],
