@@ -459,6 +459,17 @@ body{display:flex;flex-direction:column;overflow:hidden}
 #mob-flt-btn.active{border-color:var(--tp);color:var(--tp);background:var(--ccol)}
 #mob-flt-badge{display:none;background:var(--tp);color:#fff;border-radius:8px;font-size:10px;font-weight:700;padding:1px 5px;margin-left:1px}
 #mob-flt-badge.vis{display:inline}
+/* ── MOBILE FILTER SHEET ── */
+#mob-flt-bd{display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.4)}
+#mob-flt-bd.open{display:block}
+#mob-flt-sheet{visibility:hidden;pointer-events:none;position:fixed;bottom:0;left:0;right:0;z-index:801;background:var(--wh);border-radius:16px 16px 0 0;box-shadow:0 -4px 32px rgba(0,0,0,.18);max-height:72vh;overflow-y:auto;overscroll-behavior:contain;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1),visibility 0s linear .28s}
+#mob-flt-sheet.open{visibility:visible;pointer-events:auto;transform:translateY(0);transition:transform .28s cubic-bezier(.32,.72,0,1),visibility 0s}
+#mob-flt-sheet-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid var(--bdl);position:sticky;top:0;background:var(--wh);z-index:1}
+#mob-flt-sheet-hdr span{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--txd)}
+#mob-flt-sheet-hdr button{background:none;border:none;font-size:20px;line-height:1;color:var(--txm);cursor:pointer;padding:2px 6px}
+.mob-flt-section-label{font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:600;color:var(--txl);letter-spacing:.06em;text-transform:uppercase;padding:14px 18px 6px}
+#mob-flt-prod,#mob-flt-mes{display:flex;gap:6px;padding:2px 16px 8px;flex-wrap:wrap}
+#mob-flt-opts{display:flex;gap:8px;padding:6px 16px 20px}
 .cn-btn{width:40px;height:40px;border-radius:9px;border:1.5px solid var(--bd);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txm);flex-shrink:0;transition:background .16s,border-color .16s}
 .cn-btn:hover:not(:disabled){background:var(--ccol);border-color:var(--sl);color:var(--sd)}
 .cn-btn:disabled{opacity:.28;cursor:default}
@@ -482,12 +493,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
   /* column nav */
   #col-nav{display:flex}
 
-  /* ocultar banner de lembretes (info já no sino) e filtros por padrão */
+  /* ocultar banner e filtros principais — ficam no bottom sheet */
   #ban{display:none!important}
   #kb-flt-wrap{display:none!important}
-  #kb-flt-wrap.mob-open{display:flex!important}
   #kb-mes-flt{display:none!important}
-  #kb-mes-flt.mob-open{display:flex!important}
   #mob-flt-btn{display:flex}
 
   /* kanban: one column at a time */
@@ -869,6 +878,26 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 <!-- MÊS FILTER -->
 <div id="kb-mes-flt" class="hidden"></div>
+
+<!-- MOBILE FILTER SHEET -->
+<div id="mob-flt-bd" onclick="_closeMobSheet()"></div>
+<div id="mob-flt-sheet">
+  <div id="mob-flt-sheet-hdr">
+    <span>Filtros</span>
+    <button onclick="_closeMobSheet()" aria-label="Fechar">✕</button>
+  </div>
+  <div id="mob-flt-sheet-body">
+    <div class="mob-flt-section-label">Produto</div>
+    <div id="mob-flt-prod"></div>
+    <div class="mob-flt-section-label">Mês do casamento</div>
+    <div id="mob-flt-mes"></div>
+    <div class="mob-flt-section-label">Visualização</div>
+    <div id="mob-flt-opts">
+      <button class="kb-cmp-btn" id="mob-sort-btn" onclick="toggleKbSort()">🔤 Data</button>
+      <button class="kb-cmp-btn" id="mob-cmp-btn" onclick="toggleKbCompact()">⊟ Compacto</button>
+    </div>
+  </div>
+</div>
 
 <!-- PAINEL HOJE -->
 <div id="hoje-panel"></div>
@@ -1539,18 +1568,24 @@ function _buildProdFilter(){
   el.classList.remove('hidden');
   const prodChips=prods.length>=2?[{val:'',lbl:'Todas'},...prods.map(p=>({val:p,lbl:PLABEL[p]||p}))].map(c=>`<button class="pfchip${prodFiltro===c.val?' act':''}" onclick="setProdFiltro('${c.val}')">${c.lbl}</button>`).join(''):'';
   if(prods.length<2&&prodFiltro)prodFiltro='';
-  el.innerHTML=prodChips+`<button class="pag-atr-chip${_pagAtrFiltro?' act':''}" onclick="togglePagAtrFiltro()">💸 Atrasado</button>`;
+  const html=prodChips+`<button class="pag-atr-chip${_pagAtrFiltro?' act':''}" onclick="togglePagAtrFiltro()">💸 Atrasado</button>`;
+  el.innerHTML=html;
+  const mob=g('mob-flt-prod');if(mob)mob.innerHTML=html;
 }
 function togglePagAtrFiltro(){_pagAtrFiltro=!_pagAtrFiltro;renderAll();}
 
 function setProdFiltro(val){prodFiltro=val;renderAll();}
 
 function _toggleMobFilters(){
-  const wrap=g('kb-flt-wrap'),mes=g('kb-mes-flt'),btn=g('mob-flt-btn');
-  const open=wrap?.classList.contains('mob-open');
-  wrap?.classList.toggle('mob-open',!open);
-  mes?.classList.toggle('mob-open',!open);
-  btn?.classList.toggle('active',!open);
+  const sheet=g('mob-flt-sheet'),bd=g('mob-flt-bd'),btn=g('mob-flt-btn');
+  const open=sheet?.classList.contains('open');
+  if(!open){sheet?.classList.add('open');bd?.classList.add('open');btn?.classList.add('active');document.body.style.overflow='hidden';}
+  else{_closeMobSheet();}
+}
+function _closeMobSheet(){
+  const sheet=g('mob-flt-sheet'),bd=g('mob-flt-bd'),btn=g('mob-flt-btn');
+  sheet?.classList.remove('open');bd?.classList.remove('open');btn?.classList.remove('active');
+  document.body.style.overflow='';
 }
 
 function _updMobFltBadge(){
@@ -1741,7 +1776,9 @@ function _invSrchQ(q){clearTimeout(_invSrchTimer);_invSrch=q.trim().toLowerCase(
 /* ── SORT TOGGLE ─────────────────────────────── */
 function toggleKbSort(){
   _kbSort=_kbSort==='date'?'name':'date';
-  const btn=g('kb-sort-btn');if(btn)btn.textContent=_kbSort==='date'?'🔤 Data':'🔤 Nome';
+  const lbl=_kbSort==='date'?'🔤 Data':'🔤 Nome';
+  const btn=g('kb-sort-btn');if(btn)btn.textContent=lbl;
+  const mbtn=g('mob-sort-btn');if(mbtn)mbtn.textContent=lbl;
   renderAll();
 }
 
@@ -5217,12 +5254,14 @@ function _quickPasso(ev,id){
 function _buildMesFilter(){
   const el=g('kb-mes-flt');if(!el)return;
   const meses=[...new Set(DATA.filter(b=>b.dataCasamento&&b.etapa!=='cancelado').map(b=>b.dataCasamento.slice(0,7)))].sort();
-  if(meses.length<2){el.innerHTML='';el.classList.add('hidden');if(mesFiltro)mesFiltro='';return;}
+  if(meses.length<2){el.innerHTML='';el.classList.add('hidden');if(mesFiltro)mesFiltro='';const mob=g('mob-flt-mes');if(mob)mob.innerHTML='';return;}
   el.classList.remove('hidden');
-  el.innerHTML=[{val:'',lbl:'Todos os meses'},...meses.map(m=>{
+  const html=[{val:'',lbl:'Todos os meses'},...meses.map(m=>{
     const lbl=new Date(m+'-15').toLocaleString('pt-BR',{month:'short',year:'2-digit'});
     return{val:m,lbl};
   })].map(c=>`<button class="pfchip${mesFiltro===c.val?' act':''}" onclick="setMesFiltro('${c.val}')">${c.lbl}</button>`).join('');
+  el.innerHTML=html;
+  const mob=g('mob-flt-mes');if(mob)mob.innerHTML=html;
 }
 function setMesFiltro(val){mesFiltro=val;renderAll();}
 
@@ -5230,6 +5269,7 @@ function setMesFiltro(val){mesFiltro=val;renderAll();}
 function toggleKbCompact(){
   _kbCompact=!_kbCompact;
   const btn=g('kb-cmp-btn');if(btn)btn.classList.toggle('act',_kbCompact);
+  const mbtn=g('mob-cmp-btn');if(mbtn)mbtn.classList.toggle('act',_kbCompact);
   renderAll();
 }
 
