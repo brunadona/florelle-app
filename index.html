@@ -2754,11 +2754,64 @@ function _handleSignedConfirmation(brideId,ts,nome){
     const tgt=PIPE.indexOf('contratoAssinado');
     if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
     save();renderAll();
+    // Upload automático para o Drive (fire-and-forget, só se já autenticado)
+    _uploadContratoAssinadoDrive(b).catch(e=>console.warn('Upload Drive:',e));
     setTimeout(()=>{alert('✅ Contrato assinado!\n\n'+(b.nome||nome)+' assinou'+(dt?' em '+dt:'')+'.\n\nRegistro atualizado no app.');},200);
   }else{
     setTimeout(()=>{alert('✅ Confirmação recebida!\n\n'+(nome||'A noiva')+' assinou o contrato'+(dt?' em '+dt:'')+'.');},200);
   }
   history.replaceState({},'',location.pathname);
+}
+
+// Busca contrato assinado do KV e faz upload para a pasta da noiva no Drive
+async function _uploadContratoAssinadoDrive(b){
+  if(!_gToken)return; // sem token Google, pula silenciosamente
+
+  // 1. Buscar HTML assinado do KV
+  let html;
+  try{
+    const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id));
+    const j=await r.json();
+    if(!j.html)return;
+    html=j.html;
+  }catch(e){return;}
+
+  // 2. Garantir pasta da noiva no Drive
+  let folderId=b.driveFolder||null;
+  if(!folderId){
+    try{
+      const folderName=_brideFolderName(b.nome||'',b.dataCasamento||'');
+      let r=await _drvFetch('POST','/files',
+        JSON.stringify({name:folderName,mimeType:'application/vnd.google-apps.folder',parents:[GD_NOIVAS_ID]}),
+        'application/json'
+      );
+      if(!r.ok&&(r.status===403||r.status===404)){
+        const rootId=await _getOrCreateFolder(GD_ROOT,'root');
+        r=await _drvFetch('POST','/files',
+          JSON.stringify({name:folderName,mimeType:'application/vnd.google-apps.folder',parents:[rootId]}),
+          'application/json'
+        );
+      }
+      if(r.ok){
+        const d=await r.json();
+        if(d.id){folderId=d.id;b.driveFolder=d.id;save();}
+      }
+    }catch(e){console.warn('Pasta Drive:',e);}
+  }
+
+  // 3. Upload do HTML assinado
+  const nomeLimpo=(b.nome||'Noiva').replace(/[/\\?*:|"<>]/g,'');
+  const fileName='Contrato Assinado — '+nomeLimpo+'.html';
+  const meta={name:fileName,mimeType:'text/html',...(folderId?{parents:[folderId]}:{})};
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+  form.append('file',new Blob([html],{type:'text/html'}));
+  const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',{
+    method:'POST',headers:{'Authorization':'Bearer '+_gToken},body:form
+  });
+  if(r.ok){
+    _showCalToast('📄 Contrato assinado salvo no Drive ✓');
+  }
 }
 
 function _contratoHTMLStr(p){
