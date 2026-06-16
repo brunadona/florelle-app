@@ -2328,7 +2328,8 @@ async function enviarAssinar(){
     const cartaoParcelaStr=(fpRaw==='cartao'&&cartaoN&&cartaoVP)?`${cartaoN}× de R$ ${cartaoVP}`:'';
     const pagHTML=(fpTxt?fpTxt+'<br>':'')+(cartaoParcelaStr?cartaoParcelaStr+'<br>':'')+pagLinhas.join('<br>');
 
-    const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML};
+    const brunaWpp=_getBrunaWpp();
+    const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,brideId:window._curModalId||'',brunaWpp};
     const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
     const signUrl='https://brunadona.github.io/florelle-app/?sign='+encoded;
 
@@ -2364,11 +2365,20 @@ function enviarContratoWpp(){
 /* ── PÁGINA DE ASSINATURA DIGITAL ──────────────── */
 let _signPageData=null;
 
+function _getBrunaWpp(){
+  let n=localStorage.getItem('florelle_meu_wpp')||'';
+  if(!n){
+    n=prompt('Para receber confirmações de assinatura via WhatsApp,\ninforme seu número (só números, ex: 44999990000):')||'';
+    if(n)localStorage.setItem('florelle_meu_wpp',n.replace(/\D/g,''));
+  }
+  return n.replace(/\D/g,'');
+}
+
 function _initSigningPage(signData){
   let p;
   try{p=JSON.parse(decodeURIComponent(escape(atob(signData))));}
   catch(e){
-    document.body.innerHTML='<div style="padding:60px 20px;font-family:sans-serif;text-align:center;color:#c44"><h2>Link inválido</h2><p style="color:#666;margin-top:12px">Este link de assinatura não é válido ou foi corrompido.</p></div>';
+    document.body.innerHTML='<div style="padding:60px 20px;font-family:sans-serif;text-align:center;color:#c44"><h2>Link inválido</h2><p style="color:#666;margin-top:12px">Este link não é válido ou foi corrompido.</p></div>';
     return;
   }
   _signPageData=p;
@@ -2381,53 +2391,73 @@ function _initSigningPage(signData){
 
   const contratoHTML=_contratoHTMLStr(p);
 
-  document.title='Assinar Contrato — Florelle Atelier';
+  document.title='Contrato — Florelle Atelier';
   document.body.innerHTML='';
-  document.body.style.cssText='margin:0;padding:0;background:#F8F4EF';
+  document.documentElement.style.cssText='height:100%';
+  document.body.style.cssText='margin:0;padding:0;height:100%;overflow:hidden;font-family:"DM Sans",sans-serif';
+
+  // Layout fixo: header + iframe (flex-grow) + botão fixo na base
+  const root=document.createElement('div');
+  root.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;background:#b8b0a4';
 
   const hdr=document.createElement('div');
-  hdr.style.cssText='background:#5a7a5c;color:#fff;padding:13px 20px;text-align:center;font-size:14px;font-weight:500;font-family:"DM Sans",sans-serif;letter-spacing:.01em;position:sticky;top:0;z-index:10';
-  hdr.textContent='Florelle Atelier — Assinatura Digital';
-  document.body.appendChild(hdr);
+  hdr.style.cssText='flex-shrink:0;background:#5a7a5c;color:#fff;padding:12px 16px;text-align:center;font-size:14px;font-weight:500;letter-spacing:.01em';
+  hdr.textContent='Florelle Atelier — Contrato Digital';
 
-  // Exibe o contrato via iframe (srcdoc)
-  const iframeWrap=document.createElement('div');
-  iframeWrap.style.cssText='background:#b8b0a4;padding:0';
   const iframe=document.createElement('iframe');
-  iframe.style.cssText='width:100%;min-height:70vh;border:none;display:block';
+  iframe.style.cssText='flex:1;min-height:0;width:100%;border:none;display:block';
   iframe.srcdoc=contratoHTML;
-  iframeWrap.appendChild(iframe);
-  document.body.appendChild(iframeWrap);
 
-  // Painel de assinatura
-  const panel=document.createElement('div');
-  panel.id='sign-panel';
-  panel.style.cssText='background:#fff;border-top:2px solid #5a7a5c;padding:20px 20px 36px;box-shadow:0 -4px 20px rgba(0,0,0,.12)';
-  panel.innerHTML=`
-<div style="font-size:14px;color:#555;margin-bottom:10px;text-align:center;font-family:'DM Sans',sans-serif">
-  Assine abaixo para confirmar que leu e aceita o contrato:
-</div>
-<div style="position:relative;border:2px dashed #ccc;border-radius:8px;background:#fafafa;cursor:crosshair">
-  <canvas id="sig-canvas" style="display:block;width:100%;touch-action:none" height="160"></canvas>
-  <button onclick="_sigClear()" style="position:absolute;top:6px;right:8px;background:none;border:none;color:#bbb;font-size:12px;cursor:pointer;padding:4px 8px;font-family:inherit">✕ Limpar</button>
-</div>
-<button id="sign-btn" onclick="_sigConfirm()" style="display:block;width:100%;margin-top:14px;background:#5a7a5c;color:#fff;border:none;border-radius:8px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
-  ✅ Confirmar Assinatura
+  const bottom=document.createElement('div');
+  bottom.style.cssText='flex-shrink:0;background:#fff;border-top:2px solid #5a7a5c;padding:14px 20px 22px;box-shadow:0 -4px 20px rgba(0,0,0,.12)';
+  bottom.innerHTML=`
+<button onclick="_showSigOverlay()" style="display:block;width:100%;background:#5a7a5c;color:#fff;border:none;border-radius:9px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.01em">
+  ✍️ Assinar Contrato
 </button>
-<div style="font-size:11px;color:#ccc;margin-top:8px;text-align:center;font-family:'DM Sans',sans-serif">
-  Ao confirmar, você declara que leu e concorda integralmente com todos os termos do contrato acima.
+<div style="text-align:center;font-size:11px;color:#bbb;margin-top:7px">
+  Role o contrato acima para ler antes de assinar
 </div>`;
-  document.body.appendChild(panel);
 
-  // Ajustar altura do iframe após carregamento
-  iframe.addEventListener('load',()=>{
-    try{
-      const h=iframe.contentDocument?.documentElement?.scrollHeight||0;
-      if(h>100)iframe.style.height=h+'px';
-    }catch(e){}
-  });
+  root.appendChild(hdr);
+  root.appendChild(iframe);
+  root.appendChild(bottom);
+  document.body.appendChild(root);
+}
 
-  setTimeout(_sigInitCanvas,100);
+function _showSigOverlay(){
+  if(document.getElementById('sp-overlay'))return;
+  const ov=document.createElement('div');
+  ov.id='sp-overlay';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:9999;display:flex;flex-direction:column;font-family:"DM Sans",sans-serif';
+  ov.innerHTML=`
+<div style="flex-shrink:0;background:#5a7a5c;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px">
+  <button onclick="_hideSigOverlay()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 4px">←</button>
+  <span style="font-size:15px;font-weight:500">Assinar Contrato</span>
+</div>
+<div style="flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px">
+  <p style="color:#555;font-size:13px;margin:0;line-height:1.5">
+    Ao assinar, você confirma que leu e concorda com todos os termos do contrato.
+  </p>
+  <div style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Sua assinatura:</div>
+  <div style="position:relative;border:2px dashed #ccc;border-radius:10px;background:#fafafa;cursor:crosshair">
+    <canvas id="sig-canvas" style="display:block;width:100%;touch-action:none" height="180"></canvas>
+    <button onclick="_sigClear()" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#bbb;font-size:12px;cursor:pointer;padding:4px 8px;font-family:inherit">✕ Limpar</button>
+  </div>
+</div>
+<div style="flex-shrink:0;padding:14px 20px 28px;border-top:1px solid #eee">
+  <button id="sign-btn" onclick="_sigConfirm()" style="display:block;width:100%;background:#5a7a5c;color:#fff;border:none;border-radius:9px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">
+    ✅ Confirmar Assinatura
+  </button>
+  <div style="text-align:center;font-size:11px;color:#ccc;margin-top:7px">
+    Ao confirmar, você concorda integralmente com os termos do contrato.
+  </div>
+</div>`;
+  document.body.appendChild(ov);
+  setTimeout(_sigInitCanvas,60);
+}
+
+function _hideSigOverlay(){
+  document.getElementById('sp-overlay')?.remove();
 }
 
 function _sigInitCanvas(){
@@ -2438,27 +2468,26 @@ function _sigInitCanvas(){
   const ctx=canvas.getContext('2d');
   ctx.fillStyle='#fafafa';
   ctx.fillRect(0,0,canvas.width,canvas.height);
-
   let drawing=false,lx=0,ly=0;
   const pos=e=>{
     const r=canvas.getBoundingClientRect();
     const s=e.touches?e.touches[0]:e;
     return{x:(s.clientX-r.left)*(canvas.width/r.width),y:(s.clientY-r.top)*(canvas.height/r.height)};
   };
-  const draw=(e,start)=>{
+  const stroke=(e,start)=>{
     if(start){const p=pos(e);lx=p.x;ly=p.y;return;}
     if(!drawing)return;
     const p=pos(e);
-    ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.strokeStyle='#111';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
     ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();
     lx=p.x;ly=p.y;
   };
-  canvas.addEventListener('mousedown',e=>{drawing=true;draw(e,true);});
-  canvas.addEventListener('mousemove',e=>{if(drawing)draw(e,false);});
+  canvas.addEventListener('mousedown',e=>{drawing=true;stroke(e,true);});
+  canvas.addEventListener('mousemove',e=>{if(drawing)stroke(e,false);});
   canvas.addEventListener('mouseup',()=>drawing=false);
   canvas.addEventListener('mouseleave',()=>drawing=false);
-  canvas.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;draw(e,true);},{passive:false});
-  canvas.addEventListener('touchmove',e=>{e.preventDefault();if(drawing)draw(e,false);},{passive:false});
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;stroke(e,true);},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();if(drawing)stroke(e,false);},{passive:false});
   canvas.addEventListener('touchend',e=>{e.preventDefault();drawing=false;},{passive:false});
 }
 
@@ -2474,7 +2503,7 @@ function _sigIsEmpty(){
   const canvas=document.getElementById('sig-canvas');
   if(!canvas)return true;
   const d=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
-  for(let i=0;i<d.length;i+=4){if(d[i]<240||d[i+1]<240||d[i+2]<240)return false;}
+  for(let i=0;i<d.length;i+=4){if(d[i]<230||d[i+1]<230||d[i+2]<230)return false;}
   return true;
 }
 
@@ -2532,19 +2561,35 @@ async function _sigConfirm(){
     a.href=dlUrl;a.download=window._signedPdfName;a.click();
     setTimeout(()=>URL.revokeObjectURL(dlUrl),30000);
 
-    // Tela de sucesso
-    const panel=document.getElementById('sign-panel');
-    if(panel){
-      panel.innerHTML=`<div style="text-align:center;padding:24px 10px;font-family:'DM Sans',sans-serif">
-<div style="font-size:44px;margin-bottom:14px">✅</div>
-<h2 style="color:#5a7a5c;margin-bottom:10px;font-size:20px;font-weight:600">Contrato Assinado!</h2>
-<p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:24px">
-  O PDF foi baixado no seu dispositivo.<br>
-  Por favor, envie o arquivo para a Florelle Atelier via WhatsApp.
-</p>
-<button onclick="_shareOrDownload()" style="display:block;width:100%;max-width:320px;margin:0 auto;padding:13px 20px;border-radius:8px;background:#25d366;color:#fff;border:none;font-size:15px;cursor:pointer;font-family:inherit;font-weight:600">
-  📤 Compartilhar PDF
-</button></div>`;
+    // Montar URL de confirmação para o app da Bruna
+    const ts=Date.now();
+    const brideId=encodeURIComponent(p.brideId||'');
+    const nomeEnc=encodeURIComponent(p.nome||'');
+    const confirmUrl='https://brunadona.github.io/florelle-app/?signed='+brideId+'&ts='+ts+'&nome='+nomeEnc;
+    const wppMsg=encodeURIComponent('Olá, Florelle! ✅ Assinei o contrato.\n\nAcesse para confirmar no app:\n'+confirmUrl);
+    const brunaWpp=(p.brunaWpp||'').replace(/\D/g,'');
+
+    // Substituir overlay pelo tela de sucesso
+    const ov=document.getElementById('sp-overlay');
+    if(ov){
+      ov.innerHTML=`<div style="display:flex;flex-direction:column;height:100%;font-family:'DM Sans',sans-serif">
+<div style="flex-shrink:0;background:#5a7a5c;color:#fff;padding:12px 20px;text-align:center;font-size:14px;font-weight:500">
+  Florelle Atelier
+</div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;text-align:center;gap:14px">
+  <div style="font-size:52px">✅</div>
+  <h2 style="color:#5a7a5c;font-size:22px;font-weight:700;margin:0">Contrato Assinado!</h2>
+  <p style="color:#666;font-size:14px;line-height:1.6;margin:0">
+    O PDF foi salvo no seu dispositivo.<br>
+    Agora notifique a Florelle pelo WhatsApp.
+  </p>
+  ${brunaWpp?`<button onclick="window.open('https://wa.me/55${brunaWpp}?text=${wppMsg}','_blank')" style="display:block;width:100%;max-width:320px;padding:14px 20px;border-radius:9px;background:#25d366;color:#fff;border:none;font-size:16px;cursor:pointer;font-family:inherit;font-weight:600">
+    💬 Notificar a Florelle pelo WhatsApp
+  </button>`:`<p style="color:#aaa;font-size:13px;margin:0">Envie o PDF para a Florelle pelo WhatsApp.</p>`}
+  <button onclick="_shareOrDownload()" style="display:block;width:100%;max-width:320px;padding:12px 20px;border-radius:9px;background:#5a7a5c;color:#fff;border:none;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">
+    📤 Compartilhar PDF
+  </button>
+</div></div>`;
     }
   }catch(e){
     console.error(e);
@@ -2556,7 +2601,7 @@ async function _sigConfirm(){
 async function _shareOrDownload(){
   const b=window._signedPdfBlob;
   const name=window._signedPdfName||'Contrato_Florelle.pdf';
-  if(!b){alert('PDF não disponível. Tente confirmar a assinatura novamente.');return;}
+  if(!b){alert('PDF não disponível. Tente novamente.');return;}
   try{
     if(navigator.share&&navigator.canShare){
       const f=new File([b],name,{type:'application/pdf'});
@@ -2570,6 +2615,20 @@ async function _shareOrDownload(){
   const a=document.createElement('a');
   a.href=url;a.download=name;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+
+function _handleSignedConfirmation(brideId,ts,nome){
+  const b=DATA.find(x=>x.id===brideId);
+  const dt=ts?new Date(parseInt(ts)).toLocaleString('pt-BR'):'';
+  if(b){
+    b.contratoAssinado=true;
+    b.contratoAssinadoEm=ts;
+    save();renderAll();
+    setTimeout(()=>{alert('✅ Contrato assinado!\n\n'+(b.nome||nome)+' assinou'+(dt?' em '+dt:'')+'.\n\nRegistro atualizado no app.');},200);
+  }else{
+    setTimeout(()=>{alert('✅ Confirmação recebida!\n\n'+(nome||'A noiva')+' assinou o contrato'+(dt?' em '+dt:'')+'.');},200);
+  }
+  history.replaceState({},'',location.pathname);
 }
 
 function _contratoHTMLStr(p){
@@ -5222,6 +5281,7 @@ document.addEventListener('keydown',e=>{
 
 /* ── INIT ────────────────────────────────────── */
 const _SIGN_PARAM=new URLSearchParams(location.search).get('sign');
+const _SIGNED_ID=new URLSearchParams(location.search).get('signed');
 if(_SIGN_PARAM){
   _initSigningPage(_SIGN_PARAM);
 }else{
@@ -5229,6 +5289,11 @@ if(_SIGN_PARAM){
   syncInit();
   _requestNotifPerm();
   _fireOverdueNotifs();
+  if(_SIGNED_ID){
+    const _ts=new URLSearchParams(location.search).get('ts')||'';
+    const _nm=decodeURIComponent(new URLSearchParams(location.search).get('nome')||'');
+    _handleSignedConfirmation(_SIGNED_ID,_ts,_nm);
+  }
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/florelle-app/sw.js').catch(()=>{});
   }
