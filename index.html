@@ -455,6 +455,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
 /* ── COLUMN NAV (mobile) ── */
 #col-nav{display:none;align-items:center;gap:10px;background:var(--wh);border-bottom:1px solid var(--bd);padding:9px 14px;flex-shrink:0}
 #col-nav.cn-off{display:none!important}
+#mob-flt-btn{margin-left:auto;flex-shrink:0;height:36px;padding:0 11px;border:1.5px solid var(--bd);border-radius:9px;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--txm);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .16s;white-space:nowrap}
+#mob-flt-btn.active{border-color:var(--tp);color:var(--tp);background:var(--ccol)}
+#mob-flt-badge{display:none;background:var(--tp);color:#fff;border-radius:8px;font-size:10px;font-weight:700;padding:1px 5px;margin-left:1px}
+#mob-flt-badge.vis{display:inline}
 .cn-btn{width:40px;height:40px;border-radius:9px;border:1.5px solid var(--bd);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txm);flex-shrink:0;transition:background .16s,border-color .16s}
 .cn-btn:hover:not(:disabled){background:var(--ccol);border-color:var(--sl);color:var(--sd)}
 .cn-btn:disabled{opacity:.28;cursor:default}
@@ -477,6 +481,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
   /* column nav */
   #col-nav{display:flex}
+
+  /* ocultar banner de lembretes (info já no sino) e filtros por padrão */
+  #ban{display:none!important}
+  #kb-flt-wrap{display:none!important}
+  #kb-flt-wrap.mob-open{display:flex!important}
+  #kb-mes-flt{display:none!important}
+  #kb-mes-flt.mob-open{display:flex!important}
+  #mob-flt-btn{display:flex}
 
   /* kanban: one column at a time */
   #kw{padding:10px 10px 6px;overflow-x:hidden}
@@ -838,6 +850,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
   </div>
   <button class="cn-btn" id="cn-next" onclick="navCol(1)" aria-label="Próxima coluna">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+  <button id="mob-flt-btn" onclick="_toggleMobFilters()" style="display:none" aria-label="Filtros">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+    Filtros<span id="mob-flt-badge"></span>
   </button>
 </div>
 
@@ -1504,6 +1520,7 @@ function _nomeDisp(b){
 function renderAll(){
   _buildProdFilter();
   _buildMesFilter();
+  _updMobFltBadge();
   _renderHojePanel();
   const board=g('kb');board.innerHTML='';
   COLS.forEach(c=>board.appendChild(buildCol(c)));
@@ -1527,6 +1544,23 @@ function _buildProdFilter(){
 function togglePagAtrFiltro(){_pagAtrFiltro=!_pagAtrFiltro;renderAll();}
 
 function setProdFiltro(val){prodFiltro=val;renderAll();}
+
+function _toggleMobFilters(){
+  const wrap=g('kb-flt-wrap'),mes=g('kb-mes-flt'),btn=g('mob-flt-btn');
+  const open=wrap?.classList.contains('mob-open');
+  wrap?.classList.toggle('mob-open',!open);
+  mes?.classList.toggle('mob-open',!open);
+  btn?.classList.toggle('active',!open);
+}
+
+function _updMobFltBadge(){
+  const badge=g('mob-flt-badge');if(!badge)return;
+  const n=(prodFiltro?1:0)+(_pagAtrFiltro?1:0)+(mesFiltro?1:0);
+  badge.textContent=n>0?' '+n:'';
+  badge.classList.toggle('vis',n>0);
+  const btn=g('mob-flt-btn');
+  if(btn)btn.classList.toggle('active',n>0);
+}
 
 function buildCol(col){
   const cards=DATA.filter(b=>{
