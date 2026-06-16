@@ -74,6 +74,34 @@ export default {
       return json({ data });
     }
 
+    // POST /contract/:brideId  →  salva HTML do contrato assinado (TTL 2 anos)
+    if (request.method === 'POST' && url.pathname.startsWith('/contract/')) {
+      const brideId = decodeURIComponent(url.pathname.slice(10));
+      if (!brideId) return json({ error: 'brideId obrigatório' }, 400);
+
+      let body;
+      try { body = await request.json(); }
+      catch { return json({ error: 'JSON inválido' }, 400); }
+
+      if (!body.html || typeof body.html !== 'string') {
+        return json({ error: 'Campo html obrigatório' }, 400);
+      }
+
+      await env.SIGN_KV.put('ct:' + brideId, body.html, { expirationTtl: 63072000 });
+      return json({ ok: true });
+    }
+
+    // GET /contract/:brideId  →  recupera HTML do contrato assinado
+    if (request.method === 'GET' && url.pathname.startsWith('/contract/')) {
+      const brideId = decodeURIComponent(url.pathname.slice(10));
+      if (!brideId) return json({ error: 'brideId obrigatório' }, 400);
+
+      const html = await env.SIGN_KV.get('ct:' + brideId);
+      if (!html) return json({ error: 'Contrato não encontrado' }, 404);
+
+      return json({ html });
+    }
+
     return new Response('Florelle Sign API', { headers: CORS });
   },
 };

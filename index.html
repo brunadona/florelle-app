@@ -1289,6 +1289,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲 WhatsApp</button>
       <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salvar contrato no Google Drive">☁️ Drive</button>
       <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️ Assinar</button>
+      <button class="bctrt hidden" id="btn-ver-contrato" onclick="verContratoAssinado()" title="Ver contrato assinado pela noiva" style="background:#5a7a5c;color:#fff">📄 Ver assinado</button>
       <button class="bsav" onclick="saveModal()">Salvar</button>
     </div>
   </div>
@@ -1840,6 +1841,8 @@ function openModal(id){
   fillForm(b);
   g('bdel').classList.remove('hidden');
   if(g('bdup'))g('bdup').classList.remove('hidden');
+  const btnVC=g('btn-ver-contrato');
+  if(btnVC)btnVC.classList.toggle('hidden',!b.contratoAssinado);
   g('ov').classList.remove('hidden');
 }
 
@@ -2581,7 +2584,15 @@ async function _sigConfirm(){
     doc2.body.appendChild(printBtn2);
     const signedHtmlStr='<!DOCTYPE html>'+doc2.documentElement.outerHTML;
 
-    // 3. Tentar gerar PDF via html2canvas; se falhar usa HTML diretamente
+    // 3. Salvar HTML no servidor para acesso futuro pelo app da Bruna (fire-and-forget)
+    if(p.brideId){
+      fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(p.brideId),{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({html:signedHtmlStr})
+      }).catch(e=>console.warn('Falha ao salvar contrato no KV:',e));
+    }
+
+    // 4. Tentar gerar PDF via html2canvas; se falhar usa HTML diretamente
     let fileBlob=null;
     let isPdf=false;
     try{
@@ -2660,11 +2671,11 @@ async function _sigConfirm(){
     O ${fileType} foi salvo no seu dispositivo.<br>
     Agora notifique a Florelle pelo WhatsApp.${extraTip}
   </p>
-  ${brunaWpp?`<button onclick="window.open('https://wa.me/55${brunaWpp}?text=${wppMsg}','_blank')" style="display:block;width:100%;max-width:320px;padding:14px 20px;border-radius:9px;background:#25d366;color:#fff;border:none;font-size:16px;cursor:pointer;font-family:inherit;font-weight:600">
-    💬 Notificar a Florelle pelo WhatsApp
+  ${brunaWpp?`<button onclick="_notifyBrunaWpp('${brunaWpp}','${wppMsg}')" style="display:block;width:100%;max-width:320px;padding:14px 20px;border-radius:9px;background:#25d366;color:#fff;border:none;font-size:16px;cursor:pointer;font-family:inherit;font-weight:600">
+    💬 Notificar + Enviar ${fileType} pelo WhatsApp
   </button>`:`<p style="color:#aaa;font-size:13px;margin:0">Envie o ${fileType} para a Florelle pelo WhatsApp.</p>`}
   <button onclick="_shareOrDownload()" style="display:block;width:100%;max-width:320px;padding:12px 20px;border-radius:9px;background:#5a7a5c;color:#fff;border:none;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">
-    📤 Compartilhar ${fileType}
+    📤 Só compartilhar ${fileType}
   </button>
 </div></div>`;
     }
@@ -2695,6 +2706,39 @@ async function _shareOrDownload(){
   const a=document.createElement('a');
   a.href=url;a.download=name;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+
+// Compartilha PDF/HTML pelo sistema nativo (abre sheet onde noiva escolhe WhatsApp)
+// Se share com arquivo não for suportado, cai no link de texto simples
+async function _notifyBrunaWpp(wpp,msg){
+  const b=window._signedPdfBlob;
+  const name=window._signedPdfName||'Contrato_Florelle.pdf';
+  const type=name.endsWith('.html')?'text/html':'application/pdf';
+  if(b&&navigator.share&&navigator.canShare){
+    try{
+      const f=new File([b],name,{type});
+      if(navigator.canShare({files:[f]})){
+        await navigator.share({title:'Contrato Florelle Atelier',text:decodeURIComponent(msg),files:[f]});
+        return;
+      }
+    }catch(e){if(e.name==='AbortError')return;}
+  }
+  window.open('https://wa.me/55'+wpp+'?text='+msg,'_blank');
+}
+
+// Busca o contrato assinado do KV e abre em nova aba (chamado do modal da Bruna)
+async function verContratoAssinado(){
+  const b=DATA.find(x=>x.id===window._curModalId);
+  if(!b){alert('Noiva não encontrada.');return;}
+  try{
+    const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id));
+    const {html,error}=await r.json();
+    if(error||!html){alert('Contrato não encontrado no servidor.\nA noiva precisa assinar pelo link enviado.');return;}
+    const blob=new Blob([html],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    window.open(url,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){alert('Erro ao buscar contrato:\n'+e.message);}
 }
 
 function _handleSignedConfirmation(brideId,ts,nome){
