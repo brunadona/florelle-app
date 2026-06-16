@@ -4626,14 +4626,27 @@ function setSyncStatus(s){
 
 async function syncInit(){
   if(!navigator.onLine){setSyncStatus('offline');return;}
-  // Just initialise the GIS client — never auto-open a popup on load.
-  // The user must click the Drive button to authenticate.
   await new Promise(res=>{
     const check=()=>window.google?.accounts?.oauth2?res():setTimeout(check,300);
-    setTimeout(check,500); // give GIS script time to load
+    setTimeout(check,500);
   });
-  _initGClient();
-  setSyncStatus(_gToken?'ok':'idle');
+  if(!_initGClient()){setSyncStatus('idle');return;}
+  if(_gToken){await _loadFromDrive();return;}
+  // Tenta autenticação silenciosa (sem popup) — funciona se usuário já autorizou o app antes
+  try{
+    await new Promise((resolve,reject)=>{
+      _gClient.callback=(r)=>{
+        if(r.error){reject(new Error(r.error));return;}
+        _gToken=r.access_token;resolve();
+      };
+      // prompt vazio = silencioso quando já há consentimento prévio
+      _gClient.requestAccessToken({prompt:''});
+    });
+    await _loadFromDrive();
+  }catch(e){
+    // Falhou silenciosamente — usuário clica o botão Drive para autenticar
+    setSyncStatus('idle');
+  }
 }
 
 async function syncLogin(){
