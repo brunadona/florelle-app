@@ -2445,6 +2445,7 @@ function _setupSigningPage(signData){
   hdr.textContent='Florelle Atelier — Contrato Digital';
 
   const iframe=document.createElement('iframe');
+  iframe.id='sp-iframe';
   iframe.style.cssText='flex:1;min-height:0;width:100%;border:none;display:block';
   iframe.srcdoc=contratoHTML;
 
@@ -2466,6 +2467,8 @@ function _setupSigningPage(signData){
 
 function _showSigOverlay(){
   if(document.getElementById('sp-overlay'))return;
+  // Remove iframe (Google Fonts cross-origin) antes de criar o canvas — evita SecurityError no Firefox mobile
+  document.getElementById('sp-iframe')?.remove();
   const ov=document.createElement('div');
   ov.id='sp-overlay';
   ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:9999;display:flex;flex-direction:column;font-family:"DM Sans",sans-serif';
@@ -2550,18 +2553,17 @@ function _sigIsEmpty(){
 async function _sigConfirm(){
   if(_sigIsEmpty()){alert('Por favor, assine no campo acima antes de confirmar.');return;}
   const btn=document.getElementById('sign-btn');
-  if(btn){btn.textContent='⏳ Gerando PDF…';btn.disabled=true;}
+  if(btn){btn.textContent='⏳ Gerando…';btn.disabled=true;}
   try{
     const p=_signPageData;
     const sigCanvas=document.getElementById('sig-canvas');
 
-    // Capturar assinatura em canvas limpo (evita taint por contexto compartilhado)
-    const sigClean=document.createElement('canvas');
-    sigClean.width=sigCanvas.width;sigClean.height=sigCanvas.height;
-    sigClean.getContext('2d').drawImage(sigCanvas,0,0);
-    const sigDataUrl=sigClean.toDataURL('image/png');
+    // 1. Capturar assinatura (iframe removido antes de abrir overlay — canvas livre de contexto cross-origin)
+    let sigDataUrl;
+    try{sigDataUrl=sigCanvas.toDataURL('image/png');}
+    catch(e){throw new Error('Não foi possível capturar a assinatura. Abra este link no Chrome ou Safari.');}
 
-    // Gerar HTML do contrato com assinatura injetada
+    // 2. Montar HTML do contrato assinado
     const contratoHTML=_contratoHTMLStr(p);
     const doc2=new DOMParser().parseFromString(contratoHTML,'text/html');
     doc2.querySelector('.pbt')?.remove();
@@ -2572,53 +2574,60 @@ async function _sigConfirm(){
       img.style.cssText='height:65px;width:auto;display:block;margin-bottom:4px';
       assLine.parentNode.insertBefore(img,assLine);
     }
-    const styleEl=doc2.querySelector('style');
-    const pageEl=doc2.querySelector('.page');
-    if(!pageEl)throw new Error('Estrutura do contrato não encontrada.');
+    const printBtn2=doc2.createElement('button');
+    printBtn2.setAttribute('onclick','window.print()');
+    printBtn2.style.cssText='display:block;margin:20px auto;padding:12px 24px;background:#5a7a5c;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:sans-serif';
+    printBtn2.textContent='Imprimir / Salvar como PDF';
+    doc2.body.appendChild(printBtn2);
+    const signedHtmlStr='<!DOCTYPE html>'+doc2.documentElement.outerHTML;
 
-    // Renderizar off-screen — remove tudo que pode causar canvas taint:
-    // @import de fontes externas, url() de background, SVG filters
-    const injSt=document.createElement('style');
-    injSt.id='_sp_st';
-    if(styleEl)injSt.textContent=styleEl.textContent
-      .replace(/@import[^;]+;/g,'')
-      .replace(/url\(["']?data:image\/svg[^)]+\)/g,'none');
-    // Remove background-image de noise SVG do .page diretamente
-    const pageStyle=pageEl.getAttribute('style')||'';
-    pageEl.setAttribute('style',pageStyle);
-    pageEl.style.backgroundImage='none';
-    document.head.appendChild(injSt);
-    const wrap=document.createElement('div');
-    wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
-    wrap.appendChild(pageEl);
-    document.body.appendChild(wrap);
+    // 3. Tentar gerar PDF via html2canvas; se falhar usa HTML diretamente
+    let fileBlob=null;
+    let isPdf=false;
+    try{
+      const doc3=new DOMParser().parseFromString(signedHtmlStr,'text/html');
+      const pageEl=doc3.querySelector('.page');
+      if(!pageEl)throw new Error('no-page');
+      const styleEl=doc3.querySelector('style');
+      const injSt=document.createElement('style');
+      injSt.id='_sp_st';
+      if(styleEl)injSt.textContent=styleEl.textContent
+        .replace(/@import[^;]+;/g,'')
+        .replace(/url\(["']?data:image\/svg[^)]+\)/g,'none');
+      pageEl.style.backgroundImage='none';
+      document.head.appendChild(injSt);
+      const wrap=document.createElement('div');
+      wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
+      wrap.appendChild(pageEl);
+      document.body.appendChild(wrap);
+      await new Promise(r=>setTimeout(r,400));
+      const rc=await html2canvas(wrap,{
+        scale:1.5,useCORS:false,allowTaint:false,
+        foreignObjectRendering:false,logging:false,backgroundColor:'#e4dcd0'
+      });
+      document.body.removeChild(wrap);
+      document.getElementById('_sp_st')?.remove();
+      const pdfC=document.createElement('canvas');
+      pdfC.width=rc.width;pdfC.height=rc.height;
+      pdfC.getContext('2d').drawImage(rc,0,0);
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({unit:'px',format:[rc.width,rc.height],orientation:'portrait'});
+      pdf.addImage(pdfC.toDataURL('image/jpeg',0.92),'JPEG',0,0,rc.width,rc.height);
+      fileBlob=pdf.output('blob');
+      isPdf=true;
+    }catch(pdfErr){
+      console.warn('PDF via canvas falhou, usando HTML:',pdfErr.message);
+      try{document.getElementById('_sp_st')?.remove();}catch(_){}
+      try{const w=document.querySelector('div[style*="-9999px"]');if(w)w.remove();}catch(_){}
+      fileBlob=new Blob([signedHtmlStr],{type:'text/html'});
+    }
 
-    await new Promise(r=>setTimeout(r,500));
-
-    const rc=await html2canvas(wrap,{
-      scale:1.5,
-      useCORS:false,
-      allowTaint:false,
-      foreignObjectRendering:false,
-      logging:false,
-      backgroundColor:'#e4dcd0'
-    });
-    document.body.removeChild(wrap);
-    document.getElementById('_sp_st')?.remove();
-
-    // Gerar PDF em canvas separado para garantir toDataURL seguro
-    const pdfCanvas=document.createElement('canvas');
-    pdfCanvas.width=rc.width;pdfCanvas.height=rc.height;
-    pdfCanvas.getContext('2d').drawImage(rc,0,0);
-    const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF({unit:'px',format:[rc.width,rc.height],orientation:'portrait'});
-    pdf.addImage(pdfCanvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,rc.width,rc.height);
-    const pdfBlob=pdf.output('blob');
-    window._signedPdfBlob=pdfBlob;
-    window._signedPdfName='Contrato_Florelle_'+(p.nome||'').replace(/\s+/g,'_')+'.pdf';
+    const nomeLimpo=(p.nome||'').replace(/\s+/g,'_');
+    window._signedPdfBlob=fileBlob;
+    window._signedPdfName='Contrato_Florelle_'+nomeLimpo+(isPdf?'.pdf':'.html');
 
     // Download automático
-    const dlUrl=URL.createObjectURL(pdfBlob);
+    const dlUrl=URL.createObjectURL(fileBlob);
     const a=document.createElement('a');
     a.href=dlUrl;a.download=window._signedPdfName;a.click();
     setTimeout(()=>URL.revokeObjectURL(dlUrl),30000);
@@ -2631,11 +2640,13 @@ async function _sigConfirm(){
     const wppMsg=encodeURIComponent('Olá, Florelle! ✅ Assinei o contrato.\n\nAcesse para confirmar no app:\n'+confirmUrl);
     const brunaWpp=(p.brunaWpp||'').replace(/\D/g,'');
 
-    // Bloquear botão inferior para evitar dupla assinatura
+    // Bloquear botão inferior
     const bottomBtn=document.querySelector('button[onclick="_showSigOverlay()"]');
     if(bottomBtn){bottomBtn.textContent='✅ Contrato Assinado';bottomBtn.disabled=true;bottomBtn.style.background='#aaa';}
 
-    // Substituir overlay pelo tela de sucesso
+    // Tela de sucesso
+    const fileType=isPdf?'PDF':'arquivo HTML';
+    const extraTip=isPdf?'':'<br><small style="color:#aaa;font-size:11px">Abra o arquivo no navegador e use Imprimir → Salvar como PDF.</small>';
     const ov=document.getElementById('sp-overlay');
     if(ov){
       ov.innerHTML=`<div style="display:flex;flex-direction:column;height:100%;font-family:'DM Sans',sans-serif">
@@ -2646,23 +2657,22 @@ async function _sigConfirm(){
   <div style="font-size:52px">✅</div>
   <h2 style="color:#5a7a5c;font-size:22px;font-weight:700;margin:0">Contrato Assinado!</h2>
   <p style="color:#666;font-size:14px;line-height:1.6;margin:0">
-    O PDF foi salvo no seu dispositivo.<br>
-    Agora notifique a Florelle pelo WhatsApp.
+    O ${fileType} foi salvo no seu dispositivo.<br>
+    Agora notifique a Florelle pelo WhatsApp.${extraTip}
   </p>
   ${brunaWpp?`<button onclick="window.open('https://wa.me/55${brunaWpp}?text=${wppMsg}','_blank')" style="display:block;width:100%;max-width:320px;padding:14px 20px;border-radius:9px;background:#25d366;color:#fff;border:none;font-size:16px;cursor:pointer;font-family:inherit;font-weight:600">
     💬 Notificar a Florelle pelo WhatsApp
-  </button>`:`<p style="color:#aaa;font-size:13px;margin:0">Envie o PDF para a Florelle pelo WhatsApp.</p>`}
+  </button>`:`<p style="color:#aaa;font-size:13px;margin:0">Envie o ${fileType} para a Florelle pelo WhatsApp.</p>`}
   <button onclick="_shareOrDownload()" style="display:block;width:100%;max-width:320px;padding:12px 20px;border-radius:9px;background:#5a7a5c;color:#fff;border:none;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">
-    📤 Compartilhar PDF
+    📤 Compartilhar ${fileType}
   </button>
 </div></div>`;
     }
   }catch(e){
     console.error(e);
-    // Limpa elementos off-screen que podem ter ficado no DOM
     try{document.getElementById('_sp_st')?.remove();}catch(_){}
     try{const w=document.querySelector('div[style*="-9999px"]');if(w)w.remove();}catch(_){}
-    alert('Erro ao gerar PDF:\n'+e.message);
+    alert('Erro ao gerar contrato:\n'+e.message);
     if(btn){btn.textContent='✅ Confirmar Assinatura';btn.disabled=false;}
   }
 }
@@ -2670,10 +2680,11 @@ async function _sigConfirm(){
 async function _shareOrDownload(){
   const b=window._signedPdfBlob;
   const name=window._signedPdfName||'Contrato_Florelle.pdf';
-  if(!b){alert('PDF não disponível. Tente novamente.');return;}
+  if(!b){alert('Arquivo não disponível. Tente novamente.');return;}
+  const type=name.endsWith('.html')?'text/html':'application/pdf';
   try{
     if(navigator.share&&navigator.canShare){
-      const f=new File([b],name,{type:'application/pdf'});
+      const f=new File([b],name,{type});
       if(navigator.canShare({files:[f]})){
         await navigator.share({title:'Contrato Florelle Atelier',files:[f]});
         return;
