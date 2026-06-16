@@ -2571,19 +2571,19 @@ async function _sigConfirm(){
     const pageEl=doc2.querySelector('.page');
     if(!pageEl)throw new Error('Estrutura do contrato não encontrada.');
 
-    // Renderizar off-screen
+    // Renderizar off-screen (sem @import de fontes externas para evitar canvas taint)
     const injSt=document.createElement('style');
     injSt.id='_sp_st';
-    if(styleEl)injSt.textContent=styleEl.textContent;
+    if(styleEl)injSt.textContent=styleEl.textContent.replace(/@import[^;]+;/g,'');
     document.head.appendChild(injSt);
     const wrap=document.createElement('div');
     wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
     wrap.appendChild(pageEl);
     document.body.appendChild(wrap);
 
-    await new Promise(r=>setTimeout(r,2000));
+    await new Promise(r=>setTimeout(r,800));
 
-    const rc=await html2canvas(wrap,{scale:1.5,useCORS:true,logging:false,backgroundColor:'#e4dcd0'});
+    const rc=await html2canvas(wrap,{scale:1.5,useCORS:false,allowTaint:false,logging:false,backgroundColor:'#e4dcd0'});
     document.body.removeChild(wrap);
     document.getElementById('_sp_st')?.remove();
 
