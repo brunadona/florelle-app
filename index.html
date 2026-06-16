@@ -2554,7 +2554,12 @@ async function _sigConfirm(){
   try{
     const p=_signPageData;
     const sigCanvas=document.getElementById('sig-canvas');
-    const sigDataUrl=sigCanvas.toDataURL('image/png');
+
+    // Capturar assinatura em canvas limpo (evita taint por contexto compartilhado)
+    const sigClean=document.createElement('canvas');
+    sigClean.width=sigCanvas.width;sigClean.height=sigCanvas.height;
+    sigClean.getContext('2d').drawImage(sigCanvas,0,0);
+    const sigDataUrl=sigClean.toDataURL('image/png');
 
     // Gerar HTML do contrato com assinatura injetada
     const contratoHTML=_contratoHTMLStr(p);
@@ -2571,26 +2576,43 @@ async function _sigConfirm(){
     const pageEl=doc2.querySelector('.page');
     if(!pageEl)throw new Error('Estrutura do contrato não encontrada.');
 
-    // Renderizar off-screen (sem @import de fontes externas para evitar canvas taint)
+    // Renderizar off-screen — remove tudo que pode causar canvas taint:
+    // @import de fontes externas, url() de background, SVG filters
     const injSt=document.createElement('style');
     injSt.id='_sp_st';
-    if(styleEl)injSt.textContent=styleEl.textContent.replace(/@import[^;]+;/g,'');
+    if(styleEl)injSt.textContent=styleEl.textContent
+      .replace(/@import[^;]+;/g,'')
+      .replace(/url\(["']?data:image\/svg[^)]+\)/g,'none');
+    // Remove background-image de noise SVG do .page diretamente
+    const pageStyle=pageEl.getAttribute('style')||'';
+    pageEl.setAttribute('style',pageStyle);
+    pageEl.style.backgroundImage='none';
     document.head.appendChild(injSt);
     const wrap=document.createElement('div');
     wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
     wrap.appendChild(pageEl);
     document.body.appendChild(wrap);
 
-    await new Promise(r=>setTimeout(r,800));
+    await new Promise(r=>setTimeout(r,500));
 
-    const rc=await html2canvas(wrap,{scale:1.5,useCORS:false,allowTaint:false,logging:false,backgroundColor:'#e4dcd0'});
+    const rc=await html2canvas(wrap,{
+      scale:1.5,
+      useCORS:false,
+      allowTaint:false,
+      foreignObjectRendering:false,
+      logging:false,
+      backgroundColor:'#e4dcd0'
+    });
     document.body.removeChild(wrap);
     document.getElementById('_sp_st')?.remove();
 
-    // Gerar PDF
+    // Gerar PDF em canvas separado para garantir toDataURL seguro
+    const pdfCanvas=document.createElement('canvas');
+    pdfCanvas.width=rc.width;pdfCanvas.height=rc.height;
+    pdfCanvas.getContext('2d').drawImage(rc,0,0);
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF({unit:'px',format:[rc.width,rc.height],orientation:'portrait'});
-    pdf.addImage(rc.toDataURL('image/jpeg',0.92),'JPEG',0,0,rc.width,rc.height);
+    pdf.addImage(pdfCanvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,rc.width,rc.height);
     const pdfBlob=pdf.output('blob');
     window._signedPdfBlob=pdfBlob;
     window._signedPdfName='Contrato_Florelle_'+(p.nome||'').replace(/\s+/g,'_')+'.pdf';
