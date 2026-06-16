@@ -771,6 +771,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <input type="file" accept=".json" style="display:none" onchange="importData(event)">
   </label>
   <div class="hmi-sep"></div>
+  <button class="hmi" onclick="_alterarPin();closeHMenu()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Alterar senha de acesso
+  </button>
+  <div class="hmi-sep"></div>
   <button class="hmi" style="color:#B03420" onclick="_limparApenasNoivas();closeHMenu()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
     Limpar apenas noivas
@@ -2331,7 +2336,19 @@ async function enviarAssinar(){
     const brunaWpp=_getBrunaWpp();
     const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,brideId:window._curModalId||'',brunaWpp};
     const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
-    const signUrl='https://brunadona.github.io/florelle-app/?sign='+encodeURIComponent(encoded);
+
+    // Enviar ao worker para obter token curto
+    if(btn)btn.textContent='⏳ Enviando…';
+    const wRes=await fetch('https://florelle.brunadonaa.workers.dev/sign',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({data:encoded})
+    });
+    if(!wRes.ok)throw new Error('Serviço de link indisponível ('+wRes.status+'). Tente novamente.');
+    const {token,error:wErr}=await wRes.json();
+    if(wErr||!token)throw new Error(wErr||'Sem token do servidor.');
+
+    const signUrl='https://brunadona.github.io/florelle-app/?sign='+token;
 
     // Salvar link no registro da noiva
     const id=window._curModalId;
@@ -2374,11 +2391,34 @@ function _getBrunaWpp(){
   return n.replace(/\D/g,'');
 }
 
-function _initSigningPage(signData){
+function _sigErrPage(msg){
+  document.body.innerHTML='<div style="padding:60px 20px;font-family:\'DM Sans\',sans-serif;text-align:center;color:#c44"><h2>Link inválido</h2><p style="color:#666;margin-top:12px">'+msg+'</p></div>';
+}
+
+// Ponto de entrada: recebe token curto (≤12 chars) OU base64 legado
+function _initSigningPage(param){
+  if(param.length<=12){
+    // Token curto — buscar dados no worker
+    document.body.style.cssText='margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:"DM Sans",sans-serif;background:#F8F4EF';
+    document.body.innerHTML='<div style="text-align:center;color:#5a7a5c"><div style="font-size:32px;animation:spin 1s linear infinite">🌸</div><p style="margin-top:14px;font-size:14px;color:#888">Carregando contrato…</p></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    fetch('https://florelle.brunadonaa.workers.dev/sign/'+encodeURIComponent(param))
+      .then(r=>r.json())
+      .then(({data,error})=>{
+        if(error||!data)return _sigErrPage('Link expirado ou inválido. Peça à Florelle um novo link.');
+        _setupSigningPage(data);
+      })
+      .catch(()=>_sigErrPage('Erro de conexão. Verifique sua internet e tente novamente.'));
+  }else{
+    // Base64 legado (retrocompatibilidade)
+    _setupSigningPage(param);
+  }
+}
+
+function _setupSigningPage(signData){
   let p;
   try{p=JSON.parse(decodeURIComponent(escape(atob(signData))));}
   catch(e){
-    document.body.innerHTML='<div style="padding:60px 20px;font-family:sans-serif;text-align:center;color:#c44"><h2>Link inválido</h2><p style="color:#666;margin-top:12px">Este link não é válido ou foi corrompido.</p></div>';
+    _sigErrPage('Este link não é válido ou foi corrompido.');
     return;
   }
   _signPageData=p;
@@ -5292,23 +5332,118 @@ document.addEventListener('keydown',e=>{
   },{passive:true});
 })();
 
-/* ── INIT ────────────────────────────────────── */
-const _SIGN_PARAM=new URLSearchParams(location.search).get('sign');
-const _SIGNED_ID=new URLSearchParams(location.search).get('signed');
-if(_SIGN_PARAM){
-  _initSigningPage(_SIGN_PARAM);
-}else{
+/* ── PIN DE ACESSO ───────────────────────────── */
+const _PIN_KEY='florelle_pin';
+const _AUTH_KEY='florelle_authed_v1';
+
+function _bootApp(){
   load();loadInv();renderAll();updInvBadge();updTvBadge();
   syncInit();
   _requestNotifPerm();
   _fireOverdueNotifs();
-  if(_SIGNED_ID){
+  const _sid=new URLSearchParams(location.search).get('signed');
+  if(_sid){
     const _ts=new URLSearchParams(location.search).get('ts')||'';
     const _nm=decodeURIComponent(new URLSearchParams(location.search).get('nome')||'');
-    _handleSignedConfirmation(_SIGNED_ID,_ts,_nm);
+    _handleSignedConfirmation(_sid,_ts,_nm);
   }
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/florelle-app/sw.js').catch(()=>{});
+  }
+}
+
+function _showPinScreen(onSuccess){
+  const firstTime=!localStorage.getItem(_PIN_KEY);
+  const ov=document.createElement('div');
+  ov.id='login-ov';
+  ov.innerHTML=`
+<div id="lbox">
+  <div class="lbico">
+    <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M12 2C9.8 2 8 3.8 8 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6c0-2.2-1.8-4-4-4zm0 2c1.1 0 2 .9 2 2v2h-4V6c0-1.1.9-2 2-2zm0 8a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="#5a7a5c"/></svg>
+  </div>
+  <div class="lbt">Florelle Atelier</div>
+  <div class="lbd" id="pin-msg">${firstTime?'Crie sua senha de acesso (mín. 4 dígitos):':'Digite sua senha de acesso:'}</div>
+  <input type="password" id="pin-inp" inputmode="numeric" maxlength="12" autocomplete="current-password"
+    style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:18px;letter-spacing:.3em;text-align:center;font-family:'DM Sans',sans-serif;margin-bottom:14px;box-sizing:border-box;outline:none"
+    placeholder="••••" onkeydown="if(event.key==='Enter')_doLogin(${firstTime})">
+  <button class="gbtn" onclick="_doLogin(${firstTime})">${firstTime?'Criar senha':'Entrar'}</button>
+  ${firstTime?'':'<button class="gskp" onclick="_forgotPin()" style="display:block;margin-top:10px;width:100%">Esqueci a senha</button>'}
+</div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>document.getElementById('pin-inp')?.focus(),120);
+  window._pinOnSuccess=onSuccess;
+}
+
+function _doLogin(isFirst){
+  const inp=document.getElementById('pin-inp');
+  if(!inp)return;
+  const val=inp.value.trim();
+  if(val.length<4){
+    inp.style.borderColor='#e05';
+    inp.value='';
+    const msg=document.getElementById('pin-msg');
+    if(msg)msg.textContent='Mínimo 4 caracteres.';
+    inp.focus();
+    return;
+  }
+  if(isFirst){
+    localStorage.setItem(_PIN_KEY,val);
+    sessionStorage.setItem(_AUTH_KEY,'1');
+    document.getElementById('login-ov')?.remove();
+    window._pinOnSuccess?.();
+    return;
+  }
+  const correct=localStorage.getItem(_PIN_KEY)||'1234';
+  if(val===correct){
+    sessionStorage.setItem(_AUTH_KEY,'1');
+    document.getElementById('login-ov')?.remove();
+    window._pinOnSuccess?.();
+  }else{
+    inp.style.borderColor='#e05';
+    inp.value='';
+    const msg=document.getElementById('pin-msg');
+    if(msg)msg.textContent='Senha incorreta. Tente novamente.';
+    inp.focus();
+  }
+}
+
+function _forgotPin(){
+  const ok=confirm('Para redefinir a senha, todos os dados do app precisam ser exportados antes.\n\nVocê fez backup recentemente?\n\nClique OK para apagar a senha e usar "1234" como nova senha padrão.\nClique Cancelar para voltar.');
+  if(!ok)return;
+  localStorage.setItem(_PIN_KEY,'1234');
+  const msg=document.getElementById('pin-msg');
+  if(msg)msg.textContent='Senha redefinida para 1234. Faça login:';
+  const inp=document.getElementById('pin-inp');
+  if(inp){inp.value='';inp.focus();}
+  document.querySelector('#lbox .gbtn').textContent='Entrar';
+  document.querySelector('#lbox .gskp')?.remove();
+  // Trocar chamada para modo normal
+  document.querySelector('#lbox .gbtn').setAttribute('onclick','_doLogin(false)');
+}
+
+function _alterarPin(){
+  const atual=prompt('Digite sua senha ATUAL:');
+  if(atual===null)return;
+  const correct=localStorage.getItem(_PIN_KEY)||'1234';
+  if(atual!==correct){alert('Senha atual incorreta.');return;}
+  const nova=prompt('Digite a NOVA senha (mín. 4 caracteres):');
+  if(nova===null)return;
+  if(nova.length<4){alert('A nova senha precisa ter pelo menos 4 caracteres.');return;}
+  const conf=prompt('Confirme a nova senha:');
+  if(conf!==nova){alert('As senhas não conferem.');return;}
+  localStorage.setItem(_PIN_KEY,nova);
+  alert('✅ Senha alterada com sucesso!');
+}
+
+/* ── INIT ────────────────────────────────────── */
+const _SIGN_PARAM=new URLSearchParams(location.search).get('sign');
+if(_SIGN_PARAM){
+  _initSigningPage(_SIGN_PARAM);
+}else{
+  if(sessionStorage.getItem(_AUTH_KEY)){
+    _bootApp();
+  }else{
+    _showPinScreen(_bootApp);
   }
 }
 </script>
