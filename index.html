@@ -706,6 +706,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -1382,7 +1383,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label class="wa-file-btn" title="Anexar arquivo .txt exportado do WhatsApp">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             Anexar arquivo
-            <input type="file" id="wa-file" accept=".txt" style="display:none" onchange="waLoadFile(this)">
+            <input type="file" id="wa-file" accept=".txt,.zip" style="display:none" onchange="waLoadFile(this)">
           </label>
         </div>
         <textarea id="wa-txt" class="wa-ta" placeholder="Cole aqui o texto exportado do WhatsApp…&#10;&#10;Exemplo:&#10;01/05/2025, 14:30 - Noiva: Olá, vi seu trabalho com os buquês!&#10;01/05/2025, 14:31 - Você: Oi! Pode me contar mais sobre o casamento?&#10;…"></textarea>
@@ -4887,16 +4888,42 @@ function openWaImport(){
 function waLoadFile(input){
   const file=input.files[0];
   if(!file)return;
+  const fn=g('wa-file-name');
+
+  if(file.name.toLowerCase().endsWith('.zip')){
+    if(typeof JSZip==='undefined'){
+      if(fn){fn.textContent='Erro: biblioteca ZIP não carregada.';fn.style.display='';}
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=async function(e){
+      try{
+        const zip=await JSZip.loadAsync(e.target.result);
+        // pega o primeiro .txt dentro do zip (arquivo da conversa do WhatsApp)
+        const txtFile=Object.values(zip.files).find(f=>!f.dir&&f.name.toLowerCase().endsWith('.txt'));
+        if(!txtFile){
+          if(fn){fn.textContent='Nenhum arquivo .txt encontrado dentro do ZIP.';fn.style.display='';}
+          return;
+        }
+        const txt=await txtFile.async('string');
+        sv2('wa-txt',txt);
+        if(fn){fn.textContent='📎 '+txtFile.name+' (do ZIP)';fn.style.display='';}
+        g('wa-txt').focus();
+      }catch(err){
+        if(fn){fn.textContent='Erro ao abrir o ZIP: '+err.message;fn.style.display='';}
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
   const reader=new FileReader();
   reader.onload=function(e){
-    const txt=e.target.result;
-    sv2('wa-txt',txt);
-    const fn=g('wa-file-name');
+    sv2('wa-txt',e.target.result);
     if(fn){fn.textContent='📎 '+file.name+' ('+Math.round(file.size/1024)+'KB)';fn.style.display='';}
     g('wa-txt').focus();
   };
   reader.onerror=function(){
-    const fn=g('wa-file-name');
     if(fn){fn.textContent='Erro ao ler o arquivo.';fn.style.display='';}
   };
   reader.readAsText(file,'UTF-8');
