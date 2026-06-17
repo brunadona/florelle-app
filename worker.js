@@ -124,6 +124,65 @@ export default {
       return json({ confirms: JSON.parse(raw) });
     }
 
+    // POST /analyze-wa  →  analisa conversa do WhatsApp com Claude (chave fica no Worker)
+    if (request.method === 'POST' && url.pathname === '/analyze-wa') {
+      if (!env.ANTHROPIC_KEY) return json({ error: 'Chave Anthropic não configurada no Worker' }, 500);
+
+      let body;
+      try { body = await request.json(); } catch { return json({ error: 'JSON inválido' }, 400); }
+      if (!body.text || body.text.length < 30) return json({ error: 'Texto muito curto' }, 400);
+
+      const prompt = `Você analisa conversas do WhatsApp entre uma artesã de preservação de buquês de noivas (Florelle Atelier) e clientes. Extraia as informações relevantes e retorne APENAS um objeto JSON válido, sem markdown, sem texto adicional.
+
+Campos do JSON (inclua todos, use null ou "" quando não encontrado):
+- "nome": nome da noiva/cliente (string | null)
+- "telefone": número de telefone da noiva no formato "(00) 00000-0000" (string | null)
+- "dataCasamento": data do casamento em YYYY-MM-DD — se só mês/dia sem ano, use o ano mais próximo futuro (string | null)
+- "cpf": CPF somente números, 11 dígitos (string — vazio se não houver)
+- "cep": CEP somente números, 8 dígitos (string — vazio se não houver)
+- "cidade": cidade e estado no formato "Cidade/UF" (string — vazio se não houver)
+- "endereco": endereço completo sem repetir a cidade (string — vazio se não houver)
+- "produto": exatamente um de: "quadro25x30", "quadro32x42", "quadroSobMedida", "cupulaG", "cupulaM", "multiplos" — ou null
+- "produtoObs": detalhes do produto — cor, medidas, estilo, flores (string — vazio se não houver)
+- "formaPagamento": exatamente "pixAVista", "pix3x" ou "cartao" — ou null
+- "valorTotal": valor total no formato "1.290,00" sem "R$" (string — vazio se não houver)
+- "retiradaBuque": "sedex" se a noiva envia pelos Correios, "florelle" se a Florelle vai buscar no evento (string | null)
+- "autorizaReposicao": "sim" ou "nao" (string | null)
+- "floresUtilizadas": flores mencionadas no buquê (string — vazio se não houver)
+- "cerimonialista": nome do(a) cerimonialista (string — vazio se não houver)
+- "cerimonialTel": telefone do(a) cerimonialista (string — vazio se não houver)
+- "anotacoes": tudo mais relevante — preferências, dúvidas, observações (string — vazio se não houver)
+
+Conversa do WhatsApp:
+${body.text}
+
+Retorne apenas o JSON.`;
+
+      const aiResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': env.ANTHROPIC_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 900,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!aiResp.ok) {
+        let msg = 'Erro Anthropic ' + aiResp.status;
+        try { const e = await aiResp.json(); msg = e.error?.message || msg; } catch {}
+        return json({ error: msg }, 502);
+      }
+
+      const aiData = await aiResp.json();
+      const raw = (aiData.content?.[0]?.text || '').trim();
+      return json({ raw });
+    }
+
     return new Response('Florelle Sign API', { headers: CORS });
   },
 };
