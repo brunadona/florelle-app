@@ -165,6 +165,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .fi,.fs,.fta{height:37px;padding:0 10px;border:1.5px solid var(--bd);border-radius:7px;background:var(--cbg);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--tx);outline:none;transition:border-color .18s,background .18s;width:100%}
 .fi:focus,.fs:focus,.fta:focus{border-color:var(--sm);background:var(--wh)}
 .fi.err{border-color:#E08080}
+.fi.fi-warn{border-color:#E07B2A;background:#FFF8F0;animation:fi-pulse 1s ease 2}
+@keyframes fi-pulse{0%,100%{border-color:#E07B2A}50%{border-color:#F4A636;box-shadow:0 0 0 3px rgba(244,166,54,.2)}}
 .fta{height:auto;min-height:74px;padding:8px 10px;resize:vertical}
 
 /* radio pills */
@@ -5041,6 +5043,17 @@ async function waAnalyze(){
       if(g('bdup'))g('bdup').classList.add('hidden');
     }
     g('ov').classList.remove('hidden');
+    // destaca campo de telefone se ficou vazio (contato salvo no WhatsApp)
+    setTimeout(()=>{
+      const tel=g('m-tel');
+      if(tel&&!tel.value.trim()){
+        tel.classList.add('fi-warn');
+        tel.placeholder='⚠ Adicione o número manualmente';
+        tel.scrollIntoView({behavior:'smooth',block:'center'});
+        tel.focus();
+        tel.addEventListener('input',()=>{tel.classList.remove('fi-warn');tel.placeholder='(00) 00000-0000';},{once:true});
+      }
+    },150);
 
   }catch(err){
     waSetStatus('err','Erro: '+err.message);
