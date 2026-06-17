@@ -535,6 +535,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
   .mbdy{padding:16px 18px}
   .mhd{padding:15px 18px 13px}
   .mft{padding:11px 18px}
+  .btn-lbl{display:none}
+  .bctrt{padding:0 10px;font-size:15px}
+  .bsav{padding:0 16px}
   .wa-bdy{padding:14px 18px}
   .wa-ft{padding:11px 18px}
   .calbdy{padding:12px 18px}
@@ -1026,6 +1029,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <div class="mta">
       <div class="mey">Noiva</div>
       <div class="mnd mt" id="mnd">Nova noiva</div>
+      <div id="mnd-date" style="font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--txm);margin-top:3px;display:none"></div>
     </div>
     <div class="mhr">
       <button class="bcls" onclick="closeModal()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
@@ -1056,7 +1060,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="sttl">Dados da Noiva</div>
       <div class="frow">
         <div class="fg"><label class="fl">Nome</label><input id="m-nome" type="text" class="fi" placeholder="Nome completo" oninput="syncName()"></div>
-        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi" onchange="syncAutoRems()"></div>
+        <div class="fg"><label class="fl">Data do casamento</label><input id="m-cas" type="date" class="fi" onchange="syncAutoRems();syncName()"></div>
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">CPF</label><input id="m-cpf" type="text" class="fi" placeholder="000.000.000-00"></div>
@@ -1329,11 +1333,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <button class="bctrt hidden" id="bdup" onclick="dupBride()" title="Duplicar noiva">📋 Duplicar</button>
     <div class="fr">
       <button class="bsec" onclick="closeModal()">Cancelar</button>
-      <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
-      <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲 WhatsApp</button>
-      <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salvar contrato no Google Drive">☁️ Drive</button>
-      <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️ Assinar</button>
-      <button class="bctrt hidden" id="btn-ver-contrato" onclick="verContratoAssinado()" title="Ver contrato assinado pela noiva" style="background:#5a7a5c;color:#fff">📄 Ver assinado</button>
+      <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄<span class="btn-lbl"> Contrato</span></button>
+      <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲<span class="btn-lbl"> WhatsApp</span></button>
+      <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salvar contrato no Google Drive">☁️<span class="btn-lbl"> Drive</span></button>
+      <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️<span class="btn-lbl"> Assinar</span></button>
+      <button class="bctrt hidden" id="btn-ver-contrato" onclick="verContratoAssinado()" title="Ver contrato assinado pela noiva" style="background:#5a7a5c;color:#fff">📄<span class="btn-lbl"> Ver assinado</span></button>
       <button class="bsav" onclick="saveModal()">Salvar</button>
     </div>
   </div>
@@ -1981,6 +1985,12 @@ function syncName(){
   const d=g('mnd');
   d.textContent=n||'Nova noiva';
   d.classList.toggle('mt',!n);
+  const cas=gv('m-cas');
+  const dd=g('mnd-date');
+  if(dd){
+    if(cas){dd.textContent='💍 '+fmt(cas);dd.style.display='';}
+    else{dd.style.display='none';}
+  }
   syncDriveBtn();
 }
 
