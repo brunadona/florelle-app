@@ -136,7 +136,7 @@ export default {
 
 Campos do JSON (inclua todos, use null ou "" quando não encontrado):
 - "nome": nome da noiva/cliente (string | null)
-- "telefone": número de telefone da noiva no formato "(00) 00000-0000" (string | null)
+- "telefone": número de telefone da noiva no formato "(00) 00000-0000" — procure nos cabeçalhos das mensagens dela, ex: "+55 43 91234-5678: mensagem" → "(43) 91234-5678"; ou "+55 43 9145-1658" → "(43) 91451-658" (string | null)
 - "dataCasamento": data do casamento em YYYY-MM-DD — se só mês/dia sem ano, use o ano mais próximo futuro (string | null)
 - "cpf": CPF somente números, 11 dígitos (string — vazio se não houver)
 - "cep": CEP somente números, 8 dígitos (string — vazio se não houver)
