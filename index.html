@@ -1156,6 +1156,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="frow f1 hidden" id="redoma-dt-row">
         <div class="fg"><label class="fl">Data do pedido</label><input id="m-redoma-dt" type="date" class="fi"></div>
       </div>
+      <div class="frow f1 hidden" id="redoma-preco-row">
+        <div class="fg"><label class="fl">Valor da redoma (R$)</label><input id="m-redoma-preco" type="text" class="fi" placeholder="Ex: 400,00" oninput="updateCustoBuque()"></div>
+      </div>
       <p class="hint hint-warn hidden" id="redoma-nao-hint">Ao salvar, será criado no Google Calendar: <strong>"Encomendar redoma — [nome]"</strong> para daqui 3 dias.</p>
     </div>
 
@@ -1961,6 +1964,8 @@ function fillForm(b){
   sv2('m-buque',      b.dataBuque||'');
   sv2('m-entrega-real', b.dataEntregaReal||'');
   sv2('m-redoma-dt',  b.redomaDataPedido||'');
+  sv2('m-redoma-preco', b.redomaPreco||'');
+  if(g('redoma-preco-row'))g('redoma-preco-row').classList.toggle('hidden',b.produto!=='quadroSobMedida');
   sv2('m-emb-prev',   b.embPrevisao||'');
   sv2('m-valor',      b.valorTotal||'');
   sv2('m-origem',     b.origem||'');
@@ -2185,6 +2190,7 @@ async function saveModal(){
     dataEntregaReal: gv('m-entrega-real'),
     redomaStatus:   radVal('redomaStatus'),
     redomaDataPedido:gv('m-redoma-dt'),
+    redomaPreco:    radVal('prod')==='quadroSobMedida'?gv('m-redoma-preco').trim():'',
     embPedida:      radVal('embPedida'),
     embPrevisao:    gv('m-emb-prev'),
     valorTotal:     gv('m-valor').trim(),
@@ -3773,10 +3779,13 @@ function updateCustoBuque(){
     el.style.color        = sel ? '#fff'       : '';
     el.style.borderColor  = sel ? 'var(--sd)'  : 'var(--bd)';
   });
+  // Campo valor da redoma: visível só para quadroSobMedida
+  const redomaPrecoRow=g('redoma-preco-row');
+  if(redomaPrecoRow)redomaPrecoRow.classList.toggle('hidden',produto!=='quadroSobMedida');
   // Custo de material: sempre sincroniza com o cálculo do inventário
   if(produto){
-    const custo=calcCustoBuque(produto);
-    sv2('m-custo',_fmtBRLInput(custo));
+    const redomaOverride=produto==='quadroSobMedida'?_parseBRL(gv('m-redoma-preco'))/100:null;
+    const custo=calcCustoBuque(produto,redomaOverride);
     // Valor total: preenche com preço sugerido apenas se estiver vazio
     if(!gv('m-valor').trim()){
       const sug=PRECO_SUGERIDO[produto];
@@ -3797,7 +3806,8 @@ function updateCustoBuque(){
     if(margemEl){ margemEl.textContent = '← selecione o produto'; margemEl.style.color='var(--txl)'; }
     return;
   }
-  const custo = calcCustoBuque(produto);
+  const redomaOv=produto==='quadroSobMedida'?_parseBRL(gv('m-redoma-preco'))/100:null;
+  const custo = calcCustoBuque(produto,redomaOv);
   const valorCents = _parseBRL(gv('m-valor'));
   const valor = valorCents / 100;
   if(custoEl){ custoEl.textContent = 'R$ ' + custo.toFixed(2).replace('.',','); custoEl.style.color=''; }
@@ -3815,13 +3825,14 @@ function updateCustoBuque(){
 }
 
 /* ── CUSTO DO BUQUÊ ──────────────────────────── */
-function calcCustoBuque(produto){
+function calcCustoBuque(produto,redomaOverride){
   const CUSTOS_VARIAVEIS = 50.00;
   let total = CUSTOS_VARIAVEIS;
   INV.forEach(item=>{
     if(item.porProduto && !item.porProduto.includes(produto||'')) return;
-    if(item.nome==='Custos variáveis') return; // já incluído acima
-    total += (item.consumo||0) * (item.precoUnit||0);
+    if(item.nome==='Custos variáveis') return;
+    const preco=(redomaOverride!=null&&item.nome==='Redoma sob medida')?redomaOverride:(item.precoUnit||0);
+    total += (item.consumo||0) * preco;
   });
   return total;
 }
