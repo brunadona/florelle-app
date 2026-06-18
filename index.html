@@ -3712,9 +3712,10 @@ const INV_DEFAULT=[
   {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'],  linkCompra:'https://shopee.com.br/Moldura-Acr%C3%ADlico-Buqu%C3%AA-Eternizado-Tam-24x34x13-i.1173738155.19899311665?extraParams=%7B%22display_model_id%22%3A209176646629%2C%22model_selection_logic%22%3A3%7D'},
   {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:147.00,consumo:1,   qtdCompra:1,   precoCompra:147,  comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'],linkCompra:''},
   {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaG','cupulaM'],linkCompra:''},
-  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42'],linkCompra:''},
+  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida'],linkCompra:''},
   {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'],linkCompra:''},
-  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['quadro25x30','quadro32x42'],linkCompra:''},
+  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:false, porPedido:true, porProduto:['quadro25x30','quadro32x42','quadroSobMedida'],linkCompra:''},
+  {nome:'Redoma sob medida',qtdAtual:0,   unidade:'un',   precoUnit:400.00,consumo:1,   qtdCompra:1,   precoCompra:400,  comprarAntes:false, porPedido:true, porProduto:['quadroSobMedida'],  linkCompra:''},
 ];
 function loadInv(){
   try{
@@ -3733,6 +3734,12 @@ function loadInv(){
         });
         // Remover duplicatas por nome (manter o primeiro encontrado)
         const seen=new Set();INV=INV.filter(x=>{if(seen.has(x.nome))return false;seen.add(x.nome);return true;});
+        // Adicionar quadroSobMedida ao porProduto de itens de quadro (migração)
+        ['Embalagem quadro','Bola isopor 100'].forEach(nome=>{
+          const item=INV.find(x=>x.nome===nome);
+          if(item&&item.porProduto&&!item.porProduto.includes('quadroSobMedida'))
+            item.porProduto.push('quadroSobMedida');
+        });
         // Adicionar itens novos e migrar campos ausentes (qtdCompra, precoCompra)
         INV_DEFAULT.forEach(def=>{
           const existing=INV.find(x=>x.nome===def.nome);
