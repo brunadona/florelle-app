@@ -217,7 +217,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .parc-lbl{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--txm);flex-shrink:0;min-width:95px}
 .parc-chk{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txm);flex-shrink:0;cursor:pointer;white-space:nowrap;user-select:none}
 .parc-chk input[type=checkbox]{accent-color:var(--sd);width:14px;height:14px;cursor:pointer;flex-shrink:0}
-.parc-val{width:110px!important;flex-shrink:0!important}
+.parc-val{width:110px;flex-shrink:0}
 
 /* modal footer */
 .mft{padding:13px 24px;border-top:1px solid var(--bdl);display:flex;align-items:center;gap:9px;flex-shrink:0}
@@ -546,6 +546,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
   #bdel,#bdup{flex-shrink:0}
   .fr{margin-left:0!important;flex:1 1 100%;flex-wrap:wrap;gap:6px;align-items:center}
   .fr>.bsec,.fr>.bsav{flex:1;order:1}
+  .parc-row{flex-wrap:wrap;gap:6px}
+  .parc-val{width:100%!important;flex-shrink:1!important}
+  .parc-lbl{min-width:unset;width:100%}
+  .parc-chk{margin-left:auto}
   .fr-ctrt{flex:1 1 100%;flex-wrap:wrap;gap:6px;order:10}
   .fr-ctrt .bctrt{flex:1;min-width:calc(50% - 3px);font-size:13px;padding:0 8px}
   .wa-bdy{padding:14px 18px}
@@ -3309,7 +3313,7 @@ function pagCalc(preload){
   const fp=radVal('pag');
   const container=g('pag-rows');if(!container)return;
   const prev=preload||_getPagRows();
-  const useCalc=!preload;
+  const useCalc=!preload&&prev.every(r=>!r.valor);
   const reservaAtiva=radVal('reservaAtiva')==='sim';
   const totalCents=_parseBRL(gv('m-valor'));
 
@@ -3347,7 +3351,7 @@ function pagCalc(preload){
   container.innerHTML=rows.map((r,i)=>
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
-    `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="syncAutoRems()">`+
+    `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00">`+
     `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
     `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
     `</div>`
