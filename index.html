@@ -3784,8 +3784,10 @@ function updateCustoBuque(){
   if(redomaPrecoRow)redomaPrecoRow.classList.toggle('hidden',produto!=='quadroSobMedida');
   // Custo de material: sempre sincroniza com o cálculo do inventário
   if(produto){
-    const redomaOverride=produto==='quadroSobMedida'?_parseBRL(gv('m-redoma-preco'))/100:null;
+    const _rpRaw=_parseBRL(gv('m-redoma-preco'));
+    const redomaOverride=produto==='quadroSobMedida'&&_rpRaw>0?_rpRaw/100:null;
     const custo=calcCustoBuque(produto,redomaOverride);
+    sv2('m-custo',_fmtBRLInput(custo));
     // Valor total: preenche com preço sugerido apenas se estiver vazio
     if(!gv('m-valor').trim()){
       const sug=PRECO_SUGERIDO[produto];
@@ -3806,7 +3808,8 @@ function updateCustoBuque(){
     if(margemEl){ margemEl.textContent = '← selecione o produto'; margemEl.style.color='var(--txl)'; }
     return;
   }
-  const redomaOv=produto==='quadroSobMedida'?_parseBRL(gv('m-redoma-preco'))/100:null;
+  const _rpRaw2=_parseBRL(gv('m-redoma-preco'));
+  const redomaOv=produto==='quadroSobMedida'&&_rpRaw2>0?_rpRaw2/100:null;
   const custo = calcCustoBuque(produto,redomaOv);
   const valorCents = _parseBRL(gv('m-valor'));
   const valor = valorCents / 100;
