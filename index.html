@@ -4532,8 +4532,9 @@ function renderFinancial(){
 function renderMaterial(){
   const body=g('mat-bdy');if(!body)return;body.innerHTML='';
   const ativas=DATA.filter(b=>b.etapa!=='cancelado'&&b.etapa!=='entregue');
-  const semRedoma=ativas.filter(b=>(b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':'naoEncomendada'))==='naoEncomendada');
-  const semEmb=ativas.filter(b=>b.embPedida==='nao');
+  const _casPassou=b=>!b.dataCasamento||b.dataCasamento<=today()||!!b.dataBuque;
+  const semRedoma=ativas.filter(b=>_casPassou(b)&&(b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':'naoEncomendada'))==='naoEncomendada');
+  const semEmb=ativas.filter(b=>_casPassou(b)&&b.embPedida==='nao');
   const silVenc=ativas.filter(b=>b.dataSilica&&addDays(b.dataSilica,30)<today()&&b.etapa==='secagem');
   const total=semRedoma.length+semEmb.length+silVenc.length;
   const ct=g('mat-ct');if(ct){ct.textContent=total||'✓';ct.classList.toggle('al',total>0);}
