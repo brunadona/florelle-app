@@ -1960,6 +1960,7 @@ function openModal(id){
   const b=DATA.find(x=>x.id===id);if(!b)return;
   window._curModalId=id;
   editId=id;mRem=JSON.parse(JSON.stringify(b.lembretes||[]));mAnexos=JSON.parse(JSON.stringify(b.anexos||[]));
+  if(b.dataCasamento&&b.dataCasamento>today()){const _re=/s[íi]lica|redoma|montagem|embalagem/i;mRem=mRem.filter(r=>!_re.test(r.text||''));}
   _mDriveFolder=b.driveFolder||'';
   fillForm(b);
   g('bdel').classList.remove('hidden');
