@@ -2096,15 +2096,15 @@ function syncAutoRems(){
     mRem.push({id:uid(),text,data,auto:true,done:false});
   };
 
-  // sílica / montagem baseados em dataBuque
-  if(dataBuque){
+  // sílica / montagem baseados em dataBuque — só após o casamento
+  if(dataBuque&&(!dataCas||dataCas<=today())){
     add('Colocar na sílica',    addDays(dataBuque,2));
     add('Pedir redoma',         addDays(dataBuque,3));
     add('Pedir embalagem',      addDays(dataBuque,3));
     add('Retirar da sílica',    addDays(dataBuque,32));
     add('Iniciar montagem',     addDays(dataBuque,47));
+    add('Entrega',              addDays(dataBuque,60));
   }
-  if(dataBuque) add('Entrega', addDays(dataBuque,60));
   if(dataCas)   add('Data do casamento', dataCas);
 
   // cobranças
@@ -2248,7 +2248,7 @@ async function saveModal(){
   rec.lembretes = rec.lembretes.filter(r=>!r.auto);
   const _ar=(text,data)=>{if(data)rec.lembretes.push({id:uid(),text,data,auto:true,done:false});};
 
-  if(rec.dataBuque){
+  if(rec.dataBuque&&(!rec.dataCasamento||rec.dataCasamento<=today())){
     _ar('Colocar na sílica',    addDays(rec.dataBuque,2));
     _ar('Pedir redoma',         addDays(rec.dataBuque,3));
     _ar('Pedir embalagem',      addDays(rec.dataBuque,3));
@@ -4062,15 +4062,18 @@ function buildTasks(){
     if(b.etapa==='cancelado'||b.etapa==='entregue')return;
     const bid=b.id,nome=_nomeDisp(b),fp=b.formaPagamento||'';
 
-    // Sílica / montagem
-    if(b.dataSilica){
-      tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:b.dataSilica,           done:false,auto:true});
-      tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataSilica,30),done:false,auto:true});
-      tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataSilica,45),done:false,auto:true});
-    } else if(b.dataBuque){
-      tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:addDays(b.dataBuque,2), done:false,auto:true});
-      tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataBuque,32),done:false,auto:true});
-      tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataBuque,47),done:false,auto:true});
+    // Sílica / montagem — só depois que o casamento ocorreu
+    const _casPassou=!b.dataCasamento||b.dataCasamento<=today();
+    if(_casPassou){
+      if(b.dataSilica){
+        tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:b.dataSilica,           done:false,auto:true});
+        tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataSilica,30),done:false,auto:true});
+        tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataSilica,45),done:false,auto:true});
+      } else if(b.dataBuque){
+        tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:addDays(b.dataBuque,2), done:false,auto:true});
+        tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataBuque,32),done:false,auto:true});
+        tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataBuque,47),done:false,auto:true});
+      }
     }
 
     // Entrega
@@ -4101,6 +4104,7 @@ function buildTasks(){
     // Lembretes
     (b.lembretes||[]).forEach(r=>{
       if(!r.data)return;
+      if(!_casPassou&&r.auto&&/s[íi]lica|redoma|montagem|embalagem/i.test(r.text||''))return;
       tasks.push({id:'lem-'+r.id,bid,nome,type:'lembrete',date:r.data,label:r.text,done:!!r.done,auto:false});
     });
   });
