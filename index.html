@@ -1183,31 +1183,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <div class="fsec">
       <div class="sttl">Pagamento</div>
 
-      <!-- Custo do buquê -->
-      <div style="margin-bottom:14px">
-        <label class="fl" style="margin-bottom:6px">Produto para cálculo de custo</label>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q25"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()" style="display:none"> Quadro 25×30</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-q32"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()" style="display:none"> Quadro 32×42</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-qsm"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()" style="display:none"> Sob medida</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cg"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()" style="display:none"> Cúpula G (grande)</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-cm"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()" style="display:none"> Cúpula M 18×30</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--bd);border-radius:20px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s" id="m-cp-mu"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque()" style="display:none"> Múltiplos</label>
-        </div>
-        <div class="frow">
-          <div class="fg">
-            <label class="fl">Custo estimado</label>
-            <div id="m-custo-buque" style="background:var(--ccol);border:1.5px solid var(--bd);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--txm);display:flex;justify-content:space-between;align-items:center">
-              <span id="m-custo-val">—</span>
-              <span style="font-size:11px;color:var(--txl)">inclui R$50 custos variáveis + R$80 embalagem</span>
-            </div>
-          </div>
-          <div class="fg">
-            <label class="fl">Margem (Valor total − Custo)</label>
-            <div id="m-margem-buque" style="background:var(--ccol);border:1.5px solid var(--bd);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--txm)">—</div>
-          </div>
-        </div>
-      </div>
 
       <!-- Reserva de data -->
       <div class="fg" style="margin-bottom:8px">
@@ -1248,7 +1223,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">Custo de material</label><input id="m-custo" type="text" class="fi" placeholder="R$ 0,00" oninput="_calcMargem()"></div>
-        <div class="fg" id="m-margem-row" style="display:none"><label class="fl">Margem</label><div id="m-margem-disp" style="font-size:13px;font-weight:600;padding:6px 0"></div></div>
+        <div class="fg" id="m-margem-row"><label class="fl">Margem de lucro</label><div id="m-margem-disp" style="font-size:13px;font-weight:600;padding:6px 0">—</div></div>
       </div>
 
       <!-- Linhas de parcela (renderizadas por pagCalc) -->
@@ -1420,6 +1395,19 @@ body{display:flex;flex-direction:column;overflow:hidden}
         </div>
         <textarea id="wa-txt" class="wa-ta" placeholder="Cole aqui o texto exportado do WhatsApp…&#10;&#10;Exemplo:&#10;01/05/2025, 14:30 - Noiva: Olá, vi seu trabalho com os buquês!&#10;01/05/2025, 14:31 - Você: Oi! Pode me contar mais sobre o casamento?&#10;…"></textarea>
         <div id="wa-file-name" style="font-size:11px;color:var(--txm);margin-top:3px;display:none"></div>
+      </div>
+      <!-- Imagens opcionais -->
+      <div class="fg" style="margin-top:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label class="fl" style="margin-bottom:0">Imagens <span style="font-weight:400;color:var(--txm)">(opcional)</span></label>
+          <label class="wa-file-btn" title="Adicionar fotos, screenshots ou foto do contrato">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Adicionar fotos
+            <input type="file" id="wa-imgs-input" accept="image/*" multiple style="display:none" onchange="waAddImages(this)">
+          </label>
+        </div>
+        <div id="wa-imgs-prev" style="display:flex;flex-wrap:wrap;gap:8px;min-height:0"></div>
+        <div style="font-size:11px;color:var(--txm);margin-top:4px">Screenshots da conversa, foto do contrato, ficha — a IA extrai os dados das imagens também</div>
       </div>
       <p class="wa-hint">A IA analisará a conversa e tentará extrair: nome da noiva, data do casamento, produto desejado (quadro/cúpula), endereço, forma de pagamento e observações. Os dados serão exibidos no formulário para revisão antes de salvar.</p>
       <div id="wa-status" class="wa-status hidden"></div>
@@ -1948,11 +1936,10 @@ function _renderPipelineBar(etapa){
 
 /* ── CALC MARGEM ─────────────────────────────── */
 function _calcMargem(){
-  const elDisp=g('m-margem-disp');const elRow=g('m-margem-row');if(!elDisp||!elRow)return;
+  const elDisp=g('m-margem-disp');if(!elDisp)return;
   const vt=_parseBRL(gv('m-valor')||'')/100;
   const cu=_parseBRL(gv('m-custo')||'')/100;
-  if(!vt||vt<=0){elRow.style.display='none';return;}
-  elRow.style.display='';
+  if(!vt||vt<=0){elDisp.textContent='—';elDisp.style.color='var(--txm)';return;}
   const margem=vt-cu;
   const pct=vt>0?Math.round((margem/vt)*100):0;
   elDisp.textContent=fmtBRL(margem)+' ('+pct+'%)';
@@ -3813,61 +3800,25 @@ function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
 
 function updateCustoBuque(){
   const produto = radVal('prod')||'';
-  // Atualiza visual dos pills de produto no painel de pagamento
-  const pillMap={quadro25x30:'m-cp-q25',quadro32x42:'m-cp-q32',quadroSobMedida:'m-cp-qsm',cupulaG:'m-cp-cg',cupulaM:'m-cp-cm',multiplos:'m-cp-mu'};
-  Object.entries(pillMap).forEach(([v,id])=>{
-    const el=g(id); if(!el) return;
-    const sel = v===produto;
-    el.style.background   = sel ? 'var(--sd)' : '';
-    el.style.color        = sel ? '#fff'       : '';
-    el.style.borderColor  = sel ? 'var(--sd)'  : 'var(--bd)';
-  });
   // Campo valor da redoma: visível só para quadroSobMedida
   const redomaPrecoRow=g('redoma-preco-row');
   if(redomaPrecoRow)redomaPrecoRow.classList.toggle('hidden',produto!=='quadroSobMedida');
-  // Custo de material: sempre sincroniza com o cálculo do inventário
-  if(produto){
-    const _rpRaw=_parseBRL(gv('m-redoma-preco'));
-    const redomaOverride=produto==='quadroSobMedida'&&_rpRaw>0?_rpRaw/100:null;
-    const custo=calcCustoBuque(produto,redomaOverride);
-    sv2('m-custo',_fmtBRLInput(custo));
-    // Valor total: preenche com preço sugerido apenas se estiver vazio
-    if(!gv('m-valor').trim()){
-      const sug=PRECO_SUGERIDO[produto];
-      if(sug){
-        const pecasCount=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;
-        const sugCents=_parseBRL(sug);
-        const totalCents=sugCents+(pecasCount*PRECO_PECA_ADICIONAL*100);
-        sv2('m-valor',_fmtBRLInput(totalCents/100));
-      }
-    }
-    setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
-  }
   updateCustoBuque._lastProd=produto;
-  const custoEl = g('m-custo-val');
-  const margemEl = g('m-margem-buque');
-  if(!produto){
-    if(custoEl){ custoEl.textContent = '—'; custoEl.style.color='var(--txm)'; }
-    if(margemEl){ margemEl.textContent = '← selecione o produto'; margemEl.style.color='var(--txl)'; }
-    return;
-  }
-  const _rpRaw2=_parseBRL(gv('m-redoma-preco'));
-  const redomaOv=produto==='quadroSobMedida'&&_rpRaw2>0?_rpRaw2/100:null;
-  const custo = calcCustoBuque(produto,redomaOv);
-  const valorCents = _parseBRL(gv('m-valor'));
-  const valor = valorCents / 100;
-  if(custoEl){ custoEl.textContent = 'R$ ' + custo.toFixed(2).replace('.',','); custoEl.style.color=''; }
-  if(margemEl){
-    if(valor>0){
-      const margem = valor - custo;
-      const pct = (margem/valor*100).toFixed(0);
-      margemEl.textContent = 'R$ ' + margem.toFixed(2).replace('.',',') + ' (' + pct + '%)';
-      margemEl.style.color = margem >= 0 ? 'var(--sd)' : '#B03420';
-    } else {
-      margemEl.textContent = '—';
-      margemEl.style.color = 'var(--txm)';
+  if(!produto){setTimeout(_calcMargem,0);return;}
+  const _rpRaw=_parseBRL(gv('m-redoma-preco'));
+  const redomaOverride=produto==='quadroSobMedida'&&_rpRaw>0?_rpRaw/100:null;
+  const custo=calcCustoBuque(produto,redomaOverride);
+  sv2('m-custo',_fmtBRLInput(custo));
+  if(!gv('m-valor').trim()){
+    const sug=PRECO_SUGERIDO[produto];
+    if(sug){
+      const pecasCount=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;
+      const sugCents=_parseBRL(sug);
+      const totalCents=sugCents+(pecasCount*PRECO_PECA_ADICIONAL*100);
+      sv2('m-valor',_fmtBRLInput(totalCents/100));
     }
   }
+  setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
 }
 
 /* ── CUSTO DO BUQUÊ ──────────────────────────── */
@@ -5096,7 +5047,38 @@ function waLoadFile(input){
   reader.readAsText(file,'UTF-8');
 }
 
-function closeWaImport(){g('wa-ov').classList.add('hidden');}
+let _waImages=[];
+
+function waAddImages(input){
+  const MAX=4;
+  Array.from(input.files).slice(0,MAX-_waImages.length).forEach(file=>{
+    if(!file.type.startsWith('image/'))return;
+    if(file.size>4*1024*1024){waSetStatus('err','Imagem muito grande (máx 4MB): '+file.name);return;}
+    const reader=new FileReader();
+    reader.onload=e=>{
+      _waImages.push({mediaType:file.type,data:e.target.result.split(',')[1],name:file.name});
+      _renderWaImgPrev();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+function _waRemoveImg(i){_waImages.splice(i,1);_renderWaImgPrev();}
+function _renderWaImgPrev(){
+  const el=g('wa-imgs-prev');if(!el)return;
+  el.innerHTML=_waImages.map((img,i)=>
+    `<div style="position:relative;width:60px;height:60px;flex-shrink:0">
+      <img src="data:${img.mediaType};base64,${img.data}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1.5px solid var(--bd)">
+      <button onclick="_waRemoveImg(${i})" style="position:absolute;top:-7px;right:-7px;width:19px;height:19px;border-radius:50%;background:#E53935;color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center">×</button>
+    </div>`
+  ).join('');
+}
+
+function closeWaImport(){
+  g('wa-ov').classList.add('hidden');
+  _waImages=[];
+  const pr=g('wa-imgs-prev');if(pr)pr.innerHTML='';
+}
 function waOvClick(e){if(e.target===g('wa-ov'))closeWaImport();}
 
 function waSetStatus(type,msg){
@@ -5109,18 +5091,22 @@ function waSetStatus(type,msg){
 async function waAnalyze(){
   const text=(gv('wa-txt')||'').trim();
 
-  if(text.length<30){g('wa-txt').focus();waSetStatus('err','Cole o conteúdo da conversa antes de analisar (mínimo 30 caracteres).');return;}
+  if(text.length<10&&!_waImages.length){g('wa-txt').focus();waSetStatus('err','Cole o texto da conversa ou adicione imagens antes de analisar.');return;}
+  if(text.length>0&&text.length<10){g('wa-txt').focus();waSetStatus('err','Texto muito curto (mínimo 10 caracteres).');return;}
 
   const btn=g('wa-btn');
   btn.disabled=true;
   btn.innerHTML='<span class="spin">↻</span> Analisando…';
-  waSetStatus('loading','Aguarde, a IA está lendo a conversa…');
+  waSetStatus('loading',_waImages.length?'Aguarde, a IA está lendo a conversa e as imagens…':'Aguarde, a IA está lendo a conversa…');
 
   try{
+    const body={};
+    if(text)body.text=text;
+    if(_waImages.length)body.images=_waImages.map(({mediaType,data})=>({mediaType,data}));
     const resp=await fetch('https://florelle.brunadonaa.workers.dev/analyze-wa',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text})
+      body:JSON.stringify(body)
     });
 
     if(!resp.ok){

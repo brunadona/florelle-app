@@ -130,13 +130,13 @@ export default {
 
       let body;
       try { body = await request.json(); } catch { return json({ error: 'JSON inválido' }, 400); }
-      if (!body.text || body.text.length < 30) return json({ error: 'Texto muito curto' }, 400);
+      if (!body.text && !body.images?.length) return json({ error: 'Envie texto ou imagens' }, 400);
 
-      const prompt = `Você analisa conversas do WhatsApp entre uma artesã de preservação de buquês de noivas (Florelle Atelier) e clientes. Extraia as informações relevantes e retorne APENAS um objeto JSON válido, sem markdown, sem texto adicional.
+      const promptText = `Você analisa conversas do WhatsApp e/ou imagens (fotos de contratos, fichas, screenshots) de uma artesã de preservação de buquês de noivas (Florelle Atelier). Extraia as informações relevantes e retorne APENAS um objeto JSON válido, sem markdown, sem texto adicional.
 
 Campos do JSON (inclua todos, use null ou "" quando não encontrado):
 - "nome": nome da noiva/cliente (string | null)
-- "telefone": número de telefone da noiva no formato "(00) 00000-0000" — procure nos cabeçalhos das mensagens dela, ex: "+55 43 91234-5678: mensagem" → "(43) 91234-5678"; ou "+55 43 9145-1658" → "(43) 91451-658" (string | null)
+- "telefone": número de telefone da noiva no formato "(00) 00000-0000" (string | null)
 - "dataCasamento": data do casamento em YYYY-MM-DD — se só mês/dia sem ano, use o ano mais próximo futuro (string | null)
 - "cpf": CPF somente números, 11 dígitos (string — vazio se não houver)
 - "cep": CEP somente números, 8 dígitos (string — vazio se não houver)
@@ -152,11 +152,19 @@ Campos do JSON (inclua todos, use null ou "" quando não encontrado):
 - "cerimonialista": nome do(a) cerimonialista (string — vazio se não houver)
 - "cerimonialTel": telefone do(a) cerimonialista (string — vazio se não houver)
 - "anotacoes": tudo mais relevante — preferências, dúvidas, observações (string — vazio se não houver)
-
-Conversa do WhatsApp:
-${body.text}
-
+${body.text ? `\nConversa do WhatsApp:\n${body.text}\n` : ''}
 Retorne apenas o JSON.`;
+
+      // Monta conteúdo multimodal: imagens primeiro, texto por último
+      const content = [];
+      if (body.images?.length) {
+        for (const img of body.images.slice(0, 4)) {
+          if (img.mediaType && img.data) {
+            content.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } });
+          }
+        }
+      }
+      content.push({ type: 'text', text: promptText });
 
       const aiResp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -168,7 +176,7 @@ Retorne apenas o JSON.`;
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 900,
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{ role: 'user', content }],
         }),
       });
 
