@@ -4102,9 +4102,10 @@ function buildTasks(){
     }
 
     // Lembretes
+    const _postCasRE=/s[íi]lica|redoma|montagem|embalagem/i;
     (b.lembretes||[]).forEach(r=>{
       if(!r.data)return;
-      if(!_casPassou&&r.auto&&/s[íi]lica|redoma|montagem|embalagem/i.test(r.text||''))return;
+      if(!_casPassou&&_postCasRE.test(r.text||''))return;
       tasks.push({id:'lem-'+r.id,bid,nome,type:'lembrete',date:r.data,label:r.text,done:!!r.done,auto:false});
     });
   });
