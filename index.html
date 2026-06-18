@@ -1219,7 +1219,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <label class="fl">Forma de pagamento</label>
         <div class="rg">
           <label class="ro"><input type="radio" name="pag" value="pixAVista" onchange="pagChg()"><span class="rl">Pix à vista</span></label>
-          <label class="ro"><input type="radio" name="pag" value="pix3x" onchange="pagChg()"><span class="rl">Pix 3×</span></label>
+          <label class="ro"><input type="radio" name="pag" value="pix3x" onchange="pagChg()"><span class="rl">Pix parcelado</span></label>
           <label class="ro"><input type="radio" name="pag" value="cartao" onchange="pagChg()"><span class="rl">Cartão</span></label>
         </div>
       </div>
@@ -1229,6 +1229,13 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <div class="frow">
           <div class="fg" style="flex:0 0 140px"><label class="fl">Nº de parcelas</label><input id="m-cartao-n" type="number" min="1" max="24" class="fi" placeholder="Ex: 10" oninput="pagCalc()"></div>
           <div class="fg"><label class="fl">Valor da parcela (R$)</label><input id="m-cartao-vp" type="text" class="fi" placeholder="Ex: 159,00" oninput="pagCalc()"></div>
+        </div>
+      </div>
+
+      <!-- Parcelas pix parcelado -->
+      <div id="pix-parcelas" style="display:none;margin-bottom:11px">
+        <div class="frow">
+          <div class="fg" style="flex:0 0 180px"><label class="fl">Nº de parcelas</label><input id="m-pix-n" type="number" min="2" max="24" value="3" class="fi" placeholder="Ex: 3" oninput="pixNChg()"></div>
         </div>
       </div>
 
@@ -1467,7 +1474,7 @@ const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobM
 // Preços sugeridos por produto (editável aqui)
 const PRECO_SUGERIDO={quadro25x30:'1.290,00',quadro32x42:'1.590,00',cupulaG:'1.590,00',cupulaM:'1.290,00',quadroSobMedida:'',multiplos:''};
 const PRECO_PECA_ADICIONAL=50;
-const PAGLABEL={pixAVista:'Pix à vista',pix3x:'Pix 3×',cartao:'Cartão'};
+const PAGLABEL={pixAVista:'Pix à vista',pix3x:'Pix parcelado',cartao:'Cartão'};
 const EMBLABEL={naoEncomendada:'À encomendar',encomendada:'Encomendada',emMaos:'Em mãos'};
 const EMBDOT={naoEncomendada:'pk-no',encomendada:'pk-or',emMaos:'pk-ok'};
 
@@ -1965,6 +1972,8 @@ function fillForm(b){
   g('cartao-parcelas').style.display=b.formaPagamento==='cartao'?'':'none';
   sv2('m-cartao-n',   b.cartaoNParcelas!=null?String(b.cartaoNParcelas):'');
   sv2('m-cartao-vp',  b.cartaoValorParcela||'');
+  g('pix-parcelas').style.display=b.formaPagamento==='pix3x'?'':'none';
+  sv2('m-pix-n',      String(b.pixNParcelas||3));
   setRad('rep',       b.autorizaReposicao||'');
   setRad('retiradaBuque', b.retiradaBuque||'');
   setRad('redomaStatus', b.redomaStatus||(b.redomaPedida==='sim'?'emMaos':b.redomaPedida==='nao'?'naoEncomendada':''));
@@ -2071,8 +2080,7 @@ function syncAutoRems(){
   const parcelas = resAtiva ? rows.slice(1) : rows;
   parcelas.forEach((p,i)=>{
     if(!p.pago && p.data){
-      const lbl = radVal('pag')==='pix3x'
-        ?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      const lbl = radVal('pag')==='pix3x' ? (i+1)+'ª parcela' : 'Pagamento';
       add('Cobrança — '+lbl, p.data);
     }
   });
@@ -2165,6 +2173,7 @@ async function saveModal(){
     formaPagamento: radVal('pag'),
     cartaoNParcelas: radVal('pag')==='cartao'?(parseInt(gv('m-cartao-n'))||null):null,
     cartaoValorParcela: radVal('pag')==='cartao'?gv('m-cartao-vp').trim():'',
+    pixNParcelas: radVal('pag')==='pix3x'?(parseInt(gv('m-pix-n'))||3):null,
     autorizaReposicao:radVal('rep'),
     pecasAdicionais:pecas,
     pecasOutro:     gv('m-outro').trim(),
@@ -2216,7 +2225,7 @@ async function saveModal(){
     _ar('Cobrança — Reserva',rec.reserva.data);
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
-      const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      const lbl=rec.formaPagamento==='pix3x'?(i+1)+'ª parcela':'Pagamento';
       _ar('Cobrança — '+lbl,p.data);
     }
   });
@@ -3273,9 +3282,14 @@ function reservaChg(){
   g('pag-rows').innerHTML='';
   pagCalc();
 }
+function pixNChg(){
+  g('pag-rows').innerHTML='';
+  pagCalc();
+}
 function pagChg(){
   const fp=radVal('pag');
   g('cartao-parcelas').style.display=fp==='cartao'?'':'none';
+  g('pix-parcelas').style.display=fp==='pix3x'?'':'none';
   const reservaAtiva=radVal('reservaAtiva')==='sim';
   if(reservaAtiva){
     // preserve reserva row, clear installment rows
@@ -3330,10 +3344,9 @@ function pagCalc(preload){
     if(fp==='pixAVista'||fp==='cartao'){
       rows.push({lbl:'Saldo restante',valor:useCalc?_centsStr(saldo):prev[o]?.valor||'',data:prev[o]?.data||'',pago:!!(prev[o]?.pago),chkLabel:'Pago'});
     } else if(fp==='pix3x'){
-      const resto=saldo%3;const p1=Math.floor(saldo/3)+resto;const p23=Math.floor(saldo/3);
-      rows.push({lbl:'1ª parcela',valor:useCalc?_centsStr(p1):prev[o]?.valor||'',data:prev[o]?.data||'',pago:!!(prev[o]?.pago),chkLabel:'Pago'});
-      rows.push({lbl:'2ª parcela',valor:useCalc?_centsStr(p23):prev[o+1]?.valor||'',data:prev[o+1]?.data||'',pago:!!(prev[o+1]?.pago),chkLabel:'Pago'});
-      rows.push({lbl:'3ª parcela',valor:useCalc?_centsStr(p23):prev[o+2]?.valor||'',data:prev[o+2]?.data||'',pago:!!(prev[o+2]?.pago),chkLabel:'Pago'});
+      const n=Math.max(2,parseInt(gv('m-pix-n'))||3);
+      const base=Math.floor(saldo/n);const rem=saldo%n;
+      for(let k=0;k<n;k++) rows.push({lbl:(k+1)+'ª parcela',valor:useCalc?_centsStr(k===0?base+rem:base):prev[o+k]?.valor||'',data:prev[o+k]?.data||'',pago:!!(prev[o+k]?.pago),chkLabel:'Pago'});
     }
   } else {
     // No reserva: all rows use full total
@@ -3341,10 +3354,9 @@ function pagCalc(preload){
     if(fp==='pixAVista'||fp==='cartao'){
       rows.push({lbl:'',valor:useCalc?_centsStr(saldo):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago),chkLabel:'Pago'});
     } else if(fp==='pix3x'){
-      const resto=saldo%3;const p1=Math.floor(saldo/3)+resto;const p23=Math.floor(saldo/3);
-      rows.push({lbl:'1ª parcela',valor:useCalc?_centsStr(p1):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago),chkLabel:'Pago'});
-      rows.push({lbl:'2ª parcela',valor:useCalc?_centsStr(p23):prev[1]?.valor||'',data:prev[1]?.data||'',pago:!!(prev[1]?.pago),chkLabel:'Pago'});
-      rows.push({lbl:'3ª parcela',valor:useCalc?_centsStr(p23):prev[2]?.valor||'',data:prev[2]?.data||'',pago:!!(prev[2]?.pago),chkLabel:'Pago'});
+      const n=Math.max(2,parseInt(gv('m-pix-n'))||3);
+      const base=Math.floor(saldo/n);const rem=saldo%n;
+      for(let k=0;k<n;k++) rows.push({lbl:(k+1)+'ª parcela',valor:useCalc?_centsStr(k===0?base+rem:base):prev[k]?.valor||'',data:prev[k]?.data||'',pago:!!(prev[k]?.pago),chkLabel:'Pago'});
     }
   }
 
@@ -3524,7 +3536,7 @@ function buildCalEvents(rec){
   }
   (rec.pagamentos||[]).forEach((p,i)=>{
     if(!p.pago&&p.data){
-      const lbl=rec.formaPagamento==='pix3x'?(i===0?'1ª parcela':i===1?'2ª parcela':'3ª parcela'):'Pagamento';
+      const lbl=rec.formaPagamento==='pix3x'?(i+1)+'ª parcela':'Pagamento';
       evs.push({title:'Cobrança '+lbl+' — '+nome,date:p.data});
     }
   });
@@ -4007,7 +4019,7 @@ function _tvDoneSave(obj){localStorage.setItem(TV_DONE_KEY,JSON.stringify(obj));
 function buildTasks(){
   const tasks=[];
   const done=_tvDoneLoad();
-  const PAG_LBLS={pix3x:['1ª parcela','2ª parcela','3ª parcela'],pixAVista:['Saldo restante'],cartao:['Saldo restante']};
+  const PAG_LBLS={pixAVista:['Saldo restante'],cartao:['Saldo restante']};
 
   DATA.forEach(b=>{
     if(b.etapa==='cancelado'||b.etapa==='entregue')return;
@@ -4045,7 +4057,7 @@ function buildTasks(){
       const lbls=PAG_LBLS[fp]||[];
       b.pagamentos.forEach((p,i)=>{
         if(!p.data)return;
-        tasks.push({id:'cob-'+bid+'-p'+i,bid,nome,type:'cobranca',date:p.data,label:lbls[i]||('Parcela '+(i+1)),done:!!(p.pago),auto:true});
+        tasks.push({id:'cob-'+bid+'-p'+i,bid,nome,type:'cobranca',date:p.data,label:fp==='pix3x'?(i+1)+'ª parcela':(lbls[i]||'Pagamento'),done:!!(p.pago),auto:true});
       });
     }
 
@@ -4466,7 +4478,7 @@ function renderFinancial(){
   hd.innerHTML='<span>Noiva</span><span>Pagamento</span><span>Valor</span><span>Status</span>';
   body.appendChild(hd);
   rows.forEach(({b,lbl,cls})=>{
-    const pag=b.formaPagamento==='pix3x'?'Pix 3×':b.formaPagamento==='pixAVista'?'Pix à vista':b.formaPagamento==='cartao'?'Cartão':'—';
+    const pag=PAGLABEL[b.formaPagamento]||'—';
     const nextDt=_pagNextDate(b);
     const dt=nextDt?fmt(nextDt):'—';
     const el=document.createElement('div');el.className='rtr fin';
