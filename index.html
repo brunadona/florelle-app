@@ -1082,7 +1082,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <div class="fg"><label class="fl">Como nos conheceu</label><select id="m-origem" class="fi"><option value="">Não informado</option><option value="instagram">Instagram</option><option value="indicacao">Indicação</option><option value="google">Google</option><option value="facebook">Facebook</option><option value="outro">Outro</option></select></div>
       </div>
       <div class="frow f1">
-        <div class="fg"><label class="fl">Endereço</label><input id="m-end" type="text" class="fi" placeholder="Rua, número…"></div>
+        <div class="fg"><label class="fl">Endereço</label><textarea id="m-end" class="fta" rows="2" placeholder="Rua, número…"></textarea></div>
       </div>
     </div>
 
@@ -2521,8 +2521,8 @@ function _setupSigningPage(signData){
   root.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;background:#b8b0a4';
 
   const hdr=document.createElement('div');
-  hdr.style.cssText='flex-shrink:0;background:#5a7a5c;color:#fff;padding:12px 16px;text-align:center;font-size:14px;font-weight:500;letter-spacing:.01em';
-  hdr.textContent='Florelle Atelier — Contrato Digital';
+  hdr.style.cssText='flex-shrink:0;background:#5a7a5c;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px';
+  hdr.innerHTML='<button onclick="history.back()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 4px;flex-shrink:0">&#8592;</button><span style="flex:1;text-align:center;font-size:14px;font-weight:500;letter-spacing:.01em">Florelle Atelier — Contrato Digital</span><span style="width:30px;flex-shrink:0"></span>';
 
   const iframe=document.createElement('iframe');
   iframe.id='sp-iframe';
@@ -2811,7 +2811,8 @@ async function verContratoAssinado(){
     const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id));
     const {html,error}=await r.json();
     if(error||!html){alert('Contrato não encontrado no servidor.\nA noiva precisa assinar pelo link enviado.');return;}
-    const blob=new Blob([html],{type:'text/html'});
+    const closedHtml=html.includes('</body>')?html.replace('</body>','<button style="position:fixed;top:16px;left:16px;background:#5a7a52;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-family:sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.22);z-index:999" onclick="window.close()">&#8592; Fechar</button></body>'):html;
+    const blob=new Blob([closedHtml],{type:'text/html'});
     const url=URL.createObjectURL(blob);
     window.open(url,'_blank');
     setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -2924,10 +2925,13 @@ p{margin-bottom:4px;text-align:justify}
 .ass-line{border-top:1px solid #444;margin-top:52px;padding-top:4px;font-size:10.5pt}
 .pbt{position:fixed;bottom:20px;right:20px;background:#5a7a52;color:#fff;border:none;border-radius:7px;padding:10px 20px;font-size:12px;font-family:sans-serif;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25);z-index:999}
 .pbt:hover{background:#4a6a42}
-@media print{html{background:#e4dcd0}.page{padding:38px 50px}.pbt{display:none}.sec{page-break-inside:avoid}}
+.cbk{position:fixed;top:16px;left:16px;background:#5a7a52;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-family:sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.22);z-index:999}
+.cbk:hover{background:#4a6a42}
+@media print{html{background:#e4dcd0}.page{padding:38px 50px}.pbt{display:none}.cbk{display:none}.sec{page-break-inside:avoid}}
 </style>
 </head>
 <body>
+<button class="cbk" onclick="window.close()">&#8592; Fechar</button>
 <button class="pbt" onclick="window.print()">&#128424; Imprimir / Salvar PDF</button>
 <div class="page">
 <div style="text-align:center;margin-bottom:22px">
