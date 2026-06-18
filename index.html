@@ -1656,7 +1656,7 @@ function buildCol(col){
       const _doMove=()=>{
         b.etapaHist=[...(b.etapaHist||[]),{de:_prevEtapa,para:col.id,em:today()}];
         b.etapa=col.id;b.upd=Date.now();
-        if(col.id==='entregue')_deductInvForBride(b);
+        if(col.id==='embalado'||col.id==='entregue')_deductInvForBride(b);
         save();renderAll();
         _showUndoToast(_prevData,_nomeDisp(b),_prevEtapa,col.id);
         if(col.id==='entregue'){
@@ -2263,10 +2263,10 @@ async function saveModal(){
   }
 
   const brideIdForCal = editId || newId;
-  // Deduct inventory when a bride is delivered
-  if(rec.etapa==='entregue'&&_oldEtapa&&_oldEtapa!=='entregue'){
-    const bEnt=editId?DATA.find(x=>x.id===editId):null;
-    if(bEnt)_deductInvForBride(bEnt);
+  // Deduct inventory when bouquet is ready (embalado) or delivered (entregue fallback)
+  if((rec.etapa==='embalado'||rec.etapa==='entregue')&&_oldEtapa&&_oldEtapa!==rec.etapa){
+    const bUpd=editId?DATA.find(x=>x.id===editId):null;
+    if(bUpd)_deductInvForBride(bUpd);
   }
   save();closeModal();renderAll();
   // Show delivery checklist when transitioning to entregue
@@ -5204,7 +5204,7 @@ function _deductInvForBride(b){
     const c=Number(item.consumo||0);if(!c)return;
     item.qtdAtual=Math.max(0,Number(item.qtdAtual||0)-c);
     item.historico=item.historico||[];
-    item.historico.unshift({data:today(),quantidade:-c,obs:'Entrega: '+_nomeDisp(b)});
+    item.historico.unshift({data:today(),quantidade:-c,obs:'Buquê pronto: '+_nomeDisp(b)});
     if(item.historico.length>20)item.historico=item.historico.slice(0,20);
     changed=true;
   });
