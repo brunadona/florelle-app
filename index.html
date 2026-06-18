@@ -3769,9 +3769,14 @@ function _invNeeded(item){
 // Gera lista de compras para uma noiva específica
 function _listaComprasNoiva(b){
   const produto = b.produto||'';
+  const redomaOk = (b.redomaStatus||'naoEncomendada') === 'emMaos';
+  const embOk    = (b.statusEmbalagem||'naoEncomendada') === 'emMaos';
   return INV.map(item=>{
     if(item.porProduto && !item.porProduto.includes(produto)) return null;
-    const needed = item.consumo - 0; // simplificado
+    const nmLow = item.nome.toLowerCase();
+    let jaEmMaos = false;
+    if(nmLow.startsWith('redoma') || nmLow.startsWith('cúpula') || nmLow.startsWith('cupula')) jaEmMaos = redomaOk;
+    if(nmLow.startsWith('embalagem')) jaEmMaos = embOk;
     return {
       nome: item.nome,
       consumo: item.consumo,
@@ -3779,7 +3784,7 @@ function _listaComprasNoiva(b){
       precoUnit: item.precoUnit,
       custo: item.consumo * item.precoUnit,
       comprarAntes: item.comprarAntes||false,
-      temEstoque: Number(item.qtdAtual||0) >= item.consumo,
+      temEstoque: jaEmMaos || Number(item.qtdAtual||0) >= item.consumo,
     };
   }).filter(Boolean);
 }
