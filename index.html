@@ -3351,12 +3351,26 @@ function pagCalc(preload){
   container.innerHTML=rows.map((r,i)=>
     `<div class="parc-row">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
-    `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00">`+
+    `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="_recalcLast(${i})">`+
     `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
     `<label class="parc-chk"><input type="checkbox" class="parc-pg" data-pi="${i}"${r.pago?' checked':''}> ${r.chkLabel}</label>`+
     `</div>`
   ).join('');
+  _recalcLast(-1);
   syncAutoRems();
+}
+
+function _recalcLast(editedIdx){
+  const inputs=[...document.querySelectorAll('#pag-rows .parc-val')];
+  if(inputs.length<2)return;
+  const lastIdx=inputs.length-1;
+  if(editedIdx===lastIdx)return;
+  const total=_parseBRL(gv('m-valor'));
+  if(!total)return;
+  let soma=0;
+  for(let i=0;i<lastIdx;i++) soma+=_parseBRL(inputs[i].value||'0');
+  const resto=total-soma;
+  inputs[lastIdx].value=resto>0?_centsStr(resto):'0,00';
 }
 
 
