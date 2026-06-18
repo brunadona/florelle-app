@@ -239,12 +239,15 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .rpb{overflow-y:auto;padding:9px 13px;display:flex;flex-direction:column;gap:6px}
 .rpb::-webkit-scrollbar{width:3px}
 .rpb::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
-.rpi{padding:9px 11px;background:var(--cbg);border-radius:7px;border:1px solid var(--bdl);cursor:pointer;transition:background .16s}
+.rpi{padding:9px 11px;background:var(--cbg);border-radius:7px;border:1px solid var(--bdl);cursor:pointer;transition:background .16s;display:flex;align-items:center;gap:8px}
 .rpi:hover{background:var(--ccol)}
+.rpi-info{flex:1;min-width:0}
 .rpin{font-family:'Cormorant Garamond',serif;font-size:14.5px;font-weight:500;color:var(--tx);margin-bottom:1px}
 .rpit{font-size:11.5px;color:var(--txm)}
 .rpid{font-size:10.5px;font-weight:600;margin-top:3px}
 .rp-late{color:#B03420}.rp-today{color:#A85818}.rp-soon{color:var(--sd)}
+.rpi-done{width:32px;height:32px;flex-shrink:0;border:none;border-radius:7px;background:#EDF4EB;color:var(--sd);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:background .15s;padding:0;font-weight:600}
+.rpi-done:hover{background:#c6dfc2;color:#3d5c38}
 .rpemp{text-align:center;padding:20px 10px;font-size:12.5px;color:var(--txl)}
 
 .hidden{display:none!important}
@@ -3189,6 +3192,17 @@ function toggleRP(){
   if(rpOpen)renderRP();
 }
 
+function _togRemDone(brideId,remId){
+  const bride=DATA.find(x=>x.id===brideId);
+  if(!bride)return;
+  const rem=(bride.lembretes||[]).find(x=>x.id===remId);
+  if(!rem)return;
+  rem.done=true;
+  save();
+  bellUpdate();
+  renderRP();
+}
+
 function renderRP(){
   const body=g('rpb');body.innerHTML='';
   const items=DATA
@@ -3207,7 +3221,14 @@ function renderRP(){
     const el=document.createElement('div');
     el.className='rpi';
     el.onclick=()=>{toggleRP();openModal(b.id);};
-    el.innerHTML=`<div class="rpin">${esc(_nomeDisp(b))}</div><div class="rpit">${r.text}</div><div class="rpid ${cls}">${lbl}</div>`;
+    el.innerHTML=`
+      <div class="rpi-info">
+        <div class="rpin">${esc(_nomeDisp(b))}</div>
+        <div class="rpit">${esc(r.text)}</div>
+        <div class="rpid ${cls}">${lbl}</div>
+      </div>
+      <button class="rpi-done" onclick="event.stopPropagation();_togRemDone('${b.id}','${r.id}')" title="Marcar como feito">✓</button>
+    `;
     body.appendChild(el);
   });
 }
