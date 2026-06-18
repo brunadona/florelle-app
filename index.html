@@ -1663,6 +1663,9 @@ function buildCol(col){
           setTimeout(()=>_celebrateEntrega(_nomeDisp(b)),300);
           _offerAniverLembrete(b);
         }
+        if(WPP_STAGE_MSGS[col.id]){
+          setTimeout(()=>_showWppStageMsg(b,col.id),500);
+        }
       };
       if(col.id==='entregue'&&_prevEtapa!=='entregue'){
         _showEntregaChecklist(_doMove);
@@ -1870,6 +1873,46 @@ function _celebrateEntrega(nome){
     document.body.appendChild(el);
     setTimeout(()=>el.remove(),1200+i*80);
   }
+}
+
+/* ── WPP STAGE MESSAGES ──────────────────────── */
+const WPP_STAGE_MSGS={
+  secagem: n=>`Olá, ${n}! 🌸 Quero te contar uma novidade: o seu buquê já está na sílica! Esse é o início do processo de preservação, onde as flores vão secando com muito cuidado para manter todas as cores e detalhes. Em cerca de 30 dias ele estará pronto para a montagem. Vou te atualizando com muito carinho! 💚`,
+  montagem: n=>`Olá, ${n}! ✨ Seu buquê saiu da sílica maravilhoso! Estou começando a montagem agora — é o momento em que tudo ganha vida na peça. Cada florzinha sendo colocada com muito amor e atenção. Em breve você vai ver o resultado! 🌿`,
+  embalado: n=>`Olá, ${n}! 🎁 Sua peça ficou simplesmente linda e já está embalada com todo carinho! Estou muito feliz com o resultado. Vamos combinar a entrega? Mal posso esperar pra você ver de pertinho! 💐`,
+  entregue: n=>`Olá, ${n}! 💚 Foi uma honra enorme cuidar das flores do seu dia especial e transformá-las em uma lembrança eterna. Espero que você ame tanto quanto eu amei fazer! Obrigada pela confiança e pelo carinho. 🌸\n_Florelle Atelier_`,
+};
+const WPP_STAGE_LBL={secagem:'Secagem iniciada',montagem:'Em montagem',embalado:'Peça pronta e embalada',entregue:'Entregue'};
+
+function _showWppStageMsg(b,etapa){
+  const tplFn=WPP_STAGE_MSGS[etapa];if(!tplFn)return;
+  const primeiroNome=_nomeDisp(b).split(' ')[0];
+  const tel=(b.telefone||'').replace(/\D/g,'');
+  const overlay=document.createElement('div');
+  overlay.setAttribute('data-wpp-ov','1');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom,0)';
+  const box=document.createElement('div');
+  box.style.cssText='background:var(--cbg);border-radius:16px 16px 0 0;padding:22px 18px 28px;width:100%;max-width:540px;box-shadow:0 -4px 24px rgba(0,0,0,.18)';
+  box.innerHTML=`
+    <div style="font-weight:700;font-size:15px;margin-bottom:3px;color:var(--tx)">💌 Avisar ${esc(primeiroNome)}</div>
+    <div style="font-size:12px;color:var(--txm);margin-bottom:13px">${WPP_STAGE_LBL[etapa]||etapa}</div>
+    <textarea id="_wpp-msg-ta" style="width:100%;box-sizing:border-box;min-height:150px;border:1.5px solid var(--bd);border-radius:10px;padding:10px 12px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--tx);background:var(--ccol);resize:vertical;line-height:1.55">${tplFn(primeiroNome)}</textarea>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button onclick="this.closest('[data-wpp-ov]').remove()" style="flex:1;padding:11px;border:1.5px solid var(--bd);background:transparent;border-radius:9px;font-size:13.5px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--tx)">Agora não</button>
+      <button id="_wpp-send-btn" style="flex:2;padding:11px;background:#25D366;color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer">📲 Enviar no WhatsApp</button>
+    </div>
+  `;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  box.querySelector('#_wpp-send-btn').onclick=()=>{
+    const text=box.querySelector('#_wpp-msg-ta').value;
+    const url=tel
+      ?'https://web.whatsapp.com/send?phone=55'+tel+'&text='+encodeURIComponent(text)
+      :'https://web.whatsapp.com/send?text='+encodeURIComponent(text);
+    window.open(url,'_wpp');
+    overlay.remove();
+  };
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
 }
 
 /* ── ANIVERSARIO LEMBRETE ────────────────────── */
