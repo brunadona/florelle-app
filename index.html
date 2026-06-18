@@ -223,7 +223,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .mft{padding:13px 24px;border-top:1px solid var(--bdl);display:flex;align-items:center;gap:9px;flex-shrink:0}
 .bdng{height:35px;padding:0 14px;background:transparent;color:#B03420;border:1.5px solid #F0B8B0;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .16s}
 .bdng:hover{background:#FEEDEA;border-color:#E09080}
-.fr{margin-left:auto;display:flex;gap:7px}
+.fr{margin-left:auto;display:flex;gap:7px;align-items:center}
+.fr-ctrt{display:flex;gap:7px;align-items:center}
 .bsec{height:35px;padding:0 14px;background:var(--cdark);color:var(--txm);border:1.5px solid var(--bd);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .16s}
 .bsec:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
 .bsav{height:35px;padding:0 20px;background:var(--sd);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .16s}
@@ -538,10 +539,12 @@ body{display:flex;flex-direction:column;overflow:hidden}
   /* spacing */
   .mbdy{padding:16px 18px}
   .mhd{padding:15px 18px 13px}
-  .mft{padding:11px 18px}
-  .btn-lbl{display:none}
-  .bctrt{padding:0 10px;font-size:15px}
-  .bsav{padding:0 16px}
+  .mft{padding:10px 16px;flex-wrap:wrap;gap:6px;align-items:flex-start}
+  #bdel,#bdup{flex-shrink:0}
+  .fr{margin-left:0!important;flex:1 1 100%;flex-wrap:wrap;gap:6px;align-items:center}
+  .fr>.bsec,.fr>.bsav{flex:1;order:1}
+  .fr-ctrt{flex:1 1 100%;flex-wrap:wrap;gap:6px;order:10}
+  .fr-ctrt .bctrt{flex:1;min-width:calc(50% - 3px);font-size:13px;padding:0 8px}
   .wa-bdy{padding:14px 18px}
   .wa-ft{padding:11px 18px}
   .calbdy{padding:12px 18px}
@@ -1333,15 +1336,17 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
   <!-- Modal footer -->
   <div class="mft">
-    <button class="bdng hidden" id="bdel" onclick="delBride()">Excluir</button>
+    <button class="bdng hidden" id="bdel" onclick="delBride()">🗑️ Excluir</button>
     <button class="bctrt hidden" id="bdup" onclick="dupBride()" title="Duplicar noiva">📋 Duplicar</button>
     <div class="fr">
       <button class="bsec" onclick="closeModal()">Cancelar</button>
-      <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄<span class="btn-lbl"> Contrato</span></button>
-      <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲<span class="btn-lbl"> WhatsApp</span></button>
-      <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salvar contrato no Google Drive">☁️<span class="btn-lbl"> Drive</span></button>
-      <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️<span class="btn-lbl"> Assinar</span></button>
-      <button class="bctrt hidden" id="btn-ver-contrato" onclick="verContratoAssinado()" title="Ver contrato assinado pela noiva" style="background:#5a7a5c;color:#fff">📄<span class="btn-lbl"> Ver assinado</span></button>
+      <div class="fr-ctrt">
+        <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
+        <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲 WhatsApp</button>
+        <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salvar contrato no Google Drive">☁️ Drive</button>
+        <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️ Assinar</button>
+        <button class="bctrt hidden" id="btn-ver-contrato" onclick="verContratoAssinado()" title="Ver contrato assinado pela noiva" style="background:#5a7a5c;color:#fff">📄 Ver assinado</button>
+      </div>
       <button class="bsav" onclick="saveModal()">Salvar</button>
     </div>
   </div>
