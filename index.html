@@ -3434,21 +3434,13 @@ async function _getOrCreateFlorCal(){
   return _florCalId;
 }
 
-async function _taskFetch(method,path,body){
-  const h={'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'};
-  const r=await fetch('https://tasks.googleapis.com'+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
-  if(r.status===401){_gToken=null;_florCalId=null;localStorage.removeItem('florelle_cal_id');_showReconnectBtn();throw new Error('Sessão expirada. Reconecte ao Google.');}
-  return r;
-}
-
 async function _deleteCalEvents(eventIds){
   if(!eventIds||!eventIds.length)return;
-  // Tenta deletar como task (novo) e como evento de calendário (legado), ambos silenciosos
   const calId=await _getOrCreateFlorCal();
-  await Promise.all(eventIds.map(id=>Promise.allSettled([
-    _taskFetch('DELETE','/tasks/v1/lists/@default/tasks/'+id).catch(()=>{}),
-    _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+id).catch(()=>{}),
-  ])));
+  await Promise.all(eventIds.map(id=>
+    _calFetch('DELETE','/calendars/'+encodeURIComponent(calId)+'/events/'+id)
+      .catch(()=>{})
+  ));
 }
 
 function _calEmoji(title){
@@ -3464,12 +3456,14 @@ function _calEmoji(title){
 }
 
 async function _createCalEvents(nome,calEvs){
+  const calId=await _getOrCreateFlorCal();
   const results=await Promise.all(
     calEvs.filter(ev=>ev.date).map(ev=>
-      _taskFetch('POST','/tasks/v1/lists/@default/tasks',{
-        title:_calEmoji(ev.title)+ev.title,
-        due:ev.date+'T00:00:00.000Z',
-        notes:'Florelle — '+nome,
+      _calFetch('POST','/calendars/'+encodeURIComponent(calId)+'/events',{
+        summary:_calEmoji(ev.title)+ev.title,
+        start:{date:ev.date},
+        end:{date:addDays(ev.date,1)},
+        description:'Florelle — '+nome,
       }).then(r=>r.ok?r.json():null).catch(()=>null)
     )
   );
@@ -4655,7 +4649,7 @@ function _mimeIcon(mt){
 }
 /* ── GOOGLE DRIVE UPLOAD (GIS popup mode) ────── */
 const GD_CLIENT_ID='232678212261-q2n2tjhc2dkhoj1njkdcp7femcrab3o4.apps.googleusercontent.com';
-const GD_SCOPE='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks';
+const GD_SCOPE='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar';
 const GD_ROOT='FLORELLE - NOIVAS';
 const GD_NOIVAS_ID='1cUGoU0TT-M01nIdUX5qCkxuSE2QUWr2o'; // pasta raiz FLORELLE - NOIVAS
 
