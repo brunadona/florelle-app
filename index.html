@@ -1895,8 +1895,8 @@ function _showWppStageMsg(b,etapa){
   box.querySelector('#_wpp-send-btn').onclick=()=>{
     const text=box.querySelector('#_wpp-msg-ta').value;
     const url=tel
-      ?'https://web.whatsapp.com/send?phone=55'+tel+'&text='+encodeURIComponent(text)
-      :'https://web.whatsapp.com/send?text='+encodeURIComponent(text);
+      ?'https://wa.me/55'+tel+'?text='+encodeURIComponent(text)
+      :'https://wa.me?text='+encodeURIComponent(text);
     window.open(url,'_wpp');
     overlay.remove();
   };
@@ -2494,7 +2494,7 @@ async function enviarAssinar(){
 
     const primeiroNome=nome.split(' ')[0];
     const msg=encodeURIComponent('Olá, '+primeiroNome+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link para ler e assinar:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐\n_Florelle Atelier_');
-    window.open('https://web.whatsapp.com/send?phone=55'+tel+'&text='+msg,'_wpp');
+    window.open('https://wa.me/55'+tel+'?text='+msg,'_wpp');
 
   }catch(e){
     console.error(e);
@@ -2513,7 +2513,7 @@ function enviarContratoWpp(){
   );
   // Abre WhatsApp e contrato de forma síncrona (dentro do evento de clique)
   // para o browser não bloquear como popup
-  window.open(`https://web.whatsapp.com/send?phone=55${tel}&text=${msg}`, '_wpp');
+  window.open(`https://wa.me/55${tel}?text=${msg}`, '_wpp');
   gerarContrato();
 }
 
