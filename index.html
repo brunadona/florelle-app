@@ -1894,10 +1894,7 @@ function _showWppStageMsg(b,etapa){
   document.body.appendChild(overlay);
   box.querySelector('#_wpp-send-btn').onclick=()=>{
     const text=box.querySelector('#_wpp-msg-ta').value;
-    const url=tel
-      ?'https://wa.me/55'+tel+'?text='+encodeURIComponent(text)
-      :'https://wa.me?text='+encodeURIComponent(text);
-    window.open(url,'_wpp');
+    window.open(_wppUrl(tel,text),'_wpp');
     overlay.remove();
   };
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
@@ -2494,7 +2491,7 @@ async function enviarAssinar(){
 
     const primeiroNome=nome.split(' ')[0];
     const msg=encodeURIComponent('Olá, '+primeiroNome+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link para ler e assinar:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐\n_Florelle Atelier_');
-    window.open('https://wa.me/55'+tel+'?text='+msg,'_wpp');
+    window.open(_wppUrl(tel,decodeURIComponent(msg)),'_wpp');
 
   }catch(e){
     console.error(e);
@@ -2513,7 +2510,7 @@ function enviarContratoWpp(){
   );
   // Abre WhatsApp e contrato de forma síncrona (dentro do evento de clique)
   // para o browser não bloquear como popup
-  window.open(`https://wa.me/55${tel}?text=${msg}`, '_wpp');
+  window.open(_wppUrl(tel,decodeURIComponent(msg)),'_wpp');
   gerarContrato();
 }
 
@@ -4947,6 +4944,12 @@ window.addEventListener('online',()=>{
 /* ── MOBILE ──────────────────────────────────── */
 let mobileColIdx=0;
 function isMobile(){return window.innerWidth<=640;}
+function _isTouchDevice(){return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||('ontouchstart' in window);}
+function _wppUrl(tel,text){
+  const enc=encodeURIComponent(text||'');
+  if(_isTouchDevice())return tel?'https://wa.me/55'+tel+'?text='+enc:'https://wa.me?text='+enc;
+  return tel?'https://web.whatsapp.com/send?phone=55'+tel+'&text='+enc:'https://web.whatsapp.com/send?text='+enc;
+}
 
 function navCol(dir){
   const n=Math.max(0,Math.min(COLS.length-1,mobileColIdx+dir));
@@ -5371,7 +5374,7 @@ function _waTplSend(id,msgEnc){
   const b=DATA.find(x=>x.id===id);if(!b)return;
   const num=b.telefone.replace(/\D/g,'');
   const full=num.startsWith('55')?num:'55'+num;
-  window.open('https://wa.me/'+full+(msgEnc?'?text='+msgEnc:''),'_blank','noopener');
+  window.open(_wppUrl(full.replace(/^55/,''),msgEnc?decodeURIComponent(msgEnc):''),'_blank','noopener');
 }
 function _waTplClose(){
   g('watpl-ov')?.classList.add('hidden');
