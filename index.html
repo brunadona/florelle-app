@@ -1575,6 +1575,7 @@ function save(){
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,9);}
 function today(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function fmt(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}
+function _isoDate(ms){const d=new Date(ms);return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function addDays(s,n){if(!s)return'';const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 
 function daysTo(s){if(!s)return null;const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(s+'T00:00:00')-t)/86400000);}
@@ -4082,6 +4083,8 @@ const TASK_TYPES={
   contrato:    {ico:'📄',label:'Acompanhar contrato',          bg:'#EEF0F8'},
   confirmacao: {ico:'📞',label:'Confirmar retirada do buquê',  bg:'#FEF8EE'},
   lembrete:    {ico:'🔔',label:'Lembrete',                     bg:'#F8F4EF'},
+  followupPortfolio:{ico:'📸',label:'Follow-up portfólio',    bg:'#EEF0F8'},
+  followupFinal:    {ico:'💬',label:'Follow-up final',         bg:'#FEF4EA'},
 };
 
 const TV_DONE_KEY='florelle_tv_done';
@@ -4134,6 +4137,12 @@ function buildTasks(){
         if(!p.data)return;
         tasks.push({id:'cob-'+bid+'-p'+i,bid,nome,type:'cobranca',date:p.data,label:fp==='pix3x'?(i+1)+'ª parcela':(lbls[i]||'Pagamento'),done:!!(p.pago),auto:true});
       });
+    }
+
+    // Follow-up automático (lead e retomar conversa)
+    if(b.etapa==='lead'||b.etapa==='retomar'){
+      tasks.push({id:'fu24-'+bid,bid,nome,type:'followupPortfolio',date:_isoDate(b.crd+24*3600000),done:false,auto:true});
+      tasks.push({id:'fu72-'+bid,bid,nome,type:'followupFinal',    date:_isoDate(b.crd+72*3600000),done:false,auto:true});
     }
 
     // Lembretes
