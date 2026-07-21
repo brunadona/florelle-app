@@ -4153,6 +4153,69 @@ function buildTasks(){
   return tasks;
 }
 
+/* ── KOMMO CRM ───────────────────────────────── */
+function _kommoCfg(){try{return JSON.parse(localStorage.getItem('florelle_kommo')||'{}')}catch{return{};}}
+
+function openCfg(){
+  const cfg=_kommoCfg();
+  sv2('cfg-kommo-sub',cfg.subdomain||'');
+  sv2('cfg-kommo-key',cfg.apiKey||'');
+  const ts=localStorage.getItem('florelle_kommo_sync');
+  const lbl=g('kommo-last-sync');
+  if(lbl)lbl.textContent=ts?'Última sync: '+ts:'Nunca sincronizado';
+  g('cfg-ov').classList.remove('hidden');
+}
+
+function closeCfg(){g('cfg-ov').classList.add('hidden');}
+
+function saveCfg(){
+  const sub=gv('cfg-kommo-sub').trim().replace(/\.kommo\.com.*$/i,'').replace(/^https?:\/\//,'');
+  const key=gv('cfg-kommo-key').trim();
+  localStorage.setItem('florelle_kommo',JSON.stringify({subdomain:sub,apiKey:key}));
+  _showCalToast('✅ Configurações salvas.');
+}
+
+async function syncKommo(){
+  const cfg=_kommoCfg();
+  if(!cfg.apiKey||!cfg.subdomain){
+    alert('Configure o subdomínio e o token nas Configurações antes de sincronizar.');
+    return;
+  }
+  const btn=g('kommo-sync-btn');
+  if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
+  try{
+    const from=Math.floor((Date.now()-7*24*3600000)/1000);
+    const url=`https://${cfg.subdomain}.kommo.com/api/v4/leads?with=contacts&filter[created_at][from]=${from}&limit=250`;
+    const r=await fetch(url,{headers:{'Authorization':'Bearer '+cfg.apiKey,'Content-Type':'application/json'}});
+    if(!r.ok)throw new Error('HTTP '+r.status+' — verifique o token e o subdomínio');
+    const data=await r.json();
+    const leads=(data._embedded&&data._embedded.leads)||[];
+    let added=0,skipped=0;
+    leads.forEach(lead=>{
+      const contact=lead._embedded&&lead._embedded.contacts&&lead._embedded.contacts[0]||null;
+      const nome=(contact?contact.name:null)||lead.name||'Lead Kommo';
+      let tel='';
+      if(contact&&contact.custom_fields_values){
+        const pf=contact.custom_fields_values.find(f=>f.field_code==='PHONE');
+        if(pf&&pf.values&&pf.values[0])tel=String(pf.values[0].value).replace(/\D/g,'').replace(/^55/,'');
+      }
+      const exists=tel?DATA.some(b=>(b.telefone||'').replace(/\D/g,'')===tel):false;
+      if(exists){skipped++;return;}
+      DATA.push({id:uid(),crd:lead.created_at*1000,nome,telefone:tel,etapa:'lead',_kommoId:lead.id,upd:Date.now()});
+      added++;
+    });
+    if(added>0){save();renderAll();}
+    const ts=new Date().toLocaleString('pt-BR');
+    localStorage.setItem('florelle_kommo_sync',ts);
+    const syncLbl=g('kommo-last-sync');if(syncLbl)syncLbl.textContent='Última sync: '+ts;
+    _showCalToast(`✅ ${added} noiva${added!==1?'s':''} adicionada${added!==1?'s':''}, ${skipped} já existia${skipped!==1?'m':''}.`);
+  }catch(e){
+    _showCalToast('❌ Erro ao conectar ao Kommo: '+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Sincronizar agora';}
+  }
+}
+
 function tvToggleDone(taskId){
   const done=_tvDoneLoad();
   done[taskId]=!done[taskId];
