@@ -3263,7 +3263,7 @@ function _flashSyncBtn(msg){
 /* ── BELL / REMINDERS PANEL ──────────────────── */
 function bellUpdate(){
   const t=today();
-  const due=DATA.flatMap(b=>(b.lembretes||[]).filter(r=>!r.done&&r.data&&r.data<=t).map(r=>({b,r})));
+  const due=DATA.filter(b=>b.etapa!=='entregue'&&b.etapa!=='cancelado').flatMap(b=>(b.lembretes||[]).filter(r=>!r.done&&r.data&&r.data<=t).map(r=>({b,r})));
   const bdg=g('bdg'),ban=g('ban');
   bdg.textContent=due.length;
   bdg.classList.toggle('hidden',due.length===0);
@@ -3291,6 +3291,7 @@ function _togRemDone(brideId,remId){
 function renderRP(){
   const body=g('rpb');body.innerHTML='';
   const items=DATA
+    .filter(b=>b.etapa!=='entregue'&&b.etapa!=='cancelado')
     .flatMap(b=>(b.lembretes||[]).filter(r=>!r.done&&r.data).map(r=>({b,r})))
     .sort((a,b)=>(a.r.data||'').localeCompare(b.r.data||''));
 
