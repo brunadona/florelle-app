@@ -4071,7 +4071,7 @@ function renderInv(){
 
 
 /* ── TASKS VIEW ──────────────────────────────── */
-let _tvFilter='all';
+let _tvFilter='pend';
 let _tvSrch='';
 
 const TASK_TYPES={
@@ -4103,14 +4103,22 @@ function buildTasks(){
     // Sílica / montagem — só depois que o casamento ocorreu
     const _casPassou=!b.dataCasamento||b.dataCasamento<=today();
     if(_casPassou){
-      if(b.dataSilica){
-        tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:b.dataSilica,           done:false,auto:true});
-        tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataSilica,30),done:false,auto:true});
-        tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataSilica,45),done:false,auto:true});
-      } else if(b.dataBuque){
-        tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:addDays(b.dataBuque,2), done:false,auto:true});
-        tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataBuque,32),done:false,auto:true});
-        tasks.push({id:'montagem-'+bid, bid,nome,type:'montagem', date:addDays(b.dataBuque,47),done:false,auto:true});
+      // Sílica: só enquanto em secagem
+      if(b.etapa==='secagem'){
+        if(b.dataSilica){
+          tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:b.dataSilica,           done:false,auto:true});
+          tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataSilica,30),done:false,auto:true});
+        } else if(b.dataBuque){
+          tasks.push({id:'silicaIn-'+bid, bid,nome,type:'silicaIn', date:addDays(b.dataBuque,2), done:false,auto:true});
+          tasks.push({id:'silicaOut-'+bid,bid,nome,type:'silicaOut',date:addDays(b.dataBuque,32),done:false,auto:true});
+        }
+      }
+      // Montagem: secagem ou montagem
+      if(b.etapa==='secagem'||b.etapa==='montagem'){
+        if(b.dataSilica)
+          tasks.push({id:'montagem-'+bid,bid,nome,type:'montagem',date:addDays(b.dataSilica,45),done:false,auto:true});
+        else if(b.dataBuque)
+          tasks.push({id:'montagem-'+bid,bid,nome,type:'montagem',date:addDays(b.dataBuque,47),done:false,auto:true});
       }
     }
 
@@ -4321,7 +4329,8 @@ function renderTasks(){
       if(d!==null){if(d<0)dcls='late';else if(d===0)dcls='today';else if(d<=7)dcls='soon';}
       let dlbl='';
       if(t.date&&d!==null){if(d<0)dlbl='Há '+Math.abs(d)+'d';else if(d===0)dlbl='Hoje';else if(d===1)dlbl='Amanhã';else dlbl=fmt(t.date);}
-      return `<div class="tv-item${t.done?' done-item':''}" onclick="openModal('${t.bid}')">
+      const _isLate=!t.done&&t.date&&t.date<today();
+      return `<div class="tv-item${t.done?' done-item':_isLate?' late-item':''}" onclick="openModal('${t.bid}')">
         <input type="checkbox" class="tv-chk"${t.done?' checked':''} onclick="event.stopPropagation();tvToggleDone('${t.id}')">
         <div class="tv-ico" style="background:${tt.bg}">${tt.ico}</div>
         <div class="tv-info">
