@@ -191,6 +191,24 @@ Retorne apenas o JSON.`;
       return json({ raw });
     }
 
+    // POST /kommo  →  proxy para Kommo API (evita CORS do browser)
+    if (request.method === 'POST' && url.pathname === '/kommo') {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: 'JSON inválido' }, 400); }
+      const { subdomain, token, from } = body;
+      if (!subdomain || !token || !from) return json({ error: 'subdomain, token e from são obrigatórios' }, 400);
+
+      const kommoUrl = `https://${subdomain}.kommo.com/api/v4/leads?with=contacts&filter[created_at][from]=${from}&limit=250`;
+      const kommoResp = await fetch(kommoUrl, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+      const kommoText = await kommoResp.text();
+      return new Response(kommoText, {
+        status: kommoResp.status,
+        headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' },
+      });
+    }
+
     return new Response('Florelle Sign API', { headers: CORS });
   },
 };
