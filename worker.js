@@ -191,22 +191,43 @@ Retorne apenas o JSON.`;
       return json({ raw });
     }
 
-    // POST /kommo  →  proxy para Kommo API (evita CORS do browser)
+    // POST /kommo  →  busca leads + contatos do Kommo (evita CORS do browser)
     if (request.method === 'POST' && url.pathname === '/kommo') {
       let body;
       try { body = await request.json(); } catch { return json({ error: 'JSON inválido' }, 400); }
       const { subdomain, token } = body;
       if (!subdomain || !token) return json({ error: 'subdomain e token são obrigatórios' }, 400);
+      const hdr = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
-      const kommoUrl = `https://${subdomain}.kommo.com/api/v4/leads?with=contacts&limit=250&order[id]=desc`;
-      const kommoResp = await fetch(kommoUrl, {
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      // Busca leads
+      const leadsResp = await fetch(`https://${subdomain}.kommo.com/api/v4/leads?with=contacts&limit=250&order[id]=desc`, { headers: hdr });
+      if (!leadsResp.ok) { const t = await leadsResp.text(); return new Response(t, { status: leadsResp.status, headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' } }); }
+      const leadsData = await leadsResp.json();
+      const leads = leadsData._embedded?.leads || [];
+
+      // Coleta IDs de contatos únicos
+      const contactIds = [...new Set(leads.flatMap(l => (l._embedded?.contacts || []).map(c => c.id)))];
+
+      // Busca contatos em batch para obter nome e telefone
+      const contactsMap = {};
+      if (contactIds.length) {
+        const qs = contactIds.map(id => `id[]=${id}`).join('&');
+        const cResp = await fetch(`https://${subdomain}.kommo.com/api/v4/contacts?${qs}&limit=250`, { headers: hdr });
+        if (cResp.ok) {
+          const cData = await cResp.json();
+          for (const c of cData._embedded?.contacts || []) contactsMap[c.id] = c;
+        }
+      }
+
+      // Monta resultado simplificado
+      const result = leads.map(lead => {
+        const cRef = (lead._embedded?.contacts || []).find(c => c.is_main) || lead._embedded?.contacts?.[0];
+        const contact = cRef ? contactsMap[cRef.id] : null;
+        const phone = contact?.custom_fields_values?.find(f => f.field_code === 'PHONE')?.values?.[0]?.value || '';
+        return { id: lead.id, name: contact?.name || lead.name || '', phone, created_at: lead.created_at };
       });
-      const kommoText = await kommoResp.text();
-      return new Response(kommoText, {
-        status: kommoResp.status,
-        headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' },
-      });
+
+      return json({ leads: result });
     }
 
     return new Response('Florelle Sign API', { headers: CORS });

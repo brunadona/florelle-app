@@ -4217,16 +4217,11 @@ async function syncKommo(){
       return;
     }
     let data;try{data=JSON.parse(txt);}catch{throw new Error('HTTP '+r.status+' — resposta inválida: '+txt.slice(0,100));}
-    const leads=(data._embedded&&data._embedded.leads)||[];
+    const leads=data.leads||[];
     let added=0,skipped=0;
     leads.forEach(lead=>{
-      const contact=lead._embedded&&lead._embedded.contacts&&lead._embedded.contacts[0]||null;
-      const nome=(contact?contact.name:null)||lead.name||'Lead Kommo';
-      let tel='';
-      if(contact&&contact.custom_fields_values){
-        const pf=contact.custom_fields_values.find(f=>f.field_code==='PHONE');
-        if(pf&&pf.values&&pf.values[0])tel=String(pf.values[0].value).replace(/\D/g,'').replace(/^55/,'');
-      }
+      const nome=lead.name||'Lead Kommo';
+      const tel=String(lead.phone||'').replace(/\D/g,'').replace(/^55/,'');
       const exists=(tel&&DATA.some(b=>(b.telefone||'').replace(/\D/g,'')===tel))
                  ||DATA.some(b=>b._kommoId===lead.id);
       if(exists){skipped++;return;}
