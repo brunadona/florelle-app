@@ -4207,8 +4207,9 @@ async function syncKommo(){
     const from=Math.floor((Date.now()-7*24*3600000)/1000);
     const r=await fetch('https://florelle.brunadonaa.workers.dev/kommo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subdomain:cfg.subdomain,token:cfg.apiKey,from})});
     const txt=await r.text();
-    if(!r.ok)throw new Error('HTTP '+r.status+': '+txt.slice(0,120));
-    let data;try{data=JSON.parse(txt);}catch{throw new Error('Resposta inválida: '+txt.slice(0,120));}
+    if(!r.ok)throw new Error('HTTP '+r.status+': '+(txt.slice(0,120)||'(vazio)'));
+    if(!txt||txt.trim()==='')throw new Error('HTTP '+r.status+' — resposta vazia do Kommo');
+    let data;try{data=JSON.parse(txt);}catch{throw new Error('HTTP '+r.status+' — resposta inválida: '+txt.slice(0,100));}
     const leads=(data._embedded&&data._embedded.leads)||[];
     let added=0,skipped=0;
     leads.forEach(lead=>{
