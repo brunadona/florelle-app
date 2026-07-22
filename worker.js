@@ -195,10 +195,10 @@ Retorne apenas o JSON.`;
     if (request.method === 'POST' && url.pathname === '/kommo') {
       let body;
       try { body = await request.json(); } catch { return json({ error: 'JSON inválido' }, 400); }
-      const { subdomain, token, from } = body;
-      if (!subdomain || !token || !from) return json({ error: 'subdomain, token e from são obrigatórios' }, 400);
+      const { subdomain, token } = body;
+      if (!subdomain || !token) return json({ error: 'subdomain e token são obrigatórios' }, 400);
 
-      const kommoUrl = `https://${subdomain}.kommo.com/api/v4/leads?with=contacts&filter[created_at][from]=${from}&limit=250`;
+      const kommoUrl = `https://${subdomain}.kommo.com/api/v4/leads?with=contacts&limit=250&order[id]=desc`;
       const kommoResp = await fetch(kommoUrl, {
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       });
