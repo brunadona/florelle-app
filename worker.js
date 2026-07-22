@@ -230,6 +230,22 @@ Retorne apenas o JSON.`;
       return json({ leads: result });
     }
 
+    // POST /kommo-notes  →  busca mensagens/notas de um lead do Kommo
+    if (request.method === 'POST' && url.pathname === '/kommo-notes') {
+      let body; try { body = await request.json(); } catch { return json({ error: 'JSON inválido' }, 400); }
+      const { subdomain, token, leadId } = body;
+      if (!subdomain || !token || !leadId) return json({ error: 'subdomain, token e leadId são obrigatórios' }, 400);
+      const hdr = { 'Authorization': 'Bearer ' + token };
+      const notesResp = await fetch(`https://${subdomain}.kommo.com/api/v4/leads/${leadId}/notes?limit=100`, { headers: hdr });
+      if (!notesResp.ok) return json({ text: '' });
+      const notesData = await notesResp.json();
+      const notes = (notesData._embedded?.notes || [])
+        .filter(n => n.params?.text)
+        .sort((a, b) => a.created_at - b.created_at);
+      const text = notes.map(n => n.params.text).join('\n');
+      return json({ text });
+    }
+
     return new Response('Florelle Sign API', { headers: CORS });
   },
 };

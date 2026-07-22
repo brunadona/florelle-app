@@ -4219,20 +4219,44 @@ async function syncKommo(){
     let data;try{data=JSON.parse(txt);}catch{throw new Error('HTTP '+r.status+' — resposta inválida: '+txt.slice(0,100));}
     const leads=data.leads||[];
     let added=0,skipped=0;
-    leads.forEach(lead=>{
+    for(const lead of leads){
       const nome=lead.name||'Lead Kommo';
       const tel=String(lead.phone||'').replace(/\D/g,'').replace(/^55/,'');
       const exists=(tel&&DATA.some(b=>(b.telefone||'').replace(/\D/g,'')===tel))
                  ||DATA.some(b=>b._kommoId===lead.id);
-      if(exists){skipped++;return;}
-      DATA.push({id:uid(),crd:lead.created_at*1000,nome,telefone:tel,etapa:'lead',_kommoId:lead.id,upd:Date.now()});
+      if(exists){skipped++;continue;}
+      // Busca conversa do lead e analisa com IA
+      let bride={id:uid(),crd:lead.created_at*1000,nome,telefone:tel,etapa:'lead',_kommoId:lead.id,upd:Date.now()};
+      try{
+        const nr=await fetch('https://florelle.brunadonaa.workers.dev/kommo-notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subdomain:cfg.subdomain,token:cfg.apiKey,leadId:lead.id})});
+        if(nr.ok){
+          const nd=await nr.json();
+          if(nd.text&&nd.text.trim()){
+            const ar=await fetch('https://florelle.brunadonaa.workers.dev/analyze-wa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:nd.text})});
+            if(ar.ok){
+              const ad=await ar.json();
+              const p=JSON.parse(ad.raw||'{}');
+              const ov=(k,v)=>{if(v)bride[k]=v;};
+              ov('nome',p.nome);ov('telefone',p.telefone?String(p.telefone).replace(/\D/g,'').replace(/^55/,''):null);
+              ov('dataCasamento',p.dataCasamento);ov('cpf',p.cpf);ov('cep',p.cep);
+              ov('cidade',p.cidade);ov('endereco',p.endereco);ov('produto',p.produto);
+              ov('produtoObs',p.produtoObs);ov('formaPagamento',p.formaPagamento);
+              ov('valorTotal',p.valorTotal);ov('retiradaBuque',p.retiradaBuque);
+              ov('autorizaReposicao',p.autorizaReposicao);ov('floresUtilizadas',p.floresUtilizadas);
+              ov('cerimonialista',p.cerimonialista);ov('cerimonialTel',p.cerimonialTel);
+              ov('anotacoes',p.anotacoes);
+            }
+          }
+        }
+      }catch(_){}
+      DATA.push(bride);
       added++;
-    });
+    }
     if(added>0){save();renderAll();}
     const ts=new Date().toLocaleString('pt-BR');
     localStorage.setItem('florelle_kommo_sync',ts);
     const syncLbl=g('kommo-last-sync');if(syncLbl)syncLbl.textContent='Última sync: '+ts;
-    _showCalToast(`✅ ${added} noiva${added!==1?'s':''} adicionada${added!==1?'s':''}, ${skipped} já existia${skipped!==1?'m':''}.`);
+    _showCalToast(`✅ ${added} noiva${added!==1?'s':''} adicionada${added!==1?'s':''}, ${skipped} já existia${skipped!==1?'m':''}. (com análise de conversa)`);
   }catch(e){
     _showCalToast('❌ Erro ao conectar ao Kommo: '+e.message);
   }finally{
