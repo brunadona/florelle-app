@@ -5920,6 +5920,7 @@ function _bootApp(){
   }
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/florelle-app/sw.js').catch(()=>{});
+    navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
   }
 }
 
