@@ -4196,9 +4196,14 @@ function saveCfg(){
 }
 
 async function syncKommo(){
-  const cfg=_kommoCfg();
+  let cfg=_kommoCfg();
+  // Lê do formulário como fallback (caso o usuário não tenha clicado em Salvar)
+  if(!cfg.subdomain)cfg.subdomain=gv('cfg-kommo-sub').trim().replace(/\.kommo\.com.*$/i,'').replace(/^https?:\/\//,'');
+  if(!cfg.apiKey)cfg.apiKey=gv('cfg-kommo-key').trim();
+  // Salva automaticamente se preenchido
+  if(cfg.subdomain&&cfg.apiKey)localStorage.setItem('florelle_kommo',JSON.stringify({subdomain:cfg.subdomain,apiKey:cfg.apiKey}));
   if(!cfg.apiKey||!cfg.subdomain){
-    alert('Configure o subdomínio e o token nas Configurações antes de sincronizar.');
+    alert('Preencha o Subdomínio e o API Token antes de sincronizar.\nSubdomínio: '+(cfg.subdomain||'vazio')+'\nToken: '+(cfg.apiKey?'preenchido':'vazio'));
     return;
   }
   const btn=g('kommo-sync-btn');
