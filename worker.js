@@ -151,7 +151,7 @@ Campos do JSON (inclua todos, use null ou "" quando não encontrado):
 - "floresUtilizadas": flores mencionadas no buquê (string — vazio se não houver)
 - "cerimonialista": nome do(a) cerimonialista (string — vazio se não houver)
 - "cerimonialTel": telefone do(a) cerimonialista (string — vazio se não houver)
-- "anotacoes": tudo mais relevante — preferências, dúvidas, observações (string — vazio se não houver)
+- "anotacoes": resumo da conversa em 2-3 frases (o que a noiva quer, principais dúvidas, contexto) + preferências, dúvidas e observações relevantes (string — vazio se não houver)
 ${body.text ? `\nConversa do WhatsApp:\n${body.text}\n` : ''}
 Retorne apenas o JSON.`;
 
