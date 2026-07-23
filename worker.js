@@ -259,6 +259,11 @@ Retorne apenas o JSON.`;
                 }
               }
             }
+            // 3) Mensagens recebidas via webhook do Kommo (salvas no KV)
+            if (!lead.notes) {
+              const stored = await env.SIGN_KV.get(`chat:${lead.id}`);
+              if (stored) lead.notes = stored;
+            }
           } catch {}
         }));
       }
@@ -267,7 +272,50 @@ Retorne apenas o JSON.`;
     }
 
     // POST /kommo-notes  →  busca mensagens/notas de um lead do Kommo
-    if (request.method === 'POST' && url.pathname === '/kommo-notes') {
+    // POST /kommo-webhook  →  recebe eventos do Kommo (mensagens WhatsApp) e salva no KV
+    if (url.pathname === '/kommo-webhook') {
+      try {
+        const body = await request.json();
+        const texts = [];
+        let leadId = null;
+
+        // Formato 1: notas adicionadas ao lead
+        for (const note of (body.add || [])) {
+          if (note.element_id && (note.text || note.note_text)) {
+            leadId = note.element_id;
+            texts.push(note.text || note.note_text);
+          }
+        }
+        // Formato 2: mensagem de chat recebida
+        if (!leadId && body.message) {
+          leadId = body.message?.entity?.id || body.message?.lead_id;
+          const t = body.message?.text || body.message?.body || body.message?.content;
+          if (t) texts.push(t);
+        }
+        // Formato 3: evento genérico com entity
+        if (!leadId && body.event) {
+          leadId = body.event?.entity_id || body.event?.lead_id;
+          const t = body.event?.text || body.event?.value;
+          if (t) texts.push(t);
+        }
+        // Formato 4: array de mensagens
+        for (const msg of (body.messages || [])) {
+          if (!leadId) leadId = msg.lead_id || msg.entity_id;
+          const t = msg.text || msg.body || msg.content;
+          if (t) texts.push(t);
+        }
+
+        if (leadId && texts.filter(Boolean).length) {
+          const key = `chat:${leadId}`;
+          const existing = await env.SIGN_KV.get(key) || '';
+          const combined = [existing, ...texts.filter(Boolean)].filter(Boolean).join('\n');
+          await env.SIGN_KV.put(key, combined, { expirationTtl: 7776000 }); // 90 dias
+        }
+      } catch {}
+      return json({ ok: true });
+    }
+
+    // POST /kommo-notes  →  busca mensagens/notas de um lead do Kommo
       try {
         let body; try { body = await request.json(); } catch { return json({ text: '' }); }
         const { subdomain, token, leadId } = body;
