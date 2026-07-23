@@ -230,15 +230,33 @@ Retorne apenas o JSON.`;
         return { id: lead.id, name: contact?.name || lead.name || '', phone, created_at: lead.created_at, notes: '' };
       });
 
-      // Busca notas dos primeiros 5 leads (para análise IA) em paralelo
+      // Busca conversa dos primeiros 5 leads para análise IA
       const noteTargets = result.slice(0, 5);
       await Promise.all(noteTargets.map(async lead => {
         try {
+          // Tenta notas manuais
           const nr = await fetch(`https://${subdomain}.kommo.com/api/v4/leads/${lead.id}/notes?limit=100`, { headers: hdr });
-          if (!nr.ok) return;
-          const nd = await nr.json();
-          const notes = (nd._embedded?.notes || []).filter(n => n.params?.text).sort((a, b) => a.created_at - b.created_at);
-          lead.notes = notes.map(n => n.params.text).join('\n');
+          if (nr.ok) {
+            const nd = await nr.json();
+            const notes = (nd._embedded?.notes || []).filter(n => n.params?.text || n.text).sort((a, b) => a.created_at - b.created_at);
+            lead.notes = notes.map(n => n.params?.text || n.text || '').filter(Boolean).join('\n');
+          }
+          // Se vazio, tenta chats (WhatsApp via Kommo)
+          if (!lead.notes) {
+            const cr = await fetch(`https://${subdomain}.kommo.com/api/v4/chats?filter[entity_id][]=${lead.id}&filter[entity_type][]=leads&limit=1`, { headers: hdr });
+            if (cr.ok) {
+              const cd = await cr.json();
+              const chat = cd._embedded?.chats?.[0];
+              if (chat) {
+                const mr = await fetch(`https://${subdomain}.kommo.com/api/v4/chats/${chat.id}/messages?limit=100`, { headers: hdr });
+                if (mr.ok) {
+                  const md = await mr.json();
+                  const msgs = (md._embedded?.messages || []).sort((a, b) => a.created_at - b.created_at);
+                  lead.notes = msgs.map(m => m.content || m.body || '').filter(Boolean).join('\n');
+                }
+              }
+            }
+          }
         } catch {}
       }));
 
