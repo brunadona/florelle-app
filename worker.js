@@ -208,11 +208,14 @@ Retorne apenas o JSON.`;
       // Coleta IDs de contatos únicos
       const contactIds = [...new Set(leads.flatMap(l => (l._embedded?.contacts || []).map(c => c.id)))];
 
-      // Busca contatos em batch para obter nome e telefone
+      // Busca contatos em batch (grupos de 50 para evitar URL longa)
       const contactsMap = {};
-      if (contactIds.length) {
-        const qs = contactIds.map(id => `id[]=${id}`).join('&');
-        const cResp = await fetch(`https://${subdomain}.kommo.com/api/v4/contacts?${qs}&limit=250`, { headers: hdr });
+      for (let i = 0; i < contactIds.length; i += 50) {
+        const batch = contactIds.slice(i, i + 50);
+        const params = new URLSearchParams();
+        batch.forEach(id => params.append('filter[id][]', id));
+        params.set('limit', '50');
+        const cResp = await fetch(`https://${subdomain}.kommo.com/api/v4/contacts?${params.toString()}`, { headers: hdr });
         if (cResp.ok) {
           const cData = await cResp.json();
           for (const c of cData._embedded?.contacts || []) contactsMap[c.id] = c;

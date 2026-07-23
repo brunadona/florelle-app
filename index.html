@@ -4223,6 +4223,7 @@ async function syncKommo(){
     }
     let data;try{data=JSON.parse(txt);}catch{throw new Error('HTTP '+r.status+' — resposta inválida: '+txt.slice(0,100));}
     const leads=data.leads||[];
+    console.log('[Kommo] leads recebidos:',leads.length,'— exemplo:',JSON.stringify(leads.slice(0,3)));
     let added=0,updated=0,skipped=0;
     async function _analyzeAndFill(obj,leadId){
       try{
