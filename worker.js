@@ -227,38 +227,41 @@ Retorne apenas o JSON.`;
         const cRef = (lead._embedded?.contacts || []).find(c => c.is_main) || lead._embedded?.contacts?.[0];
         const contact = cRef ? contactsMap[cRef.id] : null;
         const phone = contact?.custom_fields_values?.find(f => f.field_code === 'PHONE')?.values?.[0]?.value || '';
-        return { id: lead.id, name: contact?.name || lead.name || '', phone, created_at: lead.created_at, notes: '' };
+        return { id: lead.id, name: contact?.name || lead.name || '', phone, created_at: lead.created_at, notes: '', _contactId: cRef?.id || null };
       });
 
-      // Busca conversa dos primeiros 5 leads para análise IA
-      const noteTargets = result.slice(0, 5);
-      await Promise.all(noteTargets.map(async lead => {
-        try {
-          // Tenta notas manuais
-          const nr = await fetch(`https://${subdomain}.kommo.com/api/v4/leads/${lead.id}/notes?limit=100`, { headers: hdr });
-          if (nr.ok) {
-            const nd = await nr.json();
-            const notes = (nd._embedded?.notes || []).filter(n => n.params?.text || n.text).sort((a, b) => a.created_at - b.created_at);
-            lead.notes = notes.map(n => n.params?.text || n.text || '').filter(Boolean).join('\n');
-          }
-          // Se vazio, tenta chats (WhatsApp via Kommo)
-          if (!lead.notes) {
-            const cr = await fetch(`https://${subdomain}.kommo.com/api/v4/chats?filter[entity_id][]=${lead.id}&filter[entity_type][]=leads&limit=1`, { headers: hdr });
-            if (cr.ok) {
-              const cd = await cr.json();
-              const chat = cd._embedded?.chats?.[0];
-              if (chat) {
-                const mr = await fetch(`https://${subdomain}.kommo.com/api/v4/chats/${chat.id}/messages?limit=100`, { headers: hdr });
-                if (mr.ok) {
-                  const md = await mr.json();
-                  const msgs = (md._embedded?.messages || []).sort((a, b) => a.created_at - b.created_at);
-                  lead.notes = msgs.map(m => m.content || m.body || '').filter(Boolean).join('\n');
+      // Se o app pediu notas para IDs específicos, busca em paralelo
+      const { noteLeadIds } = body;
+      if (noteLeadIds && noteLeadIds.length) {
+        const targets = result.filter(l => noteLeadIds.includes(l.id));
+        await Promise.all(targets.map(async lead => {
+          try {
+            // 1) Notas manuais do lead
+            const nr = await fetch(`https://${subdomain}.kommo.com/api/v4/leads/${lead.id}/notes?limit=100`, { headers: hdr });
+            if (nr.ok) {
+              const nd = await nr.json();
+              const notes = (nd._embedded?.notes || []).filter(n => n.params?.text || n.text).sort((a, b) => a.created_at - b.created_at);
+              lead.notes = notes.map(n => n.params?.text || n.text || '').filter(Boolean).join('\n');
+            }
+            // 2) Chats pelo contato (WhatsApp fica no contato no Kommo)
+            if (!lead.notes && lead._contactId) {
+              const cr = await fetch(`https://${subdomain}.kommo.com/api/v4/chats?filter[entity_id][]=${lead._contactId}&filter[entity_type][]=contacts&limit=1`, { headers: hdr });
+              if (cr.ok) {
+                const cd = await cr.json();
+                const chat = cd._embedded?.chats?.[0];
+                if (chat) {
+                  const mr = await fetch(`https://${subdomain}.kommo.com/api/v4/chats/${chat.id}/messages?limit=100`, { headers: hdr });
+                  if (mr.ok) {
+                    const md = await mr.json();
+                    const msgs = (md._embedded?.messages || []).sort((a, b) => a.created_at - b.created_at);
+                    lead.notes = msgs.map(m => m.content || m.body || m.text || '').filter(Boolean).join('\n');
+                  }
                 }
               }
             }
-          }
-        } catch {}
-      }));
+          } catch {}
+        }));
+      }
 
       return json({ leads: result });
     }

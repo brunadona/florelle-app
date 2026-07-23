@@ -4224,6 +4224,31 @@ async function syncKommo(){
     let data;try{data=JSON.parse(txt);}catch{throw new Error('HTTP '+r.status+' — resposta inválida: '+txt.slice(0,100));}
     const leads=data.leads||[];
     console.log('[Kommo] leads recebidos:',leads.length,'— exemplo:',JSON.stringify(leads.slice(0,3)));
+
+    // Identifica quais leads precisam de análise IA (placeholders, máx 5)
+    const needNotes=[];
+    for(const lead of leads){
+      if(needNotes.length>=5)break;
+      const ex=DATA.find(b=>b._kommoId===lead.id);
+      const isNew=!ex;
+      const isPlaceholder=ex&&(/^Lead #\d+$/.test(ex.nome)||!ex.telefone);
+      if(isNew||isPlaceholder)needNotes.push(lead.id);
+    }
+
+    // Busca notas só para os leads identificados
+    if(needNotes.length){
+      try{
+        const r2=await fetch('https://florelle.brunadonaa.workers.dev/kommo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subdomain:cfg.subdomain,token:cfg.apiKey,noteLeadIds:needNotes})});
+        if(r2.ok){
+          const d2=await r2.json();
+          for(const nl of(d2.leads||[])){
+            const target=leads.find(l=>l.id===nl.id);
+            if(target)target.notes=nl.notes||'';
+          }
+        }
+      }catch(_){}
+    }
+
     let added=0,updated=0,skipped=0;
     async function _analyzeAndFill(obj,notesText){
       try{
