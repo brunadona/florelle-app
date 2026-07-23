@@ -227,8 +227,20 @@ Retorne apenas o JSON.`;
         const cRef = (lead._embedded?.contacts || []).find(c => c.is_main) || lead._embedded?.contacts?.[0];
         const contact = cRef ? contactsMap[cRef.id] : null;
         const phone = contact?.custom_fields_values?.find(f => f.field_code === 'PHONE')?.values?.[0]?.value || '';
-        return { id: lead.id, name: contact?.name || lead.name || '', phone, created_at: lead.created_at };
+        return { id: lead.id, name: contact?.name || lead.name || '', phone, created_at: lead.created_at, notes: '' };
       });
+
+      // Busca notas dos primeiros 5 leads (para análise IA) em paralelo
+      const noteTargets = result.slice(0, 5);
+      await Promise.all(noteTargets.map(async lead => {
+        try {
+          const nr = await fetch(`https://${subdomain}.kommo.com/api/v4/leads/${lead.id}/notes?limit=100`, { headers: hdr });
+          if (!nr.ok) return;
+          const nd = await nr.json();
+          const notes = (nd._embedded?.notes || []).filter(n => n.params?.text).sort((a, b) => a.created_at - b.created_at);
+          lead.notes = notes.map(n => n.params.text).join('\n');
+        } catch {}
+      }));
 
       return json({ leads: result });
     }
