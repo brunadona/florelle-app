@@ -1902,10 +1902,10 @@ function _celebrateEntrega(nome){
 
 /* ── WPP STAGE MESSAGES ──────────────────────── */
 const WPP_STAGE_MSGS={
-  secagem: n=>`Olá, ${n}! 🌸 Quero te contar uma novidade: o seu buquê já está na sílica! Esse é o início do processo de preservação, onde as flores vão secando com muito cuidado para manter todas as cores e detalhes. Em cerca de 30 dias ele estará pronto para a montagem. Vou te atualizando com muito carinho! 💚`,
-  montagem: n=>`Olá, ${n}! ✨ Seu buquê saiu da sílica maravilhoso! Estou começando a montagem agora — é o momento em que tudo ganha vida na peça. Cada florzinha sendo colocada com muito amor e atenção. Em breve você vai ver o resultado! 🌿`,
-  embalado: n=>`Olá, ${n}! 🎁 Sua peça ficou simplesmente linda e já está embalada com todo carinho! Estou muito feliz com o resultado. Vamos combinar a entrega? Mal posso esperar pra você ver de pertinho! 💐`,
-  entregue: n=>`Olá, ${n}! 💚 Foi uma honra enorme cuidar das flores do seu dia especial e transformá-las em uma lembrança eterna. Espero que você ame tanto quanto eu amei fazer! Obrigada pela confiança e pelo carinho. 🌸\n_Florelle Atelier_`,
+  secagem: n=>`Olá, ${n}! Quero te contar uma novidade: o seu buquê já está na sílica! Esse é o início do processo de preservação, onde as flores vão secando com muito cuidado para manter todas as cores e detalhes. Em cerca de 30 dias ele estará pronto para a montagem. Vou te atualizando!`,
+  montagem: n=>`Olá, ${n}! Seu buquê saiu da sílica maravilhoso! Estou começando a montagem agora — é o momento em que tudo ganha vida na peça. Cada detalhe sendo colocado com muito cuidado. Em breve você vai ver o resultado!`,
+  embalado: n=>`Olá, ${n}! Sua peça ficou linda e já está embalada. Estou muito feliz com o resultado. Vamos combinar a entrega?`,
+  entregue: n=>`Olá, ${n}! Foi muito especial cuidar das flores do seu dia e transformá-las em uma lembrança eterna. Espero que você ame! Obrigada pela confiança.`,
 };
 const WPP_STAGE_LBL={secagem:'Secagem iniciada',montagem:'Em montagem',embalado:'Peça pronta e embalada',entregue:'Entregue'};
 
@@ -2527,7 +2527,7 @@ async function enviarAssinar(){
     if(id){const b=DATA.find(x=>x.id===id);if(b){b.autentiqueLink=signUrl;save();}}
 
     const primeiroNome=nome.split(' ')[0];
-    const msg=encodeURIComponent('Olá, '+primeiroNome+'! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura digital!\n\nClique no link para ler e assinar:\n'+signUrl+'\n\nQualquer dúvida estou à disposição! 💐\n_Florelle Atelier_');
+    const msg=encodeURIComponent('Olá, '+primeiroNome+'!\n\nSeu contrato está pronto para assinatura digital.\n\nClique no link para ler e assinar:\n'+signUrl+'\n\nQualquer dúvida estou à disposição!');
     window.open(_wppUrl(tel,decodeURIComponent(msg)),'_wpp');
 
   }catch(e){
@@ -2543,7 +2543,7 @@ function enviarContratoWpp(){
   const tel  = gv('m-tel').trim().replace(/\D/g,'');
   if(!tel){alert('Preencha o telefone da noiva para enviar por WhatsApp.');return;}
   const msg = encodeURIComponent(
-    `Olá, ${nome}! 🌸\n\nSeu contrato Florelle Atelier está pronto para assinatura! 📄✨\n\nPor favor, leia com atenção e confira todas as informações antes de assinar. Qualquer divergência me avise!\n\nPara assinar, você pode:\n• Assinar digitalmente no próprio arquivo\n• Imprimir, assinar e me enviar uma foto\n\nQualquer dúvida estou à disposição! 💐`
+    `Olá, ${nome}!\n\nSeu contrato está pronto para assinatura.\n\nPor favor, leia com atenção e confira todas as informações antes de assinar. Qualquer divergência me avise!\n\nPara assinar, você pode:\n• Assinar digitalmente no próprio arquivo\n• Imprimir, assinar e me enviar uma foto\n\nQualquer dúvida estou à disposição!`
   );
   // Abre WhatsApp e contrato de forma síncrona (dentro do evento de clique)
   // para o browser não bloquear como popup
@@ -5127,6 +5127,13 @@ window.addEventListener('online',()=>{
   if(_syncPending&&_gToken)_saveToDrive();
   else if(_syncSt==='offline')setSyncStatus(_gToken?'ok':'idle');
 });
+
+// Recarrega do Drive quando o usuário volta ao app (sincroniza mudanças de outros dispositivos)
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&_gToken&&_syncSt!=='syncing')_loadFromDrive();
+});
+// Verifica Drive a cada 3 minutos quando conectado (mantém dispositivos sincronizados)
+setInterval(()=>{if(_gToken&&_syncSt==='ok')_loadFromDrive();},3*60*1000);
 
 /* ── MOBILE ──────────────────────────────────── */
 let mobileColIdx=0;
