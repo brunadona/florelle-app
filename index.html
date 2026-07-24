@@ -1568,7 +1568,7 @@ function load(){
 function save(){
   try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}
   catch(e){if(e.name==='QuotaExceededError')alert('Armazenamento local cheio. Remova alguns anexos para continuar salvando.');}
-  _queueDriveSync();
+  _queueCloudSync();
 }
 
 /* ── UTILS ───────────────────────────────────── */
@@ -4979,6 +4979,44 @@ function syncDriveBtn(){
   }
 }
 
+/* ── CLOUD SYNC (Worker — automático, sem auth) ── */
+const _WK='https://florelle.brunadonaa.workers.dev';
+let _cloudTimer=null;
+function _queueCloudSync(){
+  clearTimeout(_cloudTimer);
+  _cloudTimer=setTimeout(_cloudPush,2000);
+}
+async function _cloudPush(){
+  if(!navigator.onLine||!DATA.length)return;
+  try{await fetch(_WK+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(DATA)});}
+  catch{}
+}
+async function _cloudPull(){
+  try{
+    const r=await fetch(_WK+'/data');
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!Array.isArray(d)||!d.length)return;
+    DATA=d;
+    try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
+    renderAll();
+  }catch{}
+}
+async function _cloudInit(){
+  try{
+    const r=await fetch(_WK+'/data');
+    if(!r.ok)return;
+    const d=await r.json();
+    if(Array.isArray(d)&&d.length){
+      DATA=d;
+      try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
+      renderAll();
+    } else if(DATA.length){
+      _cloudPush();
+    }
+  }catch{}
+}
+
 /* ── DRIVE DATA SYNC ─────────────────────────── */
 function setSyncStatus(s){
   _syncSt=s;
@@ -4996,26 +5034,25 @@ function setSyncStatus(s){
 }
 
 async function syncInit(){
+  // Apenas inicializa auth do Google (para anexos de fotos e calendário)
+  // Sync de dados agora é feito pelo Worker (_cloudInit/_cloudPull)
   if(!navigator.onLine){setSyncStatus('offline');return;}
   await new Promise(res=>{
     const check=()=>window.google?.accounts?.oauth2?res():setTimeout(check,300);
     setTimeout(check,500);
   });
   if(!_initGClient()){setSyncStatus('idle');return;}
-  if(_gToken){await _loadFromDrive();return;}
-  // Tenta autenticação silenciosa (sem popup) — funciona se usuário já autorizou o app antes
+  if(_gToken){setSyncStatus('ok');return;}
   try{
     await new Promise((resolve,reject)=>{
       _gClient.callback=(r)=>{
         if(r.error){reject(new Error(r.error));return;}
         _gToken=r.access_token;resolve();
       };
-      // prompt vazio = silencioso quando já há consentimento prévio
       _gClient.requestAccessToken({prompt:''});
     });
-    await _loadFromDrive();
-  }catch(e){
-    // Falhou silenciosamente — usuário clica o botão Drive para autenticar
+    setSyncStatus('ok');
+  }catch{
     setSyncStatus('idle');
   }
 }
@@ -5025,7 +5062,7 @@ async function syncLogin(){
   try{
     setSyncStatus('syncing');
     if(!_gToken)await _requestToken('select_account');
-    await _loadFromDrive();
+    setSyncStatus('ok');
   }catch(e){
     const ignored=['popup_closed_by_user','access_denied'];
     setSyncStatus('idle');
@@ -5128,12 +5165,12 @@ window.addEventListener('online',()=>{
   else if(_syncSt==='offline')setSyncStatus(_gToken?'ok':'idle');
 });
 
-// Recarrega do Drive quando o usuário volta ao app (sincroniza mudanças de outros dispositivos)
+// Recarrega do Worker quando usuário volta ao app (sincroniza mudanças de outros dispositivos)
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'&&_gToken&&_syncSt!=='syncing')_loadFromDrive();
+  if(document.visibilityState==='visible')_cloudPull();
 });
-// Verifica Drive a cada 3 minutos quando conectado (mantém dispositivos sincronizados)
-setInterval(()=>{if(_gToken&&_syncSt==='ok')_loadFromDrive();},3*60*1000);
+// Verifica Worker a cada 3 minutos (mantém dispositivos sincronizados em segundo plano)
+setInterval(_cloudPull,3*60*1000);
 
 /* ── MOBILE ──────────────────────────────────── */
 let mobileColIdx=0;
@@ -5937,7 +5974,8 @@ async function _processPendingConfirms(){
 
 function _bootApp(){
   load();loadInv();renderAll();updInvBadge();updTvBadge();
-  syncInit();
+  _cloudInit(); // sync automático via Worker — sem autenticação
+  syncInit();   // auth Google para anexos e calendário
   _requestNotifPerm();
   _fireOverdueNotifs();
   _processPendingConfirms();

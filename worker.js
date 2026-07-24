@@ -334,6 +334,21 @@ Retorne apenas o JSON.`;
       }
     }
 
+    // GET /data  →  lê dados do app (sync entre dispositivos)
+    if (request.method === 'GET' && url.pathname === '/data') {
+      const raw = await env.SIGN_KV.get('florelle_app_data');
+      if (!raw) return new Response('null', { headers: { ...CORS, 'Content-Type': 'application/json' } });
+      return new Response(raw, { headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' } });
+    }
+
+    // POST /data  →  salva dados do app (sync entre dispositivos)
+    if (request.method === 'POST' && url.pathname === '/data') {
+      const text = await request.text();
+      try { JSON.parse(text); } catch { return json({ error: 'JSON inválido' }, 400); }
+      await env.SIGN_KV.put('florelle_app_data', text);
+      return json({ ok: true });
+    }
+
     return new Response('Florelle Sign API', { headers: CORS });
   },
 };
