@@ -4126,17 +4126,20 @@ function renderInv(){
     const noivas=Math.floor(Number(item.qtdAtual||0)/(item.consumo||1));
     const noivasNeed=_invNoivasQueUsam(item);
     const isSecagem=(item.etapaConsumo||'montagem')==='secagem';
+    const surplus=isSecagem?0:Math.floor((Number(item.qtdAtual||0)-(item.consumo||0)*noivasNeed)/(item.consumo||1));
     const statusTxt=item.porPedido
       ?`<span class="r-pill" style="background:#F0EBF8;color:#6B5B8E">Por pedido</span>`
       :isSecagem
         ?isAl
-          ?`<span class="r-pill r-late">Faltam — só para ${noivas} noiva${noivas!==1?'s':''}</span>`
+          ?`<span class="r-pill r-late">Só para ${noivas} noiva${noivas!==1?'s':''} — comprar</span>`
           :`<span class="r-pill r-ok">Sobra para ${noivas} noiva${noivas!==1?'s':''}</span>`
       :isAl
-        ?`<span class="r-pill r-late">Falta para ${noivasNeed-noivas} de ${noivasNeed}</span>`
-        :noivasNeed
-          ?`<span class="r-pill r-ok">OK (${noivasNeed} noiva${noivasNeed!==1?'s':''})</span>`
-          :`<span class="r-pill r-ok">Sem noivas ativas</span>`;
+        ?`<span class="r-pill r-late">Faltam ${_invFaltam(item).toFixed(1)} ${item.unidade}</span>`
+      :surplus>0
+        ?`<span class="r-pill r-ok">Sobra ${surplus} além das ${noivasNeed} noivas</span>`
+      :noivasNeed
+        ?`<span class="r-pill r-ok">Exato para ${noivasNeed} noiva${noivasNeed!==1?'s':''}</span>`
+        :`<span class="r-pill r-ok">Sem noivas ativas</span>`;
     el.innerHTML=
       `<div><div class="r-nm inv-nm${isAl?' al-nm':''}">${esc(item.nome)}</div>`+
       (item.comprarAntes?'<div class="r-sub" style="color:#B03420">⚠️ Antes do buquê</div>':'')+
