@@ -4111,8 +4111,13 @@ function renderInv(){
     el.style='grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:8px';
     const noivas=Math.floor(Number(item.qtdAtual||0)/(item.consumo||1));
     const noivasNeed=_invNoivasQueUsam(item);
+    const isSecagem=(item.etapaConsumo||'montagem')==='secagem';
     const statusTxt=item.porPedido
       ?`<span class="r-pill" style="background:#F0EBF8;color:#6B5B8E">Por pedido</span>`
+      :isSecagem
+        ?isAl
+          ?`<span class="r-pill r-late">Faltam — só para ${noivas} noiva${noivas!==1?'s':''}</span>`
+          :`<span class="r-pill r-ok">Sobra para ${noivas} noiva${noivas!==1?'s':''}</span>`
       :isAl
         ?`<span class="r-pill r-late">Falta para ${noivasNeed-noivas} de ${noivasNeed}</span>`
         :noivasNeed
