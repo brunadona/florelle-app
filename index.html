@@ -3949,14 +3949,20 @@ function _invCustoCompra(item, needed){
 }
 
 // Retorna quanto falta comprar (porPedido = não alertar)
+// Quanto falta para as noivas ATUAIS (sem buffer) — usado no display "Faltam X"
+function _invFaltam(item){
+  if(item.porPedido)return 0;
+  const atual=Number(item.qtdAtual||0);
+  const etapa=item.etapaConsumo||'montagem';
+  if(etapa==='secagem')return 0; // já usou para noivas atuais
+  const noivasNeed=_invNoivasQueUsam(item);
+  return Math.max(0,(item.consumo||0)*noivasNeed-atual);
+}
+// Dispara alerta CEDO (inclui buffer) — usado para badge e para mostrar o item na lista
 function _invNeeded(item){
   if(item.porPedido)return 0;
   const atual = Number(item.qtdAtual||0);
   const noivasNeed = _invNoivasQueUsam(item);
-  // secagem: noivas atuais já usaram — só buffer +3 para futuras
-  // montagem geral: noivas esperando + buffer +3
-  // montagem específico por produto (isopor etc.): noivas exatas, sem buffer
-  // embalagem: noivas esperando + buffer +2 (comprar antes)
   const etapa=item.etapaConsumo||'montagem';
   let buffer;
   if(etapa==='secagem') buffer=3;
@@ -4069,8 +4075,16 @@ function renderInv(){
     const cBody=document.createElement('div');cBody.className='rsb';
     precisaComprar.forEach(item=>{
       const needed=_invNeeded(item);
+      const faltam=_invFaltam(item);
       const {label:custoLabel}=_invCustoCompra(item,needed);
       const urgente=item.comprarAntes;
+      const isSecagem=(item.etapaConsumo||'montagem')==='secagem';
+      const noivas=Math.floor(Number(item.qtdAtual||0)/(item.consumo||1));
+      const qtdTxt=isSecagem
+        ?`Estoque baixo — só para ${noivas} noiva${noivas!==1?'s':''}`
+        :faltam>0
+          ?`Faltam ${faltam.toFixed(1)} ${item.unidade}`
+          :`Reserva baixa — comprar logo`;
       const row=document.createElement('div');
       row.className='rtr';row.style='align-items:center;gap:10px';
       row.innerHTML=
@@ -4078,7 +4092,7 @@ function renderInv(){
         (urgente?'<div class="r-sub" style="color:#B03420;font-weight:600">⚠️ Comprar ANTES do buquê chegar</div>':
                  '<div class="r-sub">Comprar após buquê chegar</div>')+
         `</div>`+
-        `<div class="r-val" style="color:#B03420">Faltam ${needed.toFixed(1)} ${item.unidade}</div>`+
+        `<div class="r-val" style="color:#B03420">${qtdTxt}</div>`+
         `<div class="r-val" style="color:#888">${custoLabel}</div>`;
       cBody.appendChild(row);
     });
