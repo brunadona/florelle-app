@@ -3894,8 +3894,10 @@ function _invNeeded(item){
   if(item.porPedido)return 0;
   const atual = Number(item.qtdAtual||0);
   const noivasNeed = _invNoivasQueUsam(item);
-  if(!noivasNeed)return 0;
-  const minStock = (item.consumo||0) * noivasNeed;
+  // Consumíveis gerais (porProduto null): reserva de +3 noivas além das ativas
+  // Itens específicos por produto (redoma, embalagem, isopor): contagem exata
+  const buffer = item.porProduto ? 0 : 3;
+  const minStock = (item.consumo||0) * (noivasNeed + buffer);
   return Math.max(0, minStock - atual);
 }
 
