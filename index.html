@@ -3770,27 +3770,30 @@ const INV_KEY='florelle_inv_v2';
 // qtdAtual: estoque atual | comprarAntes: true = precisa antes do buquê chegar
 // porProduto: objeto com consumo diferente por produto (null = mesmo para todos)
 const INV_DEFAULT=[
+  // etapaConsumo: 'secagem' = já consumido p/ noivas atuais (só buffer futuro)
+  //               'montagem' = noivas em secagem/montagem ainda vão usar
+  //               'embalagem' = noivas em secagem/montagem/embalado ainda vão usar
   // CONSUMÍVEIS (todos os produtos) — qtdCompra/precoCompra = unidade de venda
-  {nome:'Sílica',          qtdAtual:24,   unidade:'kg',   precoUnit:37.67, consumo:4,   qtdCompra:12,  precoCompra:452,  comprarAntes:true,  porProduto:null,                             linkCompra:''},
-  {nome:'Plástico filme',  qtdAtual:300,  unidade:'m',    precoUnit:0.20,  consumo:24,  qtdCompra:300, precoCompra:60,   comprarAntes:true,  porProduto:null,                             linkCompra:''},
-  {nome:'Cola acrílica',   qtdAtual:250,  unidade:'ml',   precoUnit:0.30,  consumo:3,   qtdCompra:250, precoCompra:75,   comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Papel kraft',     qtdAtual:95,   unidade:'m',    precoUnit:0.80,  consumo:3,   qtdCompra:100, precoCompra:80,   comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Foto instax',     qtdAtual:8,    unidade:'foto', precoUnit:7.00,  consumo:1,   qtdCompra:10,  precoCompra:70,   comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Verniz',          qtdAtual:300,  unidade:'ml',   precoUnit:0.333, consumo:100, qtdCompra:300, precoCompra:100,  comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Junco',           qtdAtual:3,    unidade:'maço', precoUnit:42.00, consumo:1,   qtdCompra:1,   precoCompra:42,   comprarAntes:false, porProduto:null,                             linkCompra:'https://shopee.com.br/Kit-Hastes-Junco-Para-Buqu%C3%AA-Desidratado-Junco-Artesanal-16cm-X-12cm-i.1173738155.58260587892?extraParams=%7B%22display_model_id%22%3A189189369930%2C%22model_selection_logic%22%3A3%7D'},
-  {nome:'Bastão cola quente',qtdAtual:40, unidade:'un',   precoUnit:0.08,  consumo:10,  qtdCompra:500, precoCompra:40,   comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null,                             linkCompra:'https://shopee.com.br/Tag-Personalizada-Nome-Acr%C3%ADlico-Espelhado-Etiqueta-Decorativa-Aplique-Redondo-4CM-i.1173738155.22293754539?extraParams=%7B%22display_model_id%22%3A119722812121%2C%22model_selection_logic%22%3A3%7D'},
-  {nome:'Papelaria',       qtdAtual:8,    unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Inseticida',      qtdAtual:1,    unidade:'un',   precoUnit:25.00, consumo:1,   qtdCompra:1,   precoCompra:25,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Sílica',           qtdAtual:24,  unidade:'kg',   precoUnit:37.67, consumo:8,   qtdCompra:12,  precoCompra:452,  comprarAntes:true,  porProduto:null, etapaConsumo:'secagem',   linkCompra:''},
+  {nome:'Plástico filme',   qtdAtual:300, unidade:'m',    precoUnit:0.20,  consumo:24,  qtdCompra:300, precoCompra:60,   comprarAntes:true,  porProduto:null, etapaConsumo:'secagem',   linkCompra:''},
+  {nome:'Cola acrílica',    qtdAtual:250, unidade:'ml',   precoUnit:0.30,  consumo:3,   qtdCompra:250, precoCompra:75,   comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Papel kraft',      qtdAtual:95,  unidade:'m',    precoUnit:0.80,  consumo:3,   qtdCompra:100, precoCompra:80,   comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Foto instax',      qtdAtual:7,   unidade:'foto', precoUnit:7.00,  consumo:1,   qtdCompra:10,  precoCompra:70,   comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Verniz',           qtdAtual:600, unidade:'ml',   precoUnit:0.333, consumo:100, qtdCompra:300, precoCompra:100,  comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Junco',            qtdAtual:3,   unidade:'maço', precoUnit:42.00, consumo:1,   qtdCompra:1,   precoCompra:42,   comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:'https://shopee.com.br/Kit-Hastes-Junco-Para-Buqu%C3%AA-Desidratado-Junco-Artesanal-16cm-X-12cm-i.1173738155.58260587892?extraParams=%7B%22display_model_id%22%3A189189369930%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Bastão cola quente',qtdAtual:50, unidade:'un',   precoUnit:0.08,  consumo:10,  qtdCompra:500, precoCompra:40,   comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Tag',              qtdAtual:12,  unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:'https://shopee.com.br/Tag-Personalizada-Nome-Acr%C3%ADlico-Espelhado-Etiqueta-Decorativa-Aplique-Redondo-4CM-i.1173738155.22293754539?extraParams=%7B%22display_model_id%22%3A119722812121%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Papelaria',        qtdAtual:8,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Inseticida',       qtdAtual:1,   unidade:'un',   precoUnit:25.00, consumo:1,   qtdCompra:1,   precoCompra:25,   comprarAntes:false, porProduto:null, etapaConsumo:'montagem',  linkCompra:''},
   // DEPENDENTES DO PRODUTO
-  {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porPedido:true, porProduto:['quadro32x42'],  linkCompra:'https://shopee.com.br/Moldura-P-Buqu%C3%AA-Eternizado-Inclinada-Acr%C3%ADlico-Transparante-e-Fundo-Borda-Espalho-Prata-43x33x12-cm-cm-i.1173738155.19999605793?extraParams=%7B%22display_model_id%22%3A149547184988%2C%22model_selection_logic%22%3A3%7D'},
-  {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'],  linkCompra:'https://shopee.com.br/Moldura-Acr%C3%ADlico-Buqu%C3%AA-Eternizado-Tam-24x34x13-i.1173738155.19899311665?extraParams=%7B%22display_model_id%22%3A209176646629%2C%22model_selection_logic%22%3A3%7D'},
-  {nome:'Cúpula',          qtdAtual:0,    unidade:'un',   precoUnit:150.00,consumo:1,   qtdCompra:1,   precoCompra:150,  comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'],linkCompra:''},
-  {nome:'Bola isopor 75',  qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaG','cupulaM'],linkCompra:''},
-  {nome:'Bola isopor 100', qtdAtual:5,    unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida'],linkCompra:''},
-  {nome:'Embalagem cúpula',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['cupulaG','cupulaM'],linkCompra:''},
-  {nome:'Embalagem quadro',qtdAtual:0,    unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida'],linkCompra:''},
-  {nome:'Redoma sob medida',qtdAtual:0,   unidade:'un',   precoUnit:400.00,consumo:1,   qtdCompra:1,   precoCompra:400,  comprarAntes:false, porPedido:true, porProduto:['quadroSobMedida'],  linkCompra:''},
+  {nome:'Redoma 32×42',     qtdAtual:0,   unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porPedido:true, porProduto:['quadro32x42'],                             etapaConsumo:'montagem',  linkCompra:'https://shopee.com.br/Moldura-P-Buqu%C3%AA-Eternizado-Inclinada-Acr%C3%ADlico-Transparante-e-Fundo-Borda-Espalho-Prata-43x33x12-cm-cm-i.1173738155.19999605793?extraParams=%7B%22display_model_id%22%3A149547184988%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Redoma 25×30',     qtdAtual:0,   unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'],                             etapaConsumo:'montagem',  linkCompra:'https://shopee.com.br/Moldura-Acr%C3%ADlico-Buqu%C3%AA-Eternizado-Tam-24x34x13-i.1173738155.19899311665?extraParams=%7B%22display_model_id%22%3A209176646629%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Cúpula',           qtdAtual:0,   unidade:'un',   precoUnit:150.00,consumo:1,   qtdCompra:1,   precoCompra:150,  comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'],                       etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Bola isopor 75',   qtdAtual:5,   unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaG','cupulaM'],                       etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Bola isopor 100',  qtdAtual:5,   unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida'],etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Embalagem cúpula', qtdAtual:2,   unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['cupulaG','cupulaM'],                       etapaConsumo:'embalagem', linkCompra:''},
+  {nome:'Embalagem quadro', qtdAtual:1,   unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida'],etapaConsumo:'embalagem', linkCompra:''},
+  {nome:'Redoma sob medida',qtdAtual:0,   unidade:'un',   precoUnit:400.00,consumo:1,   qtdCompra:1,   precoCompra:400,  comprarAntes:false, porPedido:true, porProduto:['quadroSobMedida'],                         etapaConsumo:'montagem',  linkCompra:''},
 ];
 function loadInv(){
   try{
@@ -3825,6 +3828,7 @@ function loadInv(){
             if(existing.precoCompra===undefined)existing.precoCompra=def.precoCompra??null;
             if(existing.porPedido===undefined)existing.porPedido=def.porPedido??false;
             if(existing.linkCompra===undefined)existing.linkCompra=def.linkCompra??'';
+            if(existing.etapaConsumo===undefined)existing.etapaConsumo=def.etapaConsumo??'montagem';
           }
         });
         // Migração v3: atualizar qtdAtual com estoque real informado pela usuária
@@ -3846,6 +3850,32 @@ function loadInv(){
           if(!INV.find(x=>x.nome==='Inseticida'))
             INV.push({id:uid(),historico:[],nome:'Inseticida',qtdAtual:1,unidade:'un',precoUnit:25.00,consumo:1,qtdCompra:1,precoCompra:25,comprarAntes:false,porPedido:false,porProduto:null,linkCompra:''});
           localStorage.setItem('florelle_inv_migv4','1');
+        }
+        // Migração v5: etapaConsumo + consumo real sílica (8kg) + qtdAtual reais
+        if(!localStorage.getItem('florelle_inv_migv5')){
+          const etapasMap={
+            'Sílica':'secagem','Plástico filme':'secagem',
+            'Cola acrílica':'montagem','Papel kraft':'montagem','Foto instax':'montagem',
+            'Verniz':'montagem','Junco':'montagem','Bastão cola quente':'montagem',
+            'Tag':'montagem','Papelaria':'montagem','Inseticida':'montagem',
+            'Redoma 32×42':'montagem','Redoma 25×30':'montagem','Cúpula':'montagem',
+            'Bola isopor 75':'montagem','Bola isopor 100':'montagem',
+            'Embalagem cúpula':'embalagem','Embalagem quadro':'embalagem',
+            'Redoma sob medida':'montagem',
+          };
+          const updates={
+            'Sílica':{qtdAtual:24,consumo:8},
+            'Foto instax':{qtdAtual:7},
+            'Verniz':{qtdAtual:600},
+            'Bastão cola quente':{qtdAtual:50},
+            'Embalagem cúpula':{qtdAtual:2},
+            'Embalagem quadro':{qtdAtual:1},
+          };
+          INV.forEach(item=>{
+            if(etapasMap[item.nome])item.etapaConsumo=etapasMap[item.nome];
+            if(updates[item.nome])Object.assign(item,updates[item.nome]);
+          });
+          localStorage.setItem('florelle_inv_migv5','1');
         }
       }
     } else {
@@ -3896,9 +3926,15 @@ function calcCustoBuque(produto,redomaOverride){
 /* ── INVENTORY HELPERS ───────────────────────── */
 // Retorna quantas noivas ativas precisam de um item (considerando produto)
 function _invNoivasQueUsam(item){
-  // Apenas noivas com pedido confirmado ou em produção — leads/prospects não contam
-  const ETAPAS_PROD=['contratoAssinado','reserva','secagem','montagem','embalado'];
-  const ativas=DATA.filter(b=>ETAPAS_PROD.includes(b.etapa));
+  const etapa=item.etapaConsumo||'montagem';
+  // secagem (sílica, plástico): já foram consumidos para noivas atuais — retorna 0
+  if(etapa==='secagem') return 0;
+  // embalagem: noivas que ainda vão embalar (secagem + montagem + embalado)
+  // montagem: noivas que ainda vão montar (secagem + montagem)
+  const etapas=etapa==='embalagem'
+    ?['secagem','montagem','embalado']
+    :['secagem','montagem'];
+  const ativas=DATA.filter(b=>etapas.includes(b.etapa));
   if(!item.porProduto) return ativas.length;
   return ativas.filter(b=>item.porProduto.includes(b.produto||'')).length;
 }
@@ -3912,15 +3948,21 @@ function _invCustoCompra(item, needed){
   return {valor:needed*item.precoUnit, label:`R$ ${(needed*item.precoUnit).toFixed(2).replace('.',',')}`};
 }
 
-// Retorna quanto falta para ter estoque para 2 noivas (porPedido = sem alerta)
+// Retorna quanto falta comprar (porPedido = não alertar)
 function _invNeeded(item){
   if(item.porPedido)return 0;
   const atual = Number(item.qtdAtual||0);
   const noivasNeed = _invNoivasQueUsam(item);
-  // Consumíveis gerais (porProduto null): reserva +3 (buquês chegam a qualquer hora)
-  // Embalagem (comprarAntes + porProduto): reserva +2 (30 dias de entrega)
-  // Outros específicos por produto (isopor, etc.): contagem exata
-  const buffer = !item.porProduto ? 3 : item.comprarAntes ? 2 : 0;
+  // secagem: noivas atuais já usaram — só buffer +3 para futuras
+  // montagem geral: noivas esperando + buffer +3
+  // montagem específico por produto (isopor etc.): noivas exatas, sem buffer
+  // embalagem: noivas esperando + buffer +2 (comprar antes)
+  const etapa=item.etapaConsumo||'montagem';
+  let buffer;
+  if(etapa==='secagem') buffer=3;
+  else if(!item.porProduto) buffer=3;
+  else if(item.comprarAntes) buffer=2;
+  else buffer=0;
   const minStock = (item.consumo||0) * (noivasNeed + buffer);
   return Math.max(0, minStock - atual);
 }
