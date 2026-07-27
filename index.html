@@ -3875,7 +3875,9 @@ function calcCustoBuque(produto,redomaOverride){
 /* ── INVENTORY HELPERS ───────────────────────── */
 // Retorna quantas noivas ativas precisam de um item (considerando produto)
 function _invNoivasQueUsam(item){
-  const ativas = DATA.filter(b=>!['entregue','cancelado'].includes(b.etapa));
+  // Apenas noivas com pedido confirmado ou em produção — leads/prospects não contam
+  const ETAPAS_PROD=['contratoAssinado','reserva','secagem','montagem','embalado'];
+  const ativas=DATA.filter(b=>ETAPAS_PROD.includes(b.etapa));
   if(!item.porProduto) return ativas.length;
   return ativas.filter(b=>item.porProduto.includes(b.produto||'')).length;
 }
