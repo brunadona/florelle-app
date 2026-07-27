@@ -3771,16 +3771,16 @@ const INV_KEY='florelle_inv_v2';
 // porProduto: objeto com consumo diferente por produto (null = mesmo para todos)
 const INV_DEFAULT=[
   // CONSUMÍVEIS (todos os produtos) — qtdCompra/precoCompra = unidade de venda
-  {nome:'Sílica',          qtdAtual:4,    unidade:'kg',   precoUnit:37.67, consumo:4,   qtdCompra:12,  precoCompra:452,  comprarAntes:true,  porProduto:null,                             linkCompra:''},
-  {nome:'Plástico filme',  qtdAtual:150,  unidade:'m',    precoUnit:0.20,  consumo:24,  qtdCompra:300, precoCompra:60,   comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Cola acrílica',   qtdAtual:230,  unidade:'ml',   precoUnit:0.30,  consumo:3,   qtdCompra:250, precoCompra:75,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Sílica',          qtdAtual:24,   unidade:'kg',   precoUnit:37.67, consumo:4,   qtdCompra:12,  precoCompra:452,  comprarAntes:true,  porProduto:null,                             linkCompra:''},
+  {nome:'Plástico filme',  qtdAtual:300,  unidade:'m',    precoUnit:0.20,  consumo:24,  qtdCompra:300, precoCompra:60,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Cola acrílica',   qtdAtual:250,  unidade:'ml',   precoUnit:0.30,  consumo:3,   qtdCompra:250, precoCompra:75,   comprarAntes:false, porProduto:null,                             linkCompra:''},
   {nome:'Papel kraft',     qtdAtual:95,   unidade:'m',    precoUnit:0.80,  consumo:3,   qtdCompra:100, precoCompra:80,   comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Foto instax',     qtdAtual:10,   unidade:'foto', precoUnit:7.00,  consumo:1,   qtdCompra:10,  precoCompra:70,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Foto instax',     qtdAtual:8,    unidade:'foto', precoUnit:7.00,  consumo:1,   qtdCompra:10,  precoCompra:70,   comprarAntes:false, porProduto:null,                             linkCompra:''},
   {nome:'Verniz',          qtdAtual:300,  unidade:'ml',   precoUnit:0.333, consumo:100, qtdCompra:300, precoCompra:100,  comprarAntes:false, porProduto:null,                             linkCompra:''},
-  {nome:'Junco',           qtdAtual:1,    unidade:'maço', precoUnit:42.00, consumo:1,   qtdCompra:1,   precoCompra:42,   comprarAntes:false, porProduto:null,                             linkCompra:'https://shopee.com.br/Kit-Hastes-Junco-Para-Buqu%C3%AA-Desidratado-Junco-Artesanal-16cm-X-12cm-i.1173738155.58260587892?extraParams=%7B%22display_model_id%22%3A189189369930%2C%22model_selection_logic%22%3A3%7D'},
-  {nome:'Bastão cola quente',qtdAtual:200,unidade:'un',   precoUnit:0.08,  consumo:10,  qtdCompra:500, precoCompra:40,   comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Junco',           qtdAtual:3,    unidade:'maço', precoUnit:42.00, consumo:1,   qtdCompra:1,   precoCompra:42,   comprarAntes:false, porProduto:null,                             linkCompra:'https://shopee.com.br/Kit-Hastes-Junco-Para-Buqu%C3%AA-Desidratado-Junco-Artesanal-16cm-X-12cm-i.1173738155.58260587892?extraParams=%7B%22display_model_id%22%3A189189369930%2C%22model_selection_logic%22%3A3%7D'},
+  {nome:'Bastão cola quente',qtdAtual:40, unidade:'un',   precoUnit:0.08,  consumo:10,  qtdCompra:500, precoCompra:40,   comprarAntes:false, porProduto:null,                             linkCompra:''},
   {nome:'Tag',             qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null,                             linkCompra:'https://shopee.com.br/Tag-Personalizada-Nome-Acr%C3%ADlico-Espelhado-Etiqueta-Decorativa-Aplique-Redondo-4CM-i.1173738155.22293754539?extraParams=%7B%22display_model_id%22%3A119722812121%2C%22model_selection_logic%22%3A3%7D'},
-  {nome:'Papelaria',       qtdAtual:12,   unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null,                             linkCompra:''},
+  {nome:'Papelaria',       qtdAtual:8,    unidade:'un',   precoUnit:1.00,  consumo:1,   qtdCompra:null,precoCompra:null, comprarAntes:false, porProduto:null,                             linkCompra:''},
   // DEPENDENTES DO PRODUTO
   {nome:'Redoma 32×42',    qtdAtual:0,    unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porPedido:true, porProduto:['quadro32x42'],  linkCompra:'https://shopee.com.br/Moldura-P-Buqu%C3%AA-Eternizado-Inclinada-Acr%C3%ADlico-Transparante-e-Fundo-Borda-Espalho-Prata-43x33x12-cm-cm-i.1173738155.19999605793?extraParams=%7B%22display_model_id%22%3A149547184988%2C%22model_selection_logic%22%3A3%7D'},
   {nome:'Redoma 25×30',    qtdAtual:0,    unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'],  linkCompra:'https://shopee.com.br/Moldura-Acr%C3%ADlico-Buqu%C3%AA-Eternizado-Tam-24x34x13-i.1173738155.19899311665?extraParams=%7B%22display_model_id%22%3A209176646629%2C%22model_selection_logic%22%3A3%7D'},
@@ -3826,6 +3826,12 @@ function loadInv(){
             if(existing.linkCompra===undefined)existing.linkCompra=def.linkCompra??'';
           }
         });
+        // Migração v3: atualizar qtdAtual com estoque real informado pela usuária
+        if(!localStorage.getItem('florelle_inv_migv3')){
+          const qtdReais={'Sílica':24,'Plástico filme':300,'Cola acrílica':250,'Foto instax':8,'Junco':3,'Bastão cola quente':40,'Papelaria':8};
+          INV.forEach(item=>{if(qtdReais[item.nome]!==undefined)item.qtdAtual=qtdReais[item.nome];});
+          localStorage.setItem('florelle_inv_migv3','1');
+        }
       }
     } else {
       INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));
