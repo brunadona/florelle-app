@@ -2334,6 +2334,26 @@ async function saveModal(){
     const bUpd=editId?DATA.find(x=>x.id===editId):null;
     if(bUpd)_deductInvForBride(bUpd);
   }
+  // Auto-descontar embalagem quando statusEmbalagem muda para/de 'emMaos'
+  const _oldEmb=_prevBride?.statusEmbalagem||'naoEncomendada';
+  const _newEmb=rec.statusEmbalagem;
+  if(editId&&_oldEmb!==_newEmb){
+    const prod=rec.produto||'';
+    INV.forEach(item=>{
+      if(item.etapaConsumo!=='embalagem')return;
+      if(item.porProduto&&!item.porProduto.includes(prod))return;
+      if(_newEmb==='emMaos'&&_oldEmb!=='emMaos'){
+        item.qtdAtual=Math.max(0,Number(item.qtdAtual||0)-1);
+        (item.historico=item.historico||[]).unshift({data:today(),quantidade:-1,obs:'Embalagem recebida: '+(rec.nome||'')});
+        if(item.historico.length>20)item.historico=item.historico.slice(0,20);
+      }else if(_oldEmb==='emMaos'&&_newEmb!=='emMaos'){
+        item.qtdAtual=Number(item.qtdAtual||0)+1;
+        (item.historico=item.historico||[]).unshift({data:today(),quantidade:1,obs:'Embalagem devolvida: '+(rec.nome||'')});
+        if(item.historico.length>20)item.historico=item.historico.slice(0,20);
+      }
+    });
+    saveInv();updInvBadge();
+  }
   save();closeModal();renderAll();
   // Show delivery checklist when transitioning to entregue
   if(rec.etapa==='entregue'&&_oldEtapa&&_oldEtapa!=='entregue'){
@@ -3934,7 +3954,9 @@ function _invNoivasQueUsam(item){
   const etapas=etapa==='embalagem'
     ?['secagem','montagem','embalado']
     :['secagem','montagem'];
-  const ativas=DATA.filter(b=>etapas.includes(b.etapa));
+  let ativas=DATA.filter(b=>etapas.includes(b.etapa));
+  // Embalagem já "em mãos" foi descontada do qtdAtual — não conta como necessidade
+  if(etapa==='embalagem') ativas=ativas.filter(b=>(b.statusEmbalagem||'naoEncomendada')!=='emMaos');
   if(!item.porProduto) return ativas.length;
   return ativas.filter(b=>item.porProduto.includes(b.produto||'')).length;
 }
@@ -5567,6 +5589,10 @@ function _deductInvForBride(b){
   const prod=b.produto||'';
   let changed=false;
   INV.forEach(item=>{
+    // Sílica/plástico já foram consumidos ao entrar em secagem — não descontar aqui
+    if((item.etapaConsumo||'montagem')==='secagem')return;
+    // Embalagem é descontada via statusEmbalagem='emMaos' no saveModal
+    if((item.etapaConsumo||'montagem')==='embalagem')return;
     if(item.porProduto&&!item.porProduto.includes(prod))return;
     const c=Number(item.consumo||0);if(!c)return;
     item.qtdAtual=Math.max(0,Number(item.qtdAtual||0)-c);
