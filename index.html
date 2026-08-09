@@ -5115,8 +5115,10 @@ function _queueCloudSync(){
 }
 async function _cloudPush(){
   if(!navigator.onLine||!DATA.length)return;
-  try{await fetch(_WK+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(DATA)});}
-  catch{}
+  try{
+    const r=await fetch(_WK+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(DATA)});
+    if(!r.ok)_showCalToast('⚠️ Falha ao salvar na nuvem ('+r.status+')');
+  }catch(e){_showCalToast('⚠️ Sem conexão com a nuvem');}
 }
 async function _cloudPull(){
   try{
@@ -6106,6 +6108,7 @@ async function _processPendingConfirms(){
 
 function _bootApp(){
   load();loadInv();renderAll();updInvBadge();updTvBadge();
+  const _si=g('si');if(_si)_si.value=''; // limpa campo de busca (evita autocomplete do browser)
   _cloudInit(); // sync automático via Worker — sem autenticação
   syncInit();   // auth Google para anexos e calendário
   _requestNotifPerm();
