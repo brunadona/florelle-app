@@ -316,6 +316,7 @@ Retorne apenas o JSON.`;
     }
 
     // POST /kommo-notes  →  busca mensagens/notas de um lead do Kommo
+    if (request.method === 'POST' && url.pathname === '/kommo-notes') {
       try {
         let body; try { body = await request.json(); } catch { return json({ text: '' }); }
         const { subdomain, token, leadId } = body;
