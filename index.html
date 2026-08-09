@@ -755,7 +755,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div class="hsep"></div>
   <div class="srch">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-    <input id="si" type="text" placeholder="Buscar noiva…" oninput="_srchQ(this.value)">
+    <input id="si" type="text" placeholder="Buscar noiva…" oninput="_srchQ(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
   </div>
   <div class="ha">
     <button class="b-io" onclick="exportData()" title="Exportar dados JSON">
@@ -2356,10 +2356,17 @@ async function saveModal(){
     });
     saveInv();updInvBadge();
   }
+  const _savedBrideId=editId||newId;
   save();closeModal();renderAll();
-  // Show delivery checklist when transitioning to entregue
-  if(rec.etapa==='entregue'&&_oldEtapa&&_oldEtapa!=='entregue'){
-    setTimeout(()=>_showEntregaChecklist(null),200);
+  // Stage transitions: checklist de entrega + mensagem WPP (funciona no mobile via modal)
+  if(_oldEtapa&&rec.etapa!==_oldEtapa){
+    const _bUpd=DATA.find(x=>x.id===_savedBrideId);
+    if(rec.etapa==='entregue'){
+      const _wppCb=_bUpd?()=>setTimeout(()=>_showWppStageMsg(_bUpd,'entregue'),300):null;
+      setTimeout(()=>_showEntregaChecklist(_wppCb),200);
+    } else if(_bUpd&&WPP_STAGE_MSGS[rec.etapa]){
+      setTimeout(()=>_showWppStageMsg(_bUpd,rec.etapa),600);
+    }
   }
   _showCalToast(isNew?'Noiva adicionada! 🌸':'Alterações salvas!');
   // Sincronizar Google Calendar apenas se já conectado (não abre popup automático)
@@ -5113,7 +5120,7 @@ async function _cloudPush(){
 }
 async function _cloudPull(){
   try{
-    const r=await fetch(_WK+'/data');
+    const r=await fetch(_WK+'/data',{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
     if(!Array.isArray(d)||!d.length)return;
@@ -5289,8 +5296,9 @@ window.addEventListener('online',()=>{
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')_cloudPull();
 });
-// Verifica Worker a cada 3 minutos (mantém dispositivos sincronizados em segundo plano)
-setInterval(_cloudPull,3*60*1000);
+window.addEventListener('focus',_cloudPull);
+// Verifica Worker a cada 1 minuto (mantém dispositivos sincronizados em segundo plano)
+setInterval(_cloudPull,60*1000);
 
 /* ── MOBILE ──────────────────────────────────── */
 let mobileColIdx=0;
