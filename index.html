@@ -5131,7 +5131,7 @@ async function _cloudPull(){
 }
 async function _cloudInit(){
   try{
-    const r=await fetch(_WK+'/data');
+    const r=await fetch(_WK+'/data',{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
     if(Array.isArray(d)&&d.length){
