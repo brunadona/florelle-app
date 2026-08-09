@@ -755,7 +755,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div class="hsep"></div>
   <div class="srch">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-    <input id="si" type="text" placeholder="Buscar noiva…" oninput="_srchQ(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+    <input id="si" type="text" placeholder="Buscar noiva…" oninput="_srchQ(this.value)" autocomplete="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
   </div>
   <div class="ha">
     <button class="b-io" onclick="exportData()" title="Exportar dados JSON">
@@ -5122,7 +5122,7 @@ async function _cloudPush(){
 }
 async function _cloudPull(){
   try{
-    const r=await fetch(_WK+'/data',{cache:'no-store'});
+    const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
     if(!Array.isArray(d)||!d.length)return;
@@ -5133,7 +5133,7 @@ async function _cloudPull(){
 }
 async function _cloudInit(){
   try{
-    const r=await fetch(_WK+'/data',{cache:'no-store'});
+    const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
     if(Array.isArray(d)&&d.length){
