@@ -820,6 +820,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <input type="file" accept=".json" style="display:none" onchange="importData(event)">
   </label>
   <div class="hmi-sep"></div>
+  <button class="hmi" onclick="_reuploadContratosAssinados();closeHMenu()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Reenviar contratos assinados pro Drive
+  </button>
+  <div class="hmi-sep"></div>
   <button class="hmi" onclick="_alterarPin();closeHMenu()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     Alterar senha de acesso
@@ -3025,6 +3030,25 @@ async function _uploadContratoAssinadoDrive(b){
   }else{
     _showCalToast('Erro ao salvar contrato no Drive: '+r.status,'err');
   }
+}
+
+// Reenvia pro Drive o contrato assinado de todas as noivas (corrige uploads que falharam silenciosamente)
+async function _reuploadContratosAssinados(){
+  if(!_gToken){
+    try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');return;}
+  }
+  const noivas=DATA.filter(b=>b.contratoAssinado);
+  if(!noivas.length){_showCalToast('Nenhuma noiva com contrato assinado.');return;}
+  _showCalToast('Reenviando '+noivas.length+' contrato(s) pro Drive...');
+  let ok=0,falhou=0;
+  for(const b of noivas){
+    try{
+      const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id));
+      const j=await r.json();
+      if(j.html){await _uploadContratoAssinadoDrive(b);ok++;}else{falhou++;}
+    }catch(e){falhou++;}
+  }
+  _showCalToast(`Reenvio concluído: ${ok} salvo(s)`+(falhou?`, ${falhou} sem contrato no servidor`:''));
 }
 
 function _contratoHTMLStr(p){
