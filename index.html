@@ -2401,6 +2401,9 @@ async function salvarContratoDrive(){
   if(!_gToken){
     try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');return;}
   }
+  // Se já foi assinado pela noiva, sobe o HTML assinado de verdade (com a assinatura dela), não um rascunho novo
+  const _b=DATA.find(x=>x.id===editId);
+  if(_b&&_b.contratoAssinado){await _uploadContratoAssinadoDrive(_b);return;}
   const nome = gv('m-nome').trim()||'Contrato';
   // Buscar pasta da noiva no Drive
   const folderId = _mDriveFolder||null;
@@ -2971,7 +2974,9 @@ function _handleSignedConfirmation(brideId,ts,nome){
 
 // Busca contrato assinado do KV e faz upload para a pasta da noiva no Drive
 async function _uploadContratoAssinadoDrive(b){
-  if(!_gToken)return; // sem token Google, pula silenciosamente
+  if(!_gToken){
+    try{await _ensureToken();}catch(e){_showCalToast('Contrato assinado, mas não deu pra salvar no Drive: conecte ao Google e clique em ☁️ Drive na noiva.','err');return;}
+  }
 
   // 1. Buscar HTML assinado do KV
   let html;
@@ -3017,6 +3022,8 @@ async function _uploadContratoAssinadoDrive(b){
   });
   if(r.ok){
     _showCalToast('📄 Contrato assinado salvo no Drive ✓');
+  }else{
+    _showCalToast('Erro ao salvar contrato no Drive: '+r.status,'err');
   }
 }
 
