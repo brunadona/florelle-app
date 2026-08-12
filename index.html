@@ -3906,6 +3906,17 @@ function loadInv(){
           });
           localStorage.setItem('florelle_inv_migv5','1');
         }
+        // Migração v6: sílica reaproveitada 3x, junco/papelaria/inseticida com preço atualizado
+        if(!localStorage.getItem('florelle_inv_migv6')){
+          const updatesV6={
+            'Sílica':{consumo:2.6667},
+            'Junco':{precoUnit:34.00,precoCompra:34},
+            'Papelaria':{precoUnit:10.00},
+            'Inseticida':{precoUnit:5.00,qtdCompra:6,precoCompra:30},
+          };
+          INV.forEach(item=>{if(updatesV6[item.nome])Object.assign(item,updatesV6[item.nome]);});
+          localStorage.setItem('florelle_inv_migv6','1');
+        }
       }
     } else {
       INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));
