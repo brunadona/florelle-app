@@ -1172,15 +1172,15 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="fg" style="margin-bottom:11px">
         <label class="fl">Tipo de produto</label>
         <div class="rg">
-          <label class="ro"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30 (acrílico)</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42 (acrílico)</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadroMadeira37x40" onchange="updateCustoBuque()"><span class="rl">Quadro 37×40 (madeira)</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadroMadeira40x60" onchange="updateCustoBuque()"><span class="rl">Quadro 40×60 (madeira)</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadroMadeira50x70" onchange="updateCustoBuque()"><span class="rl">Quadro 50×70 (madeira)</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
-          <label class="ro"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula 18×30</span></label>
-          <label class="ro"><input type="radio" name="prod" value="cupulaMini" onchange="updateCustoBuque()"><span class="rl">Mini cúpula 9,5×13</span></label>
-          <label class="ro"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque()"><span class="rl">Múltiplos</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque(true)"><span class="rl">Quadro 25×30 (acrílico)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque(true)"><span class="rl">Quadro 32×42 (acrílico)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroMadeira37x40" onchange="updateCustoBuque(true)"><span class="rl">Quadro 37×40 (madeira)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroMadeira40x60" onchange="updateCustoBuque(true)"><span class="rl">Quadro 40×60 (madeira)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroMadeira50x70" onchange="updateCustoBuque(true)"><span class="rl">Quadro 50×70 (madeira)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque(true)"><span class="rl">Quadro sob medida</span></label>
+          <label class="ro"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque(true)"><span class="rl">Cúpula 18×30</span></label>
+          <label class="ro"><input type="radio" name="prod" value="cupulaMini" onchange="updateCustoBuque(true)"><span class="rl">Mini cúpula 9,5×13</span></label>
+          <label class="ro"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque(true)"><span class="rl">Múltiplos</span></label>
         </div>
       </div>
       <div class="frow f1">
@@ -3980,7 +3980,7 @@ function loadInv(){
 function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
 
 
-function updateCustoBuque(){
+function updateCustoBuque(force){
   const produto = radVal('prod')||'';
   // Campo valor da redoma: visível só para quadroSobMedida
   const redomaPrecoRow=g('redoma-preco-row');
@@ -3992,9 +3992,11 @@ function updateCustoBuque(){
   const custo=calcCustoBuque(produto,redomaOverride);
   sv2('m-custo',_fmtBRLInput(custo));
   const _curVal=gv('m-valor').trim();
-  // Só auto-preenche se o campo estiver vazio ou ainda com o valor que a gente mesmo preencheu
-  // (assim trocar de produto atualiza o preço sugerido, mas não sobrescreve valor digitado à mão)
-  if(!_curVal||_curVal===updateCustoBuque._lastAutoVal){
+  // force=true (troca de produto): sempre atualiza pro preço sugerido do produto novo.
+  // force=false (digitando no campo valor, ou ajustando valor da redoma): só preenche se
+  // o campo estiver vazio ou ainda com o valor que a gente mesmo preencheu, pra não
+  // sobrescrever um valor customizado que a usuária digitou à mão.
+  if(force||!_curVal||_curVal===updateCustoBuque._lastAutoVal){
     const sug=PRECO_SUGERIDO[produto];
     if(sug){
       const pecasCount=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;

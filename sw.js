@@ -1,4 +1,4 @@
-// 20260809120000
+// 20260814180000
 self.addEventListener("install", e => { self.skipWaiting(); });
 self.addEventListener("activate", e => {
   e.waitUntil(
