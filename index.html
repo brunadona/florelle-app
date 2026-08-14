@@ -1172,11 +1172,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="fg" style="margin-bottom:11px">
         <label class="fl">Tipo de produto</label>
         <div class="rg">
-          <label class="ro"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30 (acrílico)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42 (acrílico)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroMadeira37x40" onchange="updateCustoBuque()"><span class="rl">Quadro 37×40 (madeira)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroMadeira40x60" onchange="updateCustoBuque()"><span class="rl">Quadro 40×60 (madeira)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroMadeira50x70" onchange="updateCustoBuque()"><span class="rl">Quadro 50×70 (madeira)</span></label>
           <label class="ro"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
-          <label class="ro"><input type="radio" name="prod" value="cupulaG" onchange="updateCustoBuque()"><span class="rl">Cúpula G (grande)</span></label>
-          <label class="ro"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula M 18×30</span></label>
+          <label class="ro"><input type="radio" name="prod" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula 18×30</span></label>
+          <label class="ro"><input type="radio" name="prod" value="cupulaMini" onchange="updateCustoBuque()"><span class="rl">Mini cúpula 9,5×13</span></label>
           <label class="ro"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque()"><span class="rl">Múltiplos</span></label>
         </div>
       </div>
@@ -1504,9 +1507,9 @@ const COLS=[
   {id:'cancelado',       label:'Cancelado / Rejeitado',color:'#A8A098'},
 ];
 
-const PLABEL={quadro25x30:'Quadro 25×30',quadro32x42:'Quadro 32×42',quadroSobMedida:'Sob medida',cupulaG:'Cúpula G (grande)',cupulaM:'Cúpula M 18×30',multiplos:'Múltiplos',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
+const PLABEL={quadro25x30:'Quadro 25×30 (acrílico)',quadro32x42:'Quadro 32×42 (acrílico)',quadroMadeira37x40:'Quadro 37×40 (madeira)',quadroMadeira40x60:'Quadro 40×60 (madeira)',quadroMadeira50x70:'Quadro 50×70 (madeira)',quadroSobMedida:'Sob medida',cupulaM:'Cúpula 18×30',cupulaMini:'Mini cúpula 9,5×13',multiplos:'Múltiplos',cupulaG:'⚠️ Produto descontinuado',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
 // Preços sugeridos por produto (editável aqui)
-const PRECO_SUGERIDO={quadro25x30:'1.290,00',quadro32x42:'1.590,00',cupulaG:'1.590,00',cupulaM:'1.290,00',quadroSobMedida:'',multiplos:''};
+const PRECO_SUGERIDO={quadro25x30:'1.590,00',quadro32x42:'1.790,00',quadroMadeira37x40:'1.690,00',quadroMadeira40x60:'1.790,00',quadroMadeira50x70:'1.990,00',cupulaM:'1.490,00',cupulaMini:'790,00',quadroSobMedida:'',multiplos:''};
 const PRECO_PECA_ADICIONAL=50;
 const PAGLABEL={pixAVista:'Pix à vista',pix3x:'Pix parcelado',cartao:'Cartão'};
 const EMBLABEL={naoEncomendada:'À encomendar',encomendada:'Encomendada',emMaos:'Em mãos'};
@@ -1536,7 +1539,7 @@ function migrateOld(){
     const colMap={'lead':'lead','retomar':'retomar','contrato_env':'contratoEnviado','contrato_ass':'contratoAssinado','reserva':'reserva','secagem':'secagem','montagem':'montagem','embalado':'embalado','entregue':'entregue','cancelado':'cancelado'};
     const embMap={'nao_encomendada':'naoEncomendada','encomendada':'encomendada','em_maos':'emMaos'};
     const pagMap={'pix_avista':'pixAVista','pix_3x':'pix3x','cartao':'cartao'};
-    const prMap={'quadro_25x30':'quadro25x30','quadro_32x42':'quadro32x42','quadro_maior':'quadroSobMedida','cupula_g':'cupulaG','cupula_m':'cupulaM','multiplo':'multiplos'};
+    const prMap={'quadro_25x30':'quadro25x30','quadro_32x42':'quadro32x42','quadro_maior':'quadroSobMedida','cupula_g':'cupulaM','cupula_m':'cupulaM','multiplo':'multiplos'};
     return old.map(b=>({
       id:b.id||uid(),crd:Date.now(),
       nome:b.name||'',
@@ -2467,7 +2470,7 @@ function _buildContratoHTML(){
   const produto   = radVal('prod');
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
-  const prodMap={'cupulaG':'Cúpula G (grande)','cupulaM':'Cúpula M 18×30','quadro25x30':'Quadro 25×30 cm','quadro32x42':'Quadro 32×42 cm','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos'};
+  const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 37×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
   const modeloTxt = prodMap[produto]||produto||'';
   const chkSim=rep==='sim',chkNao=rep==='nao';
   const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
@@ -2521,7 +2524,7 @@ async function enviarAssinar(){
     const produto=radVal('prod');
     const pecas=Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
     const pecasOutro=gv('m-outro').trim();
-    const prodMap={'cupulaG':'Cúpula G (grande)','cupulaM':'Cúpula M 18×30','quadro25x30':'Quadro 25×30 cm','quadro32x42':'Quadro 32×42 cm','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos'};
+    const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 37×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
     const modeloTxt=prodMap[produto]||produto||'';
     const chkSim=rep==='sim',chkNao=rep==='nao';
     const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
@@ -3233,7 +3236,7 @@ function gerarContrato(){
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
 
-  const prodMap={'cupulaG':'Cúpula G (grande)','cupulaM':'Cúpula M 18×30','quadro25x30':'Quadro 25×30 cm','quadro32x42':'Quadro 32×42 cm','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos'};
+  const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 37×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
   const modeloTxt = prodMap[produto]||produto||'';
 
   const chkSim    = rep==='sim';
@@ -3848,12 +3851,16 @@ const INV_DEFAULT=[
   // DEPENDENTES DO PRODUTO
   {nome:'Redoma 32×42',     qtdAtual:0,   unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porPedido:true, porProduto:['quadro32x42'],                             etapaConsumo:'montagem',  linkCompra:'https://shopee.com.br/Moldura-P-Buqu%C3%AA-Eternizado-Inclinada-Acr%C3%ADlico-Transparante-e-Fundo-Borda-Espalho-Prata-43x33x12-cm-cm-i.1173738155.19999605793?extraParams=%7B%22display_model_id%22%3A149547184988%2C%22model_selection_logic%22%3A3%7D'},
   {nome:'Redoma 25×30',     qtdAtual:0,   unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'],                             etapaConsumo:'montagem',  linkCompra:'https://shopee.com.br/Moldura-Acr%C3%ADlico-Buqu%C3%AA-Eternizado-Tam-24x34x13-i.1173738155.19899311665?extraParams=%7B%22display_model_id%22%3A209176646629%2C%22model_selection_logic%22%3A3%7D'},
-  {nome:'Cúpula',           qtdAtual:0,   unidade:'un',   precoUnit:150.00,consumo:1,   qtdCompra:1,   precoCompra:150,  comprarAntes:false, porPedido:true, porProduto:['cupulaG','cupulaM'],                       etapaConsumo:'montagem',  linkCompra:''},
-  {nome:'Bola isopor 75',   qtdAtual:5,   unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaG','cupulaM'],                       etapaConsumo:'montagem',  linkCompra:''},
-  {nome:'Bola isopor 100',  qtdAtual:5,   unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida'],etapaConsumo:'montagem',  linkCompra:''},
-  {nome:'Embalagem cúpula', qtdAtual:2,   unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['cupulaG','cupulaM'],                       etapaConsumo:'embalagem', linkCompra:''},
-  {nome:'Embalagem quadro', qtdAtual:1,   unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida'],etapaConsumo:'embalagem', linkCompra:''},
+  {nome:'Cúpula',           qtdAtual:0,   unidade:'un',   precoUnit:150.00,consumo:1,   qtdCompra:1,   precoCompra:150,  comprarAntes:false, porPedido:true, porProduto:['cupulaM'],                       etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Redoma mini cúpula',qtdAtual:0,  unidade:'un',   precoUnit:100.00,consumo:1,   qtdCompra:1,   precoCompra:100,  comprarAntes:false, porPedido:true, porProduto:['cupulaMini'],                   etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Bola isopor 75',   qtdAtual:5,   unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaM','cupulaMini'],                       etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Bola isopor 100',  qtdAtual:5,   unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70'],etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Embalagem cúpula', qtdAtual:2,   unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['cupulaM','cupulaMini'],                       etapaConsumo:'embalagem', linkCompra:''},
+  {nome:'Embalagem quadro', qtdAtual:1,   unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70'],etapaConsumo:'embalagem', linkCompra:''},
   {nome:'Redoma sob medida',qtdAtual:0,   unidade:'un',   precoUnit:400.00,consumo:1,   qtdCompra:1,   precoCompra:400,  comprarAntes:false, porPedido:true, porProduto:['quadroSobMedida'],                         etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Moldura madeira 37×40',qtdAtual:0,unidade:'un',  precoUnit:290.00,consumo:1,   qtdCompra:1,   precoCompra:290,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira37x40'],           etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Moldura madeira 40×60',qtdAtual:0,unidade:'un',  precoUnit:450.00,consumo:1,   qtdCompra:1,   precoCompra:450,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira40x60'],           etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Moldura madeira 50×70',qtdAtual:0,unidade:'un',  precoUnit:580.00,consumo:1,   qtdCompra:1,   precoCompra:580,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira50x70'],           etapaConsumo:'montagem',  linkCompra:''},
 ];
 function loadInv(){
   try{
@@ -3947,6 +3954,18 @@ function loadInv(){
           };
           INV.forEach(item=>{if(updatesV6[item.nome])Object.assign(item,updatesV6[item.nome]);});
           localStorage.setItem('florelle_inv_migv6','1');
+        }
+        // Migração v7: portfólio 2026 — remove cúpula G, adiciona mini cúpula e quadros de madeira
+        if(!localStorage.getItem('florelle_inv_migv7')){
+          const porProdutoV7={
+            'Cúpula':['cupulaM'],
+            'Bola isopor 75':['cupulaM','cupulaMini'],
+            'Bola isopor 100':['quadro25x30','quadro32x42','quadroSobMedida','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70'],
+            'Embalagem cúpula':['cupulaM','cupulaMini'],
+            'Embalagem quadro':['quadro25x30','quadro32x42','quadroSobMedida','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70'],
+          };
+          INV.forEach(item=>{if(porProdutoV7[item.nome])item.porProduto=porProdutoV7[item.nome];});
+          localStorage.setItem('florelle_inv_migv7','1');
         }
       }
     } else {

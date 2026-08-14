@@ -142,7 +142,7 @@ Campos do JSON (inclua todos, use null ou "" quando não encontrado):
 - "cep": CEP somente números, 8 dígitos (string — vazio se não houver)
 - "cidade": cidade e estado no formato "Cidade/UF" (string — vazio se não houver)
 - "endereco": endereço completo sem repetir a cidade (string — vazio se não houver)
-- "produto": exatamente um de: "quadro25x30", "quadro32x42", "quadroSobMedida", "cupulaG", "cupulaM", "multiplos" — ou null
+- "produto": exatamente um de: "quadro25x30", "quadro32x42", "quadroMadeira37x40", "quadroMadeira40x60", "quadroMadeira50x70", "quadroSobMedida", "cupulaM", "cupulaMini", "multiplos" — ou null
 - "produtoObs": detalhes do produto — cor, medidas, estilo, flores (string — vazio se não houver)
 - "formaPagamento": exatamente "pixAVista", "pix3x" ou "cartao" — ou null
 - "valorTotal": valor total no formato "1.290,00" sem "R$" (string — vazio se não houver)
