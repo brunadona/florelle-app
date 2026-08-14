@@ -1995,6 +1995,7 @@ function _calcMargem(){
 function openNew(col){
   editId=null;mRem=[];mAnexos=[];_mDriveFolder='';
   updateCustoBuque._lastProd=null;
+  updateCustoBuque._lastAutoVal=null;
   fillForm({etapa:col||'lead'});
   g('bdel').classList.add('hidden');
   if(g('bdup'))g('bdup').classList.add('hidden');
@@ -2076,6 +2077,7 @@ function fillForm(b){
   buqueDisp(b.dataBuque||'');
   redomaChg();
   updateCustoBuque._lastProd=b.produto||''; // não auto-preenche ao carregar noiva existente
+  updateCustoBuque._lastAutoVal=null;
   setTimeout(updateCustoBuque,50);
   pagCalc(allPagRows.length?allPagRows:null);
   pecaVis();
@@ -3989,13 +3991,18 @@ function updateCustoBuque(){
   const redomaOverride=produto==='quadroSobMedida'&&_rpRaw>0?_rpRaw/100:null;
   const custo=calcCustoBuque(produto,redomaOverride);
   sv2('m-custo',_fmtBRLInput(custo));
-  if(!gv('m-valor').trim()){
+  const _curVal=gv('m-valor').trim();
+  // Só auto-preenche se o campo estiver vazio ou ainda com o valor que a gente mesmo preencheu
+  // (assim trocar de produto atualiza o preço sugerido, mas não sobrescreve valor digitado à mão)
+  if(!_curVal||_curVal===updateCustoBuque._lastAutoVal){
     const sug=PRECO_SUGERIDO[produto];
     if(sug){
       const pecasCount=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;
       const sugCents=_parseBRL(sug);
       const totalCents=sugCents+(pecasCount*PRECO_PECA_ADICIONAL*100);
-      sv2('m-valor',_fmtBRLInput(totalCents/100));
+      const _newVal=_fmtBRLInput(totalCents/100);
+      sv2('m-valor',_newVal);
+      updateCustoBuque._lastAutoVal=_newVal;
     }
   }
   setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
