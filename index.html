@@ -3851,7 +3851,7 @@ const INV_DEFAULT=[
   // DEPENDENTES DO PRODUTO
   {nome:'Redoma 32×42',     qtdAtual:0,   unidade:'un',   precoUnit:410.00,consumo:1,   qtdCompra:1,   precoCompra:410,  comprarAntes:false, porPedido:true, porProduto:['quadro32x42'],                             etapaConsumo:'montagem',  linkCompra:'https://shopee.com.br/Moldura-P-Buqu%C3%AA-Eternizado-Inclinada-Acr%C3%ADlico-Transparante-e-Fundo-Borda-Espalho-Prata-43x33x12-cm-cm-i.1173738155.19999605793?extraParams=%7B%22display_model_id%22%3A149547184988%2C%22model_selection_logic%22%3A3%7D'},
   {nome:'Redoma 25×30',     qtdAtual:0,   unidade:'un',   precoUnit:300.00,consumo:1,   qtdCompra:1,   precoCompra:300,  comprarAntes:false, porPedido:true, porProduto:['quadro25x30'],                             etapaConsumo:'montagem',  linkCompra:'https://shopee.com.br/Moldura-Acr%C3%ADlico-Buqu%C3%AA-Eternizado-Tam-24x34x13-i.1173738155.19899311665?extraParams=%7B%22display_model_id%22%3A209176646629%2C%22model_selection_logic%22%3A3%7D'},
-  {nome:'Cúpula',           qtdAtual:0,   unidade:'un',   precoUnit:150.00,consumo:1,   qtdCompra:1,   precoCompra:150,  comprarAntes:false, porPedido:true, porProduto:['cupulaM'],                       etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Cúpula 18×30',     qtdAtual:0,   unidade:'un',   precoUnit:150.00,consumo:1,   qtdCompra:1,   precoCompra:150,  comprarAntes:false, porPedido:true, porProduto:['cupulaM'],                       etapaConsumo:'montagem',  linkCompra:''},
   {nome:'Redoma mini cúpula',qtdAtual:0,  unidade:'un',   precoUnit:100.00,consumo:1,   qtdCompra:1,   precoCompra:100,  comprarAntes:false, porPedido:true, porProduto:['cupulaMini'],                   etapaConsumo:'montagem',  linkCompra:''},
   {nome:'Bola isopor 75',   qtdAtual:5,   unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['cupulaM','cupulaMini'],                       etapaConsumo:'montagem',  linkCompra:''},
   {nome:'Bola isopor 100',  qtdAtual:5,   unidade:'un',   precoUnit:5.00,  consumo:1,   qtdCompra:1,   precoCompra:5,    comprarAntes:false, porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70'],etapaConsumo:'montagem',  linkCompra:''},
@@ -3876,6 +3876,7 @@ function loadInv(){
         INV.forEach(item=>{
           if(item.porProduto){item.porProduto=item.porProduto.map(p=>p==='quadro32x34'?'quadro32x42':p);}
           if(item.nome==='Redoma 32×34')item.nome='Redoma 32×42';
+          if(item.nome==='Cúpula')item.nome='Cúpula 18×30';
         });
         // Remover duplicatas por nome (manter o primeiro encontrado)
         const seen=new Set();INV=INV.filter(x=>{if(seen.has(x.nome))return false;seen.add(x.nome);return true;});
@@ -3958,7 +3959,7 @@ function loadInv(){
         // Migração v7: portfólio 2026 — remove cúpula G, adiciona mini cúpula e quadros de madeira
         if(!localStorage.getItem('florelle_inv_migv7')){
           const porProdutoV7={
-            'Cúpula':['cupulaM'],
+            'Cúpula 18×30':['cupulaM'],
             'Bola isopor 75':['cupulaM','cupulaMini'],
             'Bola isopor 100':['quadro25x30','quadro32x42','quadroSobMedida','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70'],
             'Embalagem cúpula':['cupulaM','cupulaMini'],
