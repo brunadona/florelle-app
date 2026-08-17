@@ -2174,8 +2174,9 @@ function syncAutoRems(){
 function silChg(){
   const v=gv('m-silica');
   silDisp(v);
-  const _doneAuto=new Set(mRem.filter(r=>r.auto&&r.done).map(r=>r.text));
-  mRem=mRem.filter(r=>!r.auto);
+  const _silTexts=['Início da montagem','Retirar da sílica','Colocar na sílica'];
+  const _doneAuto=new Set(mRem.filter(r=>r.auto&&r.done&&_silTexts.includes(r.text)).map(r=>r.text));
+  mRem=mRem.filter(r=>!(r.auto&&_silTexts.includes(r.text)));
   if(v){
     mRem.unshift(
       {id:uid(),text:'Início da montagem',data:addDays(v,50),auto:true,done:_doneAuto.has('Início da montagem')},
@@ -2295,8 +2296,8 @@ async function saveModal(){
   };
 
   // lembretes automáticos — apaga todos os auto e recria do zero, preservando os já marcados como feitos
-  const _doneAuto=new Set(rec.lembretes.filter(r=>r.auto&&r.done).map(r=>r.text));
-  rec.lembretes = rec.lembretes.filter(r=>!r.auto);
+  // (lê de mRem, não de rec.lembretes — rec.lembretes já saiu sem os itens auto na linha acima)
+  const _doneAuto=new Set(mRem.filter(r=>r.auto&&r.done).map(r=>r.text));
   const _ar=(text,data)=>{if(data)rec.lembretes.push({id:uid(),text,data,auto:true,done:_doneAuto.has(text)});};
 
   if(rec.dataBuque&&(!rec.dataCasamento||rec.dataCasamento<=today())){
@@ -2957,7 +2958,7 @@ async function verContratoAssinado(){
   }catch(e){alert('Erro ao buscar contrato:\n'+e.message);}
 }
 
-function _handleSignedConfirmation(brideId,ts,nome){
+async function _handleSignedConfirmation(brideId,ts,nome){
   const b=DATA.find(x=>x.id===brideId);
   const tsNum=parseInt(ts);
   const dt=ts&&!isNaN(tsNum)?new Date(tsNum).toLocaleString('pt-BR'):'';
@@ -2976,11 +2977,20 @@ function _handleSignedConfirmation(brideId,ts,nome){
   }else{
     // Noiva não encontrada neste dispositivo — salva confirmação pendente no KV
     // para ser processada quando o app abrir no computador com os dados
-    fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({brideId,ts,nome})
-    }).catch(()=>{});
-    setTimeout(()=>{alert('✅ Confirmação recebida!\n\n'+(nome||'A noiva')+' assinou o contrato.\n\nAbra o app Florelle no seu computador para ver o registro atualizado automaticamente.');},200);
+    let _pcOk=false;
+    for(let i=0;i<2&&!_pcOk;i++){
+      try{
+        const r=await fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({brideId,ts,nome})
+        });
+        _pcOk=r.ok;
+      }catch(e){}
+    }
+    setTimeout(()=>{alert(_pcOk
+      ?'✅ Confirmação recebida!\n\n'+(nome||'A noiva')+' assinou o contrato.\n\nAbra o app Florelle no seu computador para ver o registro atualizado automaticamente.'
+      :'✅ Sua assinatura foi registrada!\n\nHouve uma falha de conexão ao notificar automaticamente a Florelle — pra garantir, avise por WhatsApp que você assinou o contrato.'
+    );},200);
   }
   history.replaceState({},'',location.pathname);
 }
@@ -2996,9 +3006,9 @@ async function _uploadContratoAssinadoDrive(b){
   try{
     const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id));
     const j=await r.json();
-    if(!j.html)return;
+    if(!j.html){_showCalToast('Contrato assinado ainda não chegou no servidor — tente de novo em instantes (☁️ Drive na noiva).','err');return;}
     html=j.html;
-  }catch(e){return;}
+  }catch(e){_showCalToast('Falha de conexão ao buscar contrato assinado — tente de novo (☁️ Drive na noiva).','err');return;}
 
   // 2. Garantir pasta da noiva no Drive
   let folderId=b.driveFolder||null;
@@ -4993,7 +5003,7 @@ function renderSummary(){
   });
 
   // Margem por produto
-  const prods=Object.keys(PLABEL).filter(k=>!k.startsWith('buque'));
+  const prods=Object.keys(PLABEL).filter(k=>!PLABEL[k].startsWith('⚠️'));
   const prodRows=prods.map(pk=>{
     const bs=ativos.filter(b=>b.produto===pk);
     if(!bs.length)return null;
@@ -5183,18 +5193,23 @@ function syncDriveBtn(){
 /* ── CLOUD SYNC (Worker — automático, sem auth) ── */
 const _WK='https://florelle.brunadonaa.workers.dev';
 let _cloudTimer=null;
+let _pendingPush=false;
 function _queueCloudSync(){
+  _pendingPush=true; // bloqueia _cloudPull até essa mudança local chegar no servidor
   clearTimeout(_cloudTimer);
   _cloudTimer=setTimeout(_cloudPush,2000);
 }
 async function _cloudPush(){
-  if(!navigator.onLine||!DATA.length)return;
+  if(!DATA.length)return;
+  if(!navigator.onLine){_showCalToast('⚠️ Sem internet — vai sincronizar quando a conexão voltar');return;}
   try{
     const r=await fetch(_WK+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(DATA)});
-    if(!r.ok)_showCalToast('⚠️ Falha ao salvar na nuvem ('+r.status+')');
+    if(!r.ok){_showCalToast('⚠️ Falha ao salvar na nuvem ('+r.status+')');return;}
+    _pendingPush=false;
   }catch(e){_showCalToast('⚠️ Sem conexão com a nuvem');}
 }
 async function _cloudPull(){
+  if(_pendingPush)return; // tem mudança local ainda não sincronizada — não sobrescreve
   try{
     const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
@@ -5366,6 +5381,7 @@ window.addEventListener('offline',()=>setSyncStatus('offline'));
 window.addEventListener('online',()=>{
   if(_syncPending&&_gToken)_saveToDrive();
   else if(_syncSt==='offline')setSyncStatus(_gToken?'ok':'idle');
+  if(_pendingPush)_cloudPush();
 });
 
 // Recarrega do Worker quando usuário volta ao app (sincroniza mudanças de outros dispositivos)
