@@ -2136,12 +2136,13 @@ function syncAutoRems(){
   const redomaSt   = radVal('redomaStatus');
   const embSt      = radVal('emb')||'naoEncomendada';
 
-  // remove todos os automáticos
+  // remove todos os automáticos, preservando os já marcados como feitos
+  const _doneAuto=new Set(mRem.filter(r=>r.auto&&r.done).map(r=>r.text));
   mRem = mRem.filter(r=>!r.auto);
 
   const add=(text,data)=>{
     if(!data)return;
-    mRem.push({id:uid(),text,data,auto:true,done:false});
+    mRem.push({id:uid(),text,data,auto:true,done:_doneAuto.has(text)});
   };
 
   // sílica / montagem baseados em dataBuque — só após o casamento
@@ -2173,12 +2174,13 @@ function syncAutoRems(){
 function silChg(){
   const v=gv('m-silica');
   silDisp(v);
+  const _doneAuto=new Set(mRem.filter(r=>r.auto&&r.done).map(r=>r.text));
   mRem=mRem.filter(r=>!r.auto);
   if(v){
     mRem.unshift(
-      {id:uid(),text:'Início da montagem',data:addDays(v,50),auto:true,done:false},
-      {id:uid(),text:'Retirar da sílica',data:addDays(v,30),auto:true,done:false},
-      {id:uid(),text:'Colocar na sílica',data:v,auto:true,done:false}
+      {id:uid(),text:'Início da montagem',data:addDays(v,50),auto:true,done:_doneAuto.has('Início da montagem')},
+      {id:uid(),text:'Retirar da sílica',data:addDays(v,30),auto:true,done:_doneAuto.has('Retirar da sílica')},
+      {id:uid(),text:'Colocar na sílica',data:v,auto:true,done:_doneAuto.has('Colocar na sílica')}
     );
   }
   renderRL();
@@ -2292,9 +2294,10 @@ async function saveModal(){
     upd:            Date.now(),
   };
 
-  // lembretes automáticos — apaga todos os auto e recria do zero
+  // lembretes automáticos — apaga todos os auto e recria do zero, preservando os já marcados como feitos
+  const _doneAuto=new Set(rec.lembretes.filter(r=>r.auto&&r.done).map(r=>r.text));
   rec.lembretes = rec.lembretes.filter(r=>!r.auto);
-  const _ar=(text,data)=>{if(data)rec.lembretes.push({id:uid(),text,data,auto:true,done:false});};
+  const _ar=(text,data)=>{if(data)rec.lembretes.push({id:uid(),text,data,auto:true,done:_doneAuto.has(text)});};
 
   if(rec.dataBuque&&(!rec.dataCasamento||rec.dataCasamento<=today())){
     _ar('Colocar na sílica',    addDays(rec.dataBuque,2));
