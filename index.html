@@ -1574,6 +1574,18 @@ function load(){
     if(stored){DATA=JSON.parse(stored);}
     else{DATA=migrateOld();if(DATA.length)save();}
   }catch{DATA=[];}
+  _migratePagIds();
+}
+// Garante id estável em cada parcela — sem isso, o app não consegue saber
+// com segurança qual parcela é qual quando a lista é reconstruída (reserva
+// ativada/desativada, forma de pagamento trocada, etc), podendo grudar o
+// status "pago" na parcela errada.
+function _migratePagIds(){
+  let changed=false;
+  DATA.forEach(b=>{
+    (b.pagamentos||[]).forEach(p=>{if(!p.id){p.id=uid();changed=true;}});
+  });
+  if(changed)save();
 }
 function save(){
   try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}
@@ -2065,8 +2077,9 @@ function fillForm(b){
   const res=b.reserva||{};
   setRad('reservaAtiva',res.ativa?'sim':'nao');
   const allPagRows=[];
-  if(res.ativa)allPagRows.push({valor:res.valor||'200,00',data:res.data||'',pago:!!(res.paga)});
+  if(res.ativa)allPagRows.push({id:'reserva',valor:res.valor||'200,00',data:res.data||'',pago:!!(res.paga)});
   (b.pagamentos||[]).forEach(p=>allPagRows.push(p));
+  allPagRows._wasReserva=!!res.ativa;
 
   const pc=b.pecasAdicionais||[];
   document.querySelectorAll('input[name="pecas"]').forEach(c=>c.checked=pc.includes(c.value));
@@ -3430,29 +3443,27 @@ function redomaChg(){
 function embPedidaChg(){ /* campo removido */ }
 
 /* ── PAGAMENTO ───────────────────────────────── */
+// As 3 funções abaixo mudam a "forma" da lista de parcelas (ativa/desativa reserva,
+// muda quantidade, muda forma de pagamento) — o valor de cada parcela é recalculado
+// (a divisão muda), mas data/pago de cada parcela têm que ser preservados, por isso
+// capturam o estado atual (com _wasReserva) ANTES de limpar o container.
 function reservaChg(){
+  const prev=_getPagRows();prev._wasReserva=!!pagCalc._lastReservaAtiva;
   g('pag-rows').innerHTML='';
-  pagCalc();
+  pagCalc(prev.length?prev:null,true);
 }
 function pixNChg(){
+  const prev=_getPagRows();prev._wasReserva=!!pagCalc._lastReservaAtiva;
   g('pag-rows').innerHTML='';
-  pagCalc();
+  pagCalc(prev.length?prev:null,true);
 }
 function pagChg(){
   const fp=radVal('pag');
   g('cartao-parcelas').style.display=fp==='cartao'?'':'none';
   g('pix-parcelas').style.display=fp==='pix3x'?'':'none';
-  const reservaAtiva=radVal('reservaAtiva')==='sim';
-  if(reservaAtiva){
-    // preserve reserva row, clear installment rows
-    const rows=_getPagRows();
-    const reservaRow=rows[0]||null;
-    g('pag-rows').innerHTML='';
-    pagCalc(reservaRow?[reservaRow]:[]);
-  } else {
-    g('pag-rows').innerHTML='';
-    pagCalc();
-  }
+  const prev=_getPagRows();prev._wasReserva=!!pagCalc._lastReservaAtiva;
+  g('pag-rows').innerHTML='';
+  pagCalc(prev.length?prev:null,true);
 }
 
 function _parseBRL(s){
@@ -3470,16 +3481,21 @@ function _getPagRows(){
     const vEl=row.querySelector('.parc-val');
     const dEl=row.querySelector('.parc-dt');
     const pEl=row.querySelector('.parc-pg');
-    rows.push({valor:vEl?vEl.value:'',data:dEl?dEl.value:'',pago:pEl?pEl.checked:false});
+    rows.push({id:row.dataset.id||null,valor:vEl?vEl.value:'',data:dEl?dEl.value:'',pago:pEl?pEl.checked:false});
   });
   return rows;
 }
 
-function pagCalc(preload){
+function pagCalc(preload,forceRecalcValor){
   const fp=radVal('pag');
   const container=g('pag-rows');if(!container)return;
-  const prev=preload||_getPagRows();
-  const useCalc=!preload&&prev.every(r=>!r.valor);
+  const prevAll=preload||_getPagRows();
+  // de onde vem 'prevAll': se veio por preload, ele já diz se tinha reserva (_wasReserva);
+  // senão, é o que está renderizado agora no DOM — usa o estado da última renderização
+  const prevHadReserva=preload?!!preload._wasReserva:!!pagCalc._lastReservaAtiva;
+  const prevParcelas=prevHadReserva?prevAll.slice(1):prevAll.slice();
+  const prevReserva=prevHadReserva?(prevAll[0]||null):null;
+  const useCalc=forceRecalcValor||prevAll.every(r=>!r.valor);
   const reservaAtiva=radVal('reservaAtiva')==='sim';
   const totalCents=_parseBRL(gv('m-valor'));
 
@@ -3487,33 +3503,31 @@ function pagCalc(preload){
 
   if(reservaAtiva){
     // Row 0: Reserva (always preserve entered value, default 200,00)
-    const resValor=prev[0]?.valor||'200,00';
+    const resValor=prevReserva?.valor||'200,00';
     const resCents=_parseBRL(resValor);
     const saldo=Math.max(0,totalCents-resCents);
-    rows.push({lbl:'Reserva',valor:resValor,data:prev[0]?.data||'',pago:!!(prev[0]?.pago),chkLabel:'Paga'});
-    // Installment rows (offset 1)
-    const o=1;
+    rows.push({id:prevReserva?.id||'reserva',lbl:'Reserva',valor:resValor,data:prevReserva?.data||'',pago:!!(prevReserva?.pago),chkLabel:'Paga'});
     if(fp==='pixAVista'||fp==='cartao'){
-      rows.push({lbl:'Saldo restante',valor:useCalc?_centsStr(saldo):prev[o]?.valor||'',data:prev[o]?.data||'',pago:!!(prev[o]?.pago),chkLabel:'Pago'});
+      rows.push({id:prevParcelas[0]?.id||uid(),lbl:'Saldo restante',valor:useCalc?_centsStr(saldo):prevParcelas[0]?.valor||'',data:prevParcelas[0]?.data||'',pago:!!(prevParcelas[0]?.pago),chkLabel:'Pago'});
     } else if(fp==='pix3x'){
       const n=Math.max(2,parseInt(gv('m-pix-n'))||3);
       const base=Math.floor(saldo/n);const rem=saldo%n;
-      for(let k=0;k<n;k++) rows.push({lbl:(k+1)+'ª parcela',valor:useCalc?_centsStr(k===0?base+rem:base):prev[o+k]?.valor||'',data:prev[o+k]?.data||'',pago:!!(prev[o+k]?.pago),chkLabel:'Pago'});
+      for(let k=0;k<n;k++) rows.push({id:prevParcelas[k]?.id||uid(),lbl:(k+1)+'ª parcela',valor:useCalc?_centsStr(k===0?base+rem:base):prevParcelas[k]?.valor||'',data:prevParcelas[k]?.data||'',pago:!!(prevParcelas[k]?.pago),chkLabel:'Pago'});
     }
   } else {
     // No reserva: all rows use full total
     const saldo=totalCents;
     if(fp==='pixAVista'||fp==='cartao'){
-      rows.push({lbl:'',valor:useCalc?_centsStr(saldo):prev[0]?.valor||'',data:prev[0]?.data||'',pago:!!(prev[0]?.pago),chkLabel:'Pago'});
+      rows.push({id:prevParcelas[0]?.id||uid(),lbl:'',valor:useCalc?_centsStr(saldo):prevParcelas[0]?.valor||'',data:prevParcelas[0]?.data||'',pago:!!(prevParcelas[0]?.pago),chkLabel:'Pago'});
     } else if(fp==='pix3x'){
       const n=Math.max(2,parseInt(gv('m-pix-n'))||3);
       const base=Math.floor(saldo/n);const rem=saldo%n;
-      for(let k=0;k<n;k++) rows.push({lbl:(k+1)+'ª parcela',valor:useCalc?_centsStr(k===0?base+rem:base):prev[k]?.valor||'',data:prev[k]?.data||'',pago:!!(prev[k]?.pago),chkLabel:'Pago'});
+      for(let k=0;k<n;k++) rows.push({id:prevParcelas[k]?.id||uid(),lbl:(k+1)+'ª parcela',valor:useCalc?_centsStr(k===0?base+rem:base):prevParcelas[k]?.valor||'',data:prevParcelas[k]?.data||'',pago:!!(prevParcelas[k]?.pago),chkLabel:'Pago'});
     }
   }
 
   container.innerHTML=rows.map((r,i)=>
-    `<div class="parc-row">`+
+    `<div class="parc-row" data-id="${esc(r.id)}">`+
     (r.lbl?`<span class="parc-lbl">${r.lbl}</span>`:'')+
     `<input type="text" class="fi parc-val" data-pi="${i}" value="${esc(r.valor)}" placeholder="0,00" oninput="_recalcLast(${i})">`+
     `<input type="date" class="fi parc-dt" data-pi="${i}" value="${esc(r.data)}" style="flex:1;min-width:120px" onchange="syncAutoRems()">`+
@@ -3522,6 +3536,7 @@ function pagCalc(preload){
   ).join('');
   _recalcLast(-1);
   syncAutoRems();
+  pagCalc._lastReservaAtiva=reservaAtiva;
 }
 
 function _recalcLast(editedIdx){
@@ -4355,7 +4370,7 @@ function buildTasks(){
       const lbls=PAG_LBLS[fp]||[];
       b.pagamentos.forEach((p,i)=>{
         if(!p.data)return;
-        tasks.push({id:'cob-'+bid+'-p'+i,bid,nome,type:'cobranca',date:p.data,label:fp==='pix3x'?(i+1)+'ª parcela':(lbls[i]||'Pagamento'),done:!!(p.pago),auto:true});
+        tasks.push({id:'cob-'+bid+'-'+(p.id||i),bid,nome,type:'cobranca',date:p.data,label:fp==='pix3x'?(i+1)+'ª parcela':(lbls[i]||'Pagamento'),done:!!(p.pago),auto:true});
       });
     }
 
@@ -4515,6 +4530,28 @@ async function syncKommo(){
 }
 
 function tvToggleDone(taskId){
+  // Cobranças (pagamento/reserva): a fonte de verdade é o registro financeiro da noiva,
+  // não um estado paralelo — senão o "pago" real e o que aparece na aba Tarefas divergem.
+  if(taskId.startsWith('cob-')){
+    const rest=taskId.slice(4); // bid + '-' + (id da parcela, ou 'reserva')
+    const sep=rest.indexOf('-');
+    const bid=rest.slice(0,sep);
+    const key=rest.slice(sep+1);
+    const b=DATA.find(x=>x.id===bid);
+    if(b){
+      if(key==='reserva'&&b.reserva){
+        b.reserva.paga=!b.reserva.paga;
+        save();updTvBadge();renderTasks();
+        return;
+      }
+      const p=(b.pagamentos||[]).find(x=>x.id===key);
+      if(p){
+        p.pago=!p.pago;
+        save();updTvBadge();renderTasks();
+        return;
+      }
+    }
+  }
   const done=_tvDoneLoad();
   done[taskId]=!done[taskId];
   _tvDoneSave(done);
@@ -5199,12 +5236,21 @@ function _queueCloudSync(){
   clearTimeout(_cloudTimer);
   _cloudTimer=setTimeout(_cloudPush,2000);
 }
+let _dataVersion='';
 async function _cloudPush(){
   if(!DATA.length)return;
   if(!navigator.onLine){_showCalToast('⚠️ Sem internet — vai sincronizar quando a conexão voltar');return;}
   try{
-    const r=await fetch(_WK+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(DATA)});
+    const r=await fetch(_WK+'/data',{method:'POST',headers:{'Content-Type':'application/json','X-Data-Version':_dataVersion},body:JSON.stringify(DATA)});
+    if(r.status===409){
+      const j=await r.json().catch(()=>({}));
+      _dataVersion=j.version||_dataVersion;
+      _showCalToast('⚠️ Outro dispositivo salvou uma versão mais nova — sua mudança NÃO foi enviada ainda, pra não apagar a dele. Abra o app nesse outro aparelho, ou tente salvar de novo em instantes.','err');
+      return;
+    }
     if(!r.ok){_showCalToast('⚠️ Falha ao salvar na nuvem ('+r.status+')');return;}
+    const j=await r.json().catch(()=>({}));
+    if(j.version)_dataVersion=j.version;
     _pendingPush=false;
   }catch(e){_showCalToast('⚠️ Sem conexão com a nuvem');}
 }
@@ -5214,8 +5260,10 @@ async function _cloudPull(){
     const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
+    _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
     if(!Array.isArray(d)||!d.length)return;
     DATA=d;
+    _migratePagIds();
     try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
     renderAll();
   }catch{}
@@ -5225,8 +5273,10 @@ async function _cloudInit(){
     const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
+    _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
     if(Array.isArray(d)&&d.length){
       DATA=d;
+      _migratePagIds();
       try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
       renderAll();
     } else if(DATA.length){

@@ -11,7 +11,8 @@
 const CORS = {
   'Access-Control-Allow-Origin': 'https://brunadona.github.io',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Data-Version',
+  'Access-Control-Expose-Headers': 'X-Data-Version',
 };
 
 function json(obj, status = 200) {
@@ -336,18 +337,45 @@ Retorne apenas o JSON.`;
     }
 
     // GET /data  →  lê dados do app (sync entre dispositivos)
+    // Formato armazenado: { data: [...], version: "<timestamp>" }. Compatível com o
+    // formato antigo (array puro) que já estava salvo no KV antes dessa mudança.
     if (request.method === 'GET' && url.pathname === '/data') {
       const raw = await env.SIGN_KV.get('florelle_app_data');
       if (!raw) return new Response('null', { headers: { ...CORS, 'Content-Type': 'application/json' } });
-      return new Response(raw, { headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' } });
+      let dataOnly = raw, version = '0';
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'data' in parsed) {
+          dataOnly = JSON.stringify(parsed.data);
+          version = parsed.version || '0';
+        }
+      } catch {}
+      return new Response(dataOnly, { headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8', 'X-Data-Version': version } });
     }
 
     // POST /data  →  salva dados do app (sync entre dispositivos)
+    // Controle de versão otimista: o cliente manda a versão que ele leu por último
+    // (header X-Data-Version). Se já tem uma versão mais nova salva (outro dispositivo
+    // salvou primeiro), rejeita com 409 em vez de sobrescrever silenciosamente.
     if (request.method === 'POST' && url.pathname === '/data') {
       const text = await request.text();
-      try { JSON.parse(text); } catch { return json({ error: 'JSON inválido' }, 400); }
-      await env.SIGN_KV.put('florelle_app_data', text);
-      return json({ ok: true });
+      let arr;
+      try { arr = JSON.parse(text); } catch { return json({ error: 'JSON inválido' }, 400); }
+      const clientVersion = request.headers.get('X-Data-Version') || '';
+      const existingRaw = await env.SIGN_KV.get('florelle_app_data');
+      let existingVersion = '';
+      if (existingRaw) {
+        try {
+          const parsed = JSON.parse(existingRaw);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'data' in parsed) existingVersion = parsed.version || '';
+        } catch {}
+      }
+      if (clientVersion && existingVersion && clientVersion !== existingVersion) {
+        return json({ error: 'conflict', version: existingVersion }, 409);
+      }
+      const newVersion = String(Date.now());
+      await env.SIGN_KV.put('florelle_app_data', JSON.stringify({ data: arr, version: newVersion }));
+      return json({ ok: true, version: newVersion });
     }
 
     return new Response('Florelle Sign API', { headers: CORS });
