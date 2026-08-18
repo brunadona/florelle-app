@@ -3709,7 +3709,9 @@ let _calEvs=[];
 function buildCalEvents(rec){
   const evs=[];
   const nome=rec.nome||'';
-  if(rec.dataBuque){
+  // Sílica/redoma/embalagem/montagem só fazem sentido depois que o casamento aconteceu
+  // (é só aí que o buquê chega de verdade) — mesma regra usada em syncAutoRems/saveModal.
+  if(rec.dataBuque&&(!rec.dataCasamento||rec.dataCasamento<=today())){
     evs.push({title:'Colocar na sílica — '+nome,  date:addDays(rec.dataBuque,2)});
     evs.push({title:'Pedir redoma — '+nome,        date:addDays(rec.dataBuque,3)});
     evs.push({title:'Pedir embalagem — '+nome,     date:addDays(rec.dataBuque,3)});
