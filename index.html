@@ -229,11 +229,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .fr-ctrt{display:flex;gap:7px;align-items:center}
 .bsec{height:35px;padding:0 14px;background:var(--cdark);color:var(--txm);border:1.5px solid var(--bd);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .16s}
 .bsec:hover{background:var(--ccol);border-color:var(--sl);color:var(--sd)}
-#cfg-ov{position:fixed;inset:0;background:rgba(44,40,37,.52);z-index:1000;display:flex;align-items:center;justify-content:center;padding:14px}
-.cfg-panel{background:var(--wh);border-radius:14px;width:100%;max-width:420px;box-shadow:var(--sh3);overflow:hidden;animation:fu .2s ease}
-.cfg-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 14px;border-bottom:1px solid var(--bdl)}
-.cfg-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--tx)}
-.cfg-bdy{padding:20px}
 .bsav{height:35px;padding:0 20px;background:var(--sd);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .16s}
 .bsav:hover{background:var(--smd)}
 .bctrt{height:35px;padding:0 14px;background:transparent;color:var(--sd);border:1.5px solid var(--sl);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .16s}
@@ -796,10 +791,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <span id="hm-sync-dot" class="sync-dot sdot-idle" style="flex-shrink:0"></span>
     <span id="hm-sync-lbl">Conectar ao Google Drive</span>
   </button>
-  <button class="hmi" onclick="openCfg();closeHMenu()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-    Configurações
-  </button>
   <div class="hmi-sep"></div>
   <button class="hmi hmi-wa" onclick="openWaImport();closeHMenu()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -845,30 +836,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
 </div>
 
 <!-- CFG MODAL -->
-<div id="cfg-ov" class="hidden" onclick="if(event.target===this)closeCfg()">
-  <div class="cfg-panel" onclick="event.stopPropagation()">
-    <div class="cfg-hd">
-      <span class="cfg-title">Configurações</span>
-      <button class="bcls" onclick="closeCfg()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
-    </div>
-    <div class="cfg-bdy">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--txm);margin-bottom:12px">Integração Kommo CRM</div>
-      <div class="fg" style="margin-bottom:10px">
-        <label class="fl">Subdomínio</label>
-        <input id="cfg-kommo-sub" class="fi" type="text" placeholder="Ex: florelle (de florelle.kommo.com)">
-      </div>
-      <div class="fg" style="margin-bottom:16px">
-        <label class="fl">API Token (longa duração)</label>
-        <input id="cfg-kommo-key" class="fi" type="password" placeholder="Cole o token aqui">
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="bsav" onclick="saveCfg()" style="flex:1">Salvar</button>
-        <button id="kommo-sync-btn" class="bsec" onclick="syncKommo()" style="flex:1">Sincronizar agora</button>
-      </div>
-      <div id="kommo-last-sync" style="font-size:11px;color:var(--txl);text-align:center"></div>
-    </div>
-  </div>
-</div>
 
 <!-- BANNER -->
 <div id="ban" class="hidden" onclick="toggleRP()">
@@ -4415,136 +4382,6 @@ function buildTasks(){
   // Sort by date, then nome
   tasks.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.nome||'').localeCompare(b.nome||''));
   return tasks;
-}
-
-/* ── KOMMO CRM ───────────────────────────────── */
-function _kommoCfg(){try{return JSON.parse(localStorage.getItem('florelle_kommo')||'{}')}catch{return{};}}
-
-function openCfg(){
-  const cfg=_kommoCfg();
-  sv2('cfg-kommo-sub',cfg.subdomain||'');
-  sv2('cfg-kommo-key',cfg.apiKey||'');
-  const ts=localStorage.getItem('florelle_kommo_sync');
-  const lbl=g('kommo-last-sync');
-  if(lbl)lbl.textContent=ts?'Última sync: '+ts:'Nunca sincronizado';
-  g('cfg-ov').classList.remove('hidden');
-}
-
-function closeCfg(){g('cfg-ov').classList.add('hidden');}
-
-function saveCfg(){
-  const sub=gv('cfg-kommo-sub').trim().replace(/\.kommo\.com.*$/i,'').replace(/^https?:\/\//,'');
-  const key=gv('cfg-kommo-key').trim();
-  localStorage.setItem('florelle_kommo',JSON.stringify({subdomain:sub,apiKey:key}));
-  _showCalToast('✅ Configurações salvas.');
-}
-
-async function syncKommo(){
-  let cfg=_kommoCfg();
-  // Lê do formulário como fallback (caso o usuário não tenha clicado em Salvar)
-  if(!cfg.subdomain)cfg.subdomain=gv('cfg-kommo-sub').trim().replace(/\.kommo\.com.*$/i,'').replace(/^https?:\/\//,'');
-  if(!cfg.apiKey)cfg.apiKey=gv('cfg-kommo-key').trim();
-  // Salva automaticamente se preenchido
-  if(cfg.subdomain&&cfg.apiKey)localStorage.setItem('florelle_kommo',JSON.stringify({subdomain:cfg.subdomain,apiKey:cfg.apiKey}));
-  if(!cfg.apiKey||!cfg.subdomain){
-    alert('Preencha o Subdomínio e o API Token antes de sincronizar.\nSubdomínio: '+(cfg.subdomain||'vazio')+'\nToken: '+(cfg.apiKey?'preenchido':'vazio'));
-    return;
-  }
-  const btn=g('kommo-sync-btn');
-  if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
-  try{
-    const from=Math.floor((Date.now()-7*24*3600000)/1000);
-    const r=await fetch('https://florelle.brunadonaa.workers.dev/kommo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subdomain:cfg.subdomain,token:cfg.apiKey,from})});
-    const txt=await r.text();
-    if(!r.ok)throw new Error('HTTP '+r.status+': '+(txt.slice(0,120)||'(vazio)'));
-    if(r.status===204||!txt||txt.trim()===''){
-      const ts=new Date().toLocaleString('pt-BR');
-      localStorage.setItem('florelle_kommo_sync',ts);
-      const syncLbl=g('kommo-last-sync');if(syncLbl)syncLbl.textContent='Última sync: '+ts;
-      _showCalToast('✅ Nenhum lead novo nos últimos 7 dias.');
-      if(btn){btn.disabled=false;btn.textContent='Sincronizar agora';}
-      return;
-    }
-    let data;try{data=JSON.parse(txt);}catch{throw new Error('HTTP '+r.status+' — resposta inválida: '+txt.slice(0,100));}
-    const leads=data.leads||[];
-    console.log('[Kommo] leads recebidos:',leads.length,'— exemplo:',JSON.stringify(leads.slice(0,3)));
-
-    // Identifica quais leads precisam de análise IA (placeholders, máx 5)
-    const needNotes=[];
-    for(const lead of leads){
-      if(needNotes.length>=5)break;
-      const ex=DATA.find(b=>b._kommoId===lead.id);
-      const isNew=!ex;
-      const isPlaceholder=ex&&(/^Lead #\d+$/.test(ex.nome)||!ex.telefone);
-      if(isNew||isPlaceholder)needNotes.push(lead.id);
-    }
-
-    // Busca notas só para os leads identificados
-    if(needNotes.length){
-      try{
-        const r2=await fetch('https://florelle.brunadonaa.workers.dev/kommo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subdomain:cfg.subdomain,token:cfg.apiKey,noteLeadIds:needNotes})});
-        if(r2.ok){
-          const d2=await r2.json();
-          for(const nl of(d2.leads||[])){
-            const target=leads.find(l=>l.id===nl.id);
-            if(target)target.notes=nl.notes||'';
-          }
-        }
-      }catch(_){}
-    }
-
-    let added=0,updated=0,skipped=0;
-    async function _analyzeAndFill(obj,notesText){
-      try{
-        if(!notesText||!notesText.trim())return;
-        const ar=await fetch('https://florelle.brunadonaa.workers.dev/analyze-wa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:notesText})});
-        if(!ar.ok)return;
-        const ad=await ar.json();
-        const p=JSON.parse(ad.raw||'{}');
-        const ov=(k,v)=>{if(v)obj[k]=v;};
-        ov('nome',p.nome);
-        if(p.telefone)ov('telefone',String(p.telefone).replace(/\D/g,'').replace(/^55/,''));
-        ov('dataCasamento',p.dataCasamento);ov('cpf',p.cpf);ov('cep',p.cep);
-        ov('cidade',p.cidade);ov('endereco',p.endereco);ov('produto',p.produto);
-        ov('produtoObs',p.produtoObs);ov('formaPagamento',p.formaPagamento);
-        ov('valorTotal',p.valorTotal);ov('retiradaBuque',p.retiradaBuque);
-        ov('autorizaReposicao',p.autorizaReposicao);ov('floresUtilizadas',p.floresUtilizadas);
-        ov('cerimonialista',p.cerimonialista);ov('cerimonialTel',p.cerimonialTel);
-        ov('anotacoes',p.anotacoes);
-      }catch(_){}
-    }
-    for(const lead of leads){
-      const nome=lead.name||'Lead Kommo';
-      const tel=String(lead.phone||'').replace(/\D/g,'').replace(/^55/,'');
-      const existById=DATA.find(b=>b._kommoId===lead.id);
-      if(existById){
-        const isPlaceholder=/^Lead #\d+$/.test(existById.nome)||!existById.telefone;
-        if(isPlaceholder){
-          if(nome&&!/^Lead #\d+$/.test(nome))existById.nome=nome;
-          if(tel&&!existById.telefone)existById.telefone=tel;
-          await _analyzeAndFill(existById,lead.notes||'');
-          existById.upd=Date.now();
-          updated++;
-        }else{skipped++;}
-        continue;
-      }
-      const existByPhone=tel&&DATA.some(b=>(b.telefone||'').replace(/\D/g,'')===tel);
-      if(existByPhone){skipped++;continue;}
-      let bride={id:uid(),crd:lead.created_at*1000,nome,telefone:tel,etapa:'lead',_kommoId:lead.id,upd:Date.now()};
-      await _analyzeAndFill(bride,lead.notes||'');
-      DATA.push(bride);
-      added++;
-    }
-    if(added>0||updated>0){save();renderAll();}
-    const ts=new Date().toLocaleString('pt-BR');
-    localStorage.setItem('florelle_kommo_sync',ts);
-    const syncLbl=g('kommo-last-sync');if(syncLbl)syncLbl.textContent='Última sync: '+ts;
-    _showCalToast(`✅ ${added} adicionada${added!==1?'s':''}, ${updated} atualizada${updated!==1?'s':''}, ${skipped} sem mudança.`);
-  }catch(e){
-    _showCalToast('❌ Erro ao conectar ao Kommo: '+e.message);
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent='Sincronizar agora';}
-  }
 }
 
 function tvToggleDone(taskId){
