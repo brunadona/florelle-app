@@ -1594,6 +1594,7 @@ function _migratePagIds(){
 function save(){
   try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}
   catch(e){if(e.name==='QuotaExceededError')alert('Armazenamento local cheio. Remova alguns anexos para continuar salvando.');}
+  _pushHistorySnapshot(DATA);
   _queueCloudSync();
 }
 
@@ -5293,7 +5294,7 @@ async function _cloudInit(){
     const d=await r.json();
     _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
     if(Array.isArray(d)&&d.length){
-      _backupBeforeOverwrite(DATA); // guarda o estado atual antes de substituir, por segurança
+      _pushHistorySnapshot(DATA); // guarda o estado atual antes de substituir, por segurança
       DATA=d;
       _migratePagIds();
       try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
@@ -5303,30 +5304,49 @@ async function _cloudInit(){
     }
   }catch{}
 }
-// Guarda um backup do DATA local antes de qualquer sincronização que o substitua por
-// completo — se um dia um pull sobrescrever algo que ainda não tinha sido enviado
-// (ex: bug de sincronização, ou noiva criada há poucos segundos), dá pra restaurar.
-// Mantém só o último backup (não é histórico completo, é só uma rede de segurança).
-const BACKUP_KEY='florelle_v3_backup';
-function _backupBeforeOverwrite(current){
+
+/* ── HISTÓRICO DE BACKUP LOCAL ──────────────────
+   Toda vez que algo é salvo (nova noiva, edição, pagamento, etc.) ou toda vez
+   que uma sincronização vai SUBSTITUIR os dados locais por completo, guarda
+   um ponto de restauração. Não é um backup único: é uma lista com os últimos
+   pontos, pra nunca depender de "só sobrou uma cópia". */
+const HISTORY_KEY='florelle_v3_history';
+const HISTORY_MAX=30;
+function _historyLoad(){
+  try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');}catch{return[];}
+}
+function _pushHistorySnapshot(current){
   if(!current||!current.length)return;
   try{
-    localStorage.setItem(BACKUP_KEY,JSON.stringify({ts:Date.now(),data:current}));
+    const hist=_historyLoad();
+    const last=hist[hist.length-1];
+    // Evita empilhar snapshots repetidos: só guarda se a quantidade de noivas mudou
+    // (toda vez que adiciona/remove alguém — o momento mais crítico) ou se já faz
+    // mais de 5 minutos desde o último ponto salvo (segurança pra edições normais).
+    const countChanged=!last||last.n!==current.length;
+    const timeElapsed=!last||(Date.now()-last.ts)>5*60*1000;
+    if(!countChanged&&!timeElapsed)return;
+    hist.push({ts:Date.now(),n:current.length,data:JSON.parse(JSON.stringify(current))});
+    while(hist.length>HISTORY_MAX)hist.shift();
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));
   }catch{}
 }
 function _restaurarBackup(){
-  let raw;
-  try{raw=localStorage.getItem(BACKUP_KEY);}catch{raw=null;}
-  if(!raw){alert('Nenhum backup automático encontrado neste aparelho.');return;}
-  let parsed;
-  try{parsed=JSON.parse(raw);}catch{alert('Backup corrompido, não foi possível ler.');return;}
-  const qtdBackup=(parsed.data||[]).length;
-  const qtdAtual=DATA.length;
-  const quando=new Date(parsed.ts).toLocaleString('pt-BR');
-  if(!confirm('Restaurar backup de '+quando+'?\n\nBackup tem '+qtdBackup+' noiva(s).\nAgora você tem '+qtdAtual+' noiva(s).\n\nOs dados atuais serão SUBSTITUÍDOS pelo backup.'))return;
-  DATA=parsed.data||[];
+  const hist=_historyLoad();
+  if(!hist.length){alert('Nenhum backup automático encontrado neste aparelho ainda.');return;}
+  const linhas=hist.slice().reverse().map((h,i)=>
+    (i+1)+') '+new Date(h.ts).toLocaleString('pt-BR')+' — '+h.n+' noiva(s)'
+  ).join('\n');
+  const escolha=prompt('Pontos de restauração disponíveis (mais recente primeiro):\n\n'+linhas+'\n\nDigite o número do ponto que quer restaurar (ou cancele):');
+  if(!escolha)return;
+  const idx=parseInt(escolha.trim())-1;
+  const chosen=hist.slice().reverse()[idx];
+  if(!chosen){alert('Número inválido.');return;}
+  const quando=new Date(chosen.ts).toLocaleString('pt-BR');
+  if(!confirm('Restaurar o ponto de '+quando+' ('+chosen.n+' noiva(s))?\n\nVocê tem '+DATA.length+' noiva(s) agora.\n\nOs dados atuais serão SUBSTITUÍDOS.'))return;
+  DATA=JSON.parse(JSON.stringify(chosen.data));
   save();renderAll();
-  alert('✅ Backup restaurado: '+qtdBackup+' noiva(s).');
+  alert('✅ Restaurado: '+chosen.n+' noiva(s) do backup de '+quando+'.');
 }
 
 /* ── DRIVE DATA SYNC ─────────────────────────── */
@@ -5485,6 +5505,30 @@ document.addEventListener('visibilitychange',()=>{
 window.addEventListener('focus',_cloudPull);
 // Verifica Worker a cada 1 minuto (mantém dispositivos sincronizados em segundo plano)
 setInterval(_cloudPull,60*1000);
+
+/* ── BACKUP DIÁRIO NO DRIVE ──────────────────────
+   Além do histórico local, guarda uma cópia completa dos dados no Drive uma vez
+   por dia (se conectada ao Google) — sobrevive mesmo se o navegador/aparelho for
+   perdido, resetado ou tiver o armazenamento local limpo. */
+const DRIVE_BACKUP_LAST_KEY='florelle_drive_backup_last';
+async function _autoBackupDrive(){
+  if(!_gToken||!DATA.length)return;
+  const hoje=today();
+  if(localStorage.getItem(DRIVE_BACKUP_LAST_KEY)===hoje)return; // já fez hoje
+  try{
+    const folderId=await _getOrCreateFolder('Backups automáticos',GD_NOIVAS_ID);
+    const meta={name:'backup-'+hoje+'.json',mimeType:'application/json',parents:[folderId]};
+    const form=new FormData();
+    form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+    form.append('file',new Blob([JSON.stringify(DATA)],{type:'application/json'}));
+    const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+      method:'POST',headers:{'Authorization':'Bearer '+_gToken},body:form
+    });
+    if(r.ok)localStorage.setItem(DRIVE_BACKUP_LAST_KEY,hoje);
+  }catch(e){/* tenta de novo na próxima checagem, sem incomodar com erro */}
+}
+setInterval(_autoBackupDrive,10*60*1000); // checa a cada 10min se já fez o backup do dia
+setTimeout(_autoBackupDrive,8000); // tenta logo na abertura do app também
 
 /* ── MOBILE ──────────────────────────────────── */
 let mobileColIdx=0;
