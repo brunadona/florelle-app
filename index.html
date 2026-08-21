@@ -824,6 +824,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Reenviar contratos assinados pro Drive
   </button>
+  <button class="hmi" onclick="_restaurarBackup();closeHMenu()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+    Restaurar backup automático
+  </button>
   <div class="hmi-sep"></div>
   <button class="hmi" onclick="_alterarPin();closeHMenu()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -5275,6 +5279,7 @@ async function _cloudPull(){
     const d=await r.json();
     _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
     if(!Array.isArray(d)||!d.length)return;
+    _backupBeforeOverwrite(DATA); // guarda o estado atual antes de substituir, por segurança
     DATA=d;
     _migratePagIds();
     try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
@@ -5288,6 +5293,7 @@ async function _cloudInit(){
     const d=await r.json();
     _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
     if(Array.isArray(d)&&d.length){
+      _backupBeforeOverwrite(DATA); // guarda o estado atual antes de substituir, por segurança
       DATA=d;
       _migratePagIds();
       try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
@@ -5296,6 +5302,31 @@ async function _cloudInit(){
       _cloudPush();
     }
   }catch{}
+}
+// Guarda um backup do DATA local antes de qualquer sincronização que o substitua por
+// completo — se um dia um pull sobrescrever algo que ainda não tinha sido enviado
+// (ex: bug de sincronização, ou noiva criada há poucos segundos), dá pra restaurar.
+// Mantém só o último backup (não é histórico completo, é só uma rede de segurança).
+const BACKUP_KEY='florelle_v3_backup';
+function _backupBeforeOverwrite(current){
+  if(!current||!current.length)return;
+  try{
+    localStorage.setItem(BACKUP_KEY,JSON.stringify({ts:Date.now(),data:current}));
+  }catch{}
+}
+function _restaurarBackup(){
+  let raw;
+  try{raw=localStorage.getItem(BACKUP_KEY);}catch{raw=null;}
+  if(!raw){alert('Nenhum backup automático encontrado neste aparelho.');return;}
+  let parsed;
+  try{parsed=JSON.parse(raw);}catch{alert('Backup corrompido, não foi possível ler.');return;}
+  const qtdBackup=(parsed.data||[]).length;
+  const qtdAtual=DATA.length;
+  const quando=new Date(parsed.ts).toLocaleString('pt-BR');
+  if(!confirm('Restaurar backup de '+quando+'?\n\nBackup tem '+qtdBackup+' noiva(s).\nAgora você tem '+qtdAtual+' noiva(s).\n\nOs dados atuais serão SUBSTITUÍDOS pelo backup.'))return;
+  DATA=parsed.data||[];
+  save();renderAll();
+  alert('✅ Backup restaurado: '+qtdBackup+' noiva(s).');
 }
 
 /* ── DRIVE DATA SYNC ─────────────────────────── */
