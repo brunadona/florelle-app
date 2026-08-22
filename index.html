@@ -2133,8 +2133,8 @@ function syncAutoRems(){
     mRem.push({id:uid(),text,data,auto:true,done:_doneAuto.has(text)});
   };
 
-  // sílica / montagem baseados em dataBuque — só após o casamento
-  if(dataBuque&&(!dataCas||dataCas<=today())){
+  // sílica / montagem baseados em dataBuque (data que o buquê chega de verdade)
+  if(dataBuque){
     add('Colocar na sílica',    addDays(dataBuque,2));
     add('Pedir redoma',         addDays(dataBuque,3));
     add('Pedir embalagem',      addDays(dataBuque,3));
@@ -2289,7 +2289,7 @@ async function saveModal(){
   const _doneAuto=new Set(mRem.filter(r=>r.auto&&r.done).map(r=>r.text));
   const _ar=(text,data)=>{if(data)rec.lembretes.push({id:uid(),text,data,auto:true,done:_doneAuto.has(text)});};
 
-  if(rec.dataBuque&&(!rec.dataCasamento||rec.dataCasamento<=today())){
+  if(rec.dataBuque){
     _ar('Colocar na sílica',    addDays(rec.dataBuque,2));
     _ar('Pedir redoma',         addDays(rec.dataBuque,3));
     _ar('Pedir embalagem',      addDays(rec.dataBuque,3));
@@ -3443,21 +3443,14 @@ function redomaChg(){
   _updateRedomaHint();
 }
 // Mantém o aviso "será criado no Google Calendar" com a data real — antes era um
-// texto fixo ("daqui 3 dias") que ignorava se o casamento ainda nem tinha acontecido.
+// texto fixo ("daqui 3 dias") que não batia com a data do buquê preenchida.
 function _updateRedomaHint(){
   const hint=g('redoma-nao-hint');if(!hint)return;
   const v=radVal('redomaStatus');
   hint.classList.toggle('hidden',v!=='naoEncomendada');
   if(v!=='naoEncomendada')return;
-  const dataBuque=gv('m-buque'),dataCas=gv('m-cas');
-  let quando;
-  if(dataBuque&&(!dataCas||dataCas<=today())){
-    quando='dia '+fmt(addDays(dataBuque,3));
-  } else if(dataCas&&dataCas>today()){
-    quando='3 dias depois que o buquê chegar (só após o casamento, dia '+fmt(dataCas)+')';
-  } else {
-    quando='3 dias depois que o buquê chegar';
-  }
+  const dataBuque=gv('m-buque');
+  const quando=dataBuque?('dia '+fmt(addDays(dataBuque,3))):'3 dias depois que o buquê chegar';
   hint.innerHTML='Ao salvar, será criado no Google Calendar: <strong>"Encomendar redoma — [nome]"</strong> '+quando+'.';
 }
 
@@ -3731,9 +3724,7 @@ let _calEvs=[];
 function buildCalEvents(rec){
   const evs=[];
   const nome=rec.nome||'';
-  // Sílica/redoma/embalagem/montagem só fazem sentido depois que o casamento aconteceu
-  // (é só aí que o buquê chega de verdade) — mesma regra usada em syncAutoRems/saveModal.
-  if(rec.dataBuque&&(!rec.dataCasamento||rec.dataCasamento<=today())){
+  if(rec.dataBuque){
     evs.push({title:'Colocar na sílica — '+nome,  date:addDays(rec.dataBuque,2)});
     evs.push({title:'Pedir redoma — '+nome,        date:addDays(rec.dataBuque,3)});
     evs.push({title:'Pedir embalagem — '+nome,     date:addDays(rec.dataBuque,3)});
