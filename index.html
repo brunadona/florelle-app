@@ -819,6 +819,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
     Restaurar backup automático
   </button>
+  <button class="hmi" onclick="_limparLembretesVencidos();closeHMenu()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Marcar lembretes vencidos como feitos
+  </button>
   <div class="hmi-sep"></div>
   <button class="hmi" onclick="_alterarPin();closeHMenu()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -3361,6 +3365,23 @@ function _togRemDone(brideId,remId){
   save();
   bellUpdate();
   renderRP();
+}
+
+// Limpeza única: marca como feitos todos os lembretes vencidos que já passaram da data.
+// Existe por causa de um bug antigo (já corrigido) que apagava o "feito" de lembretes
+// que a usuária já tinha confirmado, toda vez que a noiva era salva de novo.
+function _limparLembretesVencidos(){
+  const t=today();
+  let count=0;
+  DATA.forEach(b=>{
+    (b.lembretes||[]).forEach(r=>{
+      if(!r.done&&r.data&&r.data<=t){r.done=true;count++;}
+    });
+  });
+  if(!count){alert('Nenhum lembrete vencido encontrado.');return;}
+  if(!confirm('Marcar '+count+' lembrete(s) vencido(s) como feitos?\n\nUse isso só se você já resolveu todos eles de verdade — essa ação não pode ser desfeita item por item (mas dá pra restaurar um backup anterior se precisar).'))return;
+  save();bellUpdate();renderRP();renderAll();
+  alert('✅ '+count+' lembrete(s) marcado(s) como feito(s).');
 }
 
 function renderRP(){
