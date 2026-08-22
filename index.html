@@ -2158,6 +2158,7 @@ function syncAutoRems(){
   });
 
   renderRL();
+  _updateRedomaHint();
 }
 function silChg(){
   const v=gv('m-silica');
@@ -3439,7 +3440,25 @@ function buqueDisp(v){
 function redomaChg(){
   const v=radVal('redomaStatus');
   g('redoma-dt-row').classList.toggle('hidden',v!=='encomendada');
-  g('redoma-nao-hint').classList.toggle('hidden',v!=='naoEncomendada');
+  _updateRedomaHint();
+}
+// Mantém o aviso "será criado no Google Calendar" com a data real — antes era um
+// texto fixo ("daqui 3 dias") que ignorava se o casamento ainda nem tinha acontecido.
+function _updateRedomaHint(){
+  const hint=g('redoma-nao-hint');if(!hint)return;
+  const v=radVal('redomaStatus');
+  hint.classList.toggle('hidden',v!=='naoEncomendada');
+  if(v!=='naoEncomendada')return;
+  const dataBuque=gv('m-buque'),dataCas=gv('m-cas');
+  let quando;
+  if(dataBuque&&(!dataCas||dataCas<=today())){
+    quando='dia '+fmt(addDays(dataBuque,3));
+  } else if(dataCas&&dataCas>today()){
+    quando='3 dias depois que o buquê chegar (só após o casamento, dia '+fmt(dataCas)+')';
+  } else {
+    quando='3 dias depois que o buquê chegar';
+  }
+  hint.innerHTML='Ao salvar, será criado no Google Calendar: <strong>"Encomendar redoma — [nome]"</strong> '+quando+'.';
 }
 
 /* ── EMBALAGEM PEDIDA ────────────────────────── */
