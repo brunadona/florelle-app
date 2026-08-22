@@ -4151,35 +4151,10 @@ function updInv(id,field,val){
   const numFields=['qtdAtual','consumo','precoUnit','qtdCompra','precoCompra'];
   item[field]=numFields.includes(field)?(parseFloat(String(val).replace(',','.'))||0):val;
   saveInv();
-  updInvBadge();
-  const row=document.querySelector('.inv-item[data-id="'+id+'"]');
-  if(row){
-    const needed=_invNeeded(item);
-    const isAl=needed>0;
-    const noivas=Math.floor(Number(item.qtdAtual||0)/(item.consumo||1));
-    row.classList.toggle('al',isAl);
-    const nm=row.querySelector('.inv-nm');if(nm)nm.classList.toggle('al-nm',isAl);
-    const qtdIn=row.querySelector('.inv-in-qt');if(qtdIn)qtdIn.classList.toggle('al',isAl);
-    const pill=row.querySelector('.r-pill');
-    if(pill){
-      pill.className='r-pill '+(isAl?'r-late':'r-ok');
-      pill.textContent=isAl?`Comprar! Só para ${noivas} noiva${noivas!==1?'s':''}`:`Para ${noivas} noiva${noivas!==1?'s':''}`;
-    }
-    if(field==='linkCompra'){
-      const linkWrap=row.querySelectorAll('div[style*="display:flex"]');
-      const wrap=linkWrap[linkWrap.length-1];
-      if(wrap){
-        const existing=wrap.querySelector('a');
-        if(item.linkCompra&&!existing){
-          const a=document.createElement('a');
-          a.href=item.linkCompra;a.target='_blank';a.rel='noopener';
-          a.style='flex-shrink:0;color:var(--sd)';a.title='Abrir link';
-          a.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
-          wrap.appendChild(a);
-        } else if(existing){existing.href=item.linkCompra;if(!item.linkCompra)existing.remove();}
-      }
-    }
-  }
+  // Recarrega a tela inteira (inclusive a seção "Comprar agora" no topo, que antes
+  // ficava desatualizada porque só a linha editada era corrigida manualmente).
+  // Seguro porque os campos só disparam onchange (ao sair do campo), não a cada tecla.
+  renderInv();
 }
 function restockInv(id){
   const item=INV.find(x=>x.id===id);if(!item)return;
