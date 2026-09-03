@@ -3861,6 +3861,7 @@ function importData(e){
       const nd=Array.isArray(p)?p:(Array.isArray(p.data)?p.data:[]);
       const ni=(!Array.isArray(p)&&p.inv)||null;
       if(!confirm('Importar '+nd.length+' noiva(s)?\n'+(ni?'• Inventário também será importado\n':'')+'Os dados atuais serão SUBSTITUÍDOS.'))return;
+      _pushHistorySnapshot(DATA,true); // guarda o que tinha ANTES de importar, mesmo que pareça pouca mudança
       DATA=nd;save();
       if(ni){INV=ni;saveInv();}
       renderAll();
@@ -5122,7 +5123,7 @@ async function _cloudPull(){
     const d=await r.json();
     _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
     if(!Array.isArray(d)||!d.length)return;
-    _backupBeforeOverwrite(DATA); // guarda o estado atual antes de substituir, por segurança
+    _pushHistorySnapshot(DATA,true); // guarda o estado atual antes de substituir, por segurança
     DATA=d;
     _migratePagIds();
     try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
@@ -5136,7 +5137,7 @@ async function _cloudInit(){
     const d=await r.json();
     _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
     if(Array.isArray(d)&&d.length){
-      _pushHistorySnapshot(DATA); // guarda o estado atual antes de substituir, por segurança
+      _pushHistorySnapshot(DATA,true); // guarda o estado atual antes de substituir, por segurança
       DATA=d;
       _migratePagIds();
       try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}catch{}
@@ -5157,7 +5158,7 @@ const HISTORY_MAX=30;
 function _historyLoad(){
   try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');}catch{return[];}
 }
-function _pushHistorySnapshot(current){
+function _pushHistorySnapshot(current,force){
   if(!current||!current.length)return;
   try{
     const hist=_historyLoad();
@@ -5165,9 +5166,12 @@ function _pushHistorySnapshot(current){
     // Evita empilhar snapshots repetidos: só guarda se a quantidade de noivas mudou
     // (toda vez que adiciona/remove alguém — o momento mais crítico) ou se já faz
     // mais de 5 minutos desde o último ponto salvo (segurança pra edições normais).
+    // force=true ignora essa checagem — usado antes de ações que substituem tudo de
+    // uma vez (importar backup, pull da nuvem), onde o estado anterior tem que ficar
+    // salvo mesmo que a contagem não mude.
     const countChanged=!last||last.n!==current.length;
     const timeElapsed=!last||(Date.now()-last.ts)>5*60*1000;
-    if(!countChanged&&!timeElapsed)return;
+    if(!force&&!countChanged&&!timeElapsed)return;
     hist.push({ts:Date.now(),n:current.length,data:JSON.parse(JSON.stringify(current))});
     while(hist.length>HISTORY_MAX)hist.shift();
     localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));
