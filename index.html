@@ -3836,6 +3836,7 @@ function exportCSV(){
 }
 function _limparApenasNoivas(){
   if(!confirm('Apagar TODAS as noivas? O inventário será mantido.\n\nEssa ação não pode ser desfeita.'))return;
+  _pushHistorySnapshot(DATA,true); // guarda tudo antes de apagar — sem isso não tinha como restaurar
   DATA.splice(0);save();
   const done=_tvDoneLoad();Object.keys(done).forEach(k=>delete done[k]);_tvDoneSave(done);
   renderAll();
@@ -3843,6 +3844,7 @@ function _limparApenasNoivas(){
 }
 function _limparTodosDados(){
   if(!confirm('Tem certeza? Isso apaga TODAS as noivas e o inventário permanentemente.\n\nEssa ação não pode ser desfeita.'))return;
+  _pushHistorySnapshot(DATA,true); // guarda tudo antes de apagar — sem isso não tinha como restaurar
   DATA.splice(0);
   INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));
   localStorage.removeItem('florelle_v3');
