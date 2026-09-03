@@ -3570,13 +3570,16 @@ function _recalcLast(editedIdx){
 
 /* ── GOOGLE CALENDAR API ─────────────────────── */
 async function _calFetch(method,path,body){
-  const h={'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'};
-  const r=await fetch('https://www.googleapis.com/calendar/v3'+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  const doFetch=()=>fetch('https://www.googleapis.com/calendar/v3'+path,{method,headers:{'Authorization':'Bearer '+_gToken,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  let r=await doFetch();
   if(r.status===401){
-    _gToken=null;
-    _florCalId=null;localStorage.removeItem('florelle_cal_id');
-    _showReconnectBtn();
-    throw new Error('Sessão expirada. Reconecte ao Google.');
+    try{await _silentReauth();r=await doFetch();}catch(e){}
+    if(r.status===401){
+      _gToken=null;
+      _florCalId=null;localStorage.removeItem('florelle_cal_id');
+      _showReconnectBtn();
+      throw new Error('Sessão expirada. Reconecte ao Google.');
+    }
   }
   return r;
 }
@@ -5020,11 +5023,31 @@ async function _ensureToken(){
   return _requestToken('select_account');
 }
 
+// Tenta renovar o token do Google sem mostrar nada pra usuária (funciona se ela
+// já tem sessão ativa no Google nesse navegador) — usado quando o token expira
+// no meio do uso, pra não interromper com "sessão expirada" toda hora.
+function _silentReauth(){
+  return new Promise((resolve,reject)=>{
+    if(!_initGClient()){reject(new Error('Google ainda não carregou.'));return;}
+    _gClient.callback=(r)=>{
+      if(r.error){reject(new Error(r.error_description||r.error));return;}
+      _gToken=r.access_token;resolve(_gToken);
+    };
+    _gClient.requestAccessToken({prompt:''});
+  });
+}
+
 async function _drvFetch(method,path,body,ct){
-  const h={'Authorization':'Bearer '+_gToken};
-  if(ct)h['Content-Type']=ct;
-  const r=await fetch('https://www.googleapis.com/drive/v3'+path,{method,headers:h,body});
-  if(r.status===401){_gToken=null;throw new Error('Sessão expirada. Clique em Anexar novamente.');}
+  const doFetch=()=>{
+    const h={'Authorization':'Bearer '+_gToken};
+    if(ct)h['Content-Type']=ct;
+    return fetch('https://www.googleapis.com/drive/v3'+path,{method,headers:h,body});
+  };
+  let r=await doFetch();
+  if(r.status===401){
+    try{await _silentReauth();r=await doFetch();}catch(e){}
+    if(r.status===401){_gToken=null;throw new Error('Sessão expirada. Clique em Anexar novamente.');}
+  }
   return r;
 }
 
