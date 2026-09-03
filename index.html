@@ -4023,7 +4023,7 @@ function loadInv(){
     saveInv();
   }catch{INV=INV_DEFAULT.map(x=>({id:uid(),historico:[],...x}));saveInv();}
 }
-function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));}
+function saveInv(){localStorage.setItem(INV_KEY,JSON.stringify(INV));_pushHistorySnapshot(DATA);}
 
 
 function updateCustoBuque(force){
@@ -5184,16 +5184,21 @@ function _pushHistorySnapshot(current,force){
   try{
     const hist=_historyLoad();
     const last=hist[hist.length-1];
-    // Evita empilhar snapshots repetidos: só guarda se a quantidade de noivas mudou
-    // (toda vez que adiciona/remove alguém — o momento mais crítico) ou se já faz
-    // mais de 5 minutos desde o último ponto salvo (segurança pra edições normais).
+    const invLen=(typeof INV!=='undefined'&&INV?INV.length:0);
+    // Evita empilhar snapshots repetidos: só guarda se a quantidade de noivas ou de
+    // itens do estoque mudou (os momentos mais críticos — add/remove) ou se já faz
+    // mais de 5 minutos desde o último ponto salvo (segurança pra edições normais,
+    // tipo mudar um valor de um item já existente sem adicionar/remover nada).
     // force=true ignora essa checagem — usado antes de ações que substituem tudo de
-    // uma vez (importar backup, pull da nuvem), onde o estado anterior tem que ficar
-    // salvo mesmo que a contagem não mude.
-    const countChanged=!last||last.n!==current.length;
+    // uma vez (importar backup, pull da nuvem, limpar dados).
+    const changed=!last||last.n!==current.length||last.invN!==invLen;
     const timeElapsed=!last||(Date.now()-last.ts)>5*60*1000;
-    if(!force&&!countChanged&&!timeElapsed)return;
-    hist.push({ts:Date.now(),n:current.length,data:JSON.parse(JSON.stringify(current))});
+    if(!force&&!changed&&!timeElapsed)return;
+    hist.push({
+      ts:Date.now(),n:current.length,invN:invLen,
+      data:JSON.parse(JSON.stringify(current)),
+      inv:JSON.parse(JSON.stringify((typeof INV!=='undefined'&&INV)||[]))
+    });
     while(hist.length>HISTORY_MAX)hist.shift();
     localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));
   }catch{}
@@ -5202,7 +5207,7 @@ function _restaurarBackup(){
   const hist=_historyLoad();
   if(!hist.length){alert('Nenhum backup automático encontrado neste aparelho ainda.');return;}
   const linhas=hist.slice().reverse().map((h,i)=>
-    (i+1)+') '+new Date(h.ts).toLocaleString('pt-BR')+' — '+h.n+' noiva(s)'
+    (i+1)+') '+new Date(h.ts).toLocaleString('pt-BR')+' — '+h.n+' noiva(s), '+(h.invN??'?')+' item(ns) de estoque'
   ).join('\n');
   const escolha=prompt('Pontos de restauração disponíveis (mais recente primeiro):\n\n'+linhas+'\n\nDigite o número do ponto que quer restaurar (ou cancele):');
   if(!escolha)return;
@@ -5210,10 +5215,12 @@ function _restaurarBackup(){
   const chosen=hist.slice().reverse()[idx];
   if(!chosen){alert('Número inválido.');return;}
   const quando=new Date(chosen.ts).toLocaleString('pt-BR');
-  if(!confirm('Restaurar o ponto de '+quando+' ('+chosen.n+' noiva(s))?\n\nVocê tem '+DATA.length+' noiva(s) agora.\n\nOs dados atuais serão SUBSTITUÍDOS.'))return;
+  if(!confirm('Restaurar o ponto de '+quando+' ('+chosen.n+' noiva(s), estoque incluso)?\n\nVocê tem '+DATA.length+' noiva(s) agora.\n\nOs dados e o estoque atuais serão SUBSTITUÍDOS.'))return;
   DATA=JSON.parse(JSON.stringify(chosen.data));
-  save();renderAll();
-  alert('✅ Restaurado: '+chosen.n+' noiva(s) do backup de '+quando+'.');
+  save();
+  if(chosen.inv){INV=JSON.parse(JSON.stringify(chosen.inv));saveInv();}
+  renderAll();
+  alert('✅ Restaurado: '+chosen.n+' noiva(s) e estoque do backup de '+quando+'.');
 }
 
 /* ── DRIVE DATA SYNC ─────────────────────────── */
@@ -5387,7 +5394,7 @@ async function _autoBackupDrive(){
     const meta={name:'backup-'+hoje+'.json',mimeType:'application/json',parents:[folderId]};
     const form=new FormData();
     form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
-    form.append('file',new Blob([JSON.stringify(DATA)],{type:'application/json'}));
+    form.append('file',new Blob([JSON.stringify({data:DATA,inv:INV})],{type:'application/json'}));
     const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
       method:'POST',headers:{'Authorization':'Bearer '+_gToken},body:form
     });
