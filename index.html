@@ -4992,7 +4992,10 @@ function _mimeIcon(mt){
 }
 /* ── GOOGLE DRIVE UPLOAD (GIS popup mode) ────── */
 const GD_CLIENT_ID='232678212261-q2n2tjhc2dkhoj1njkdcp7femcrab3o4.apps.googleusercontent.com';
-const GD_SCOPE='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks';
+const GD_SCOPE='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks email profile';
+// Único e-mail que pode entrar com "Entrar com Google" — evita que qualquer conta
+// Google alheia consiga acessar o app só por ter clicado no botão.
+const _OWNER_EMAIL='brunadonaa@gmail.com';
 const GD_ROOT='FLORELLE - NOIVAS';
 const GD_NOIVAS_ID='1cUGoU0TT-M01nIdUX5qCkxuSE2QUWr2o'; // pasta raiz FLORELLE - NOIVAS
 
@@ -6261,6 +6264,11 @@ function _showPinScreen(onSuccess){
     <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M12 2C9.8 2 8 3.8 8 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6c0-2.2-1.8-4-4-4zm0 2c1.1 0 2 .9 2 2v2h-4V6c0-1.1.9-2 2-2zm0 8a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="#5a7a5c"/></svg>
   </div>
   <div class="lbt">Florelle Atelier</div>
+  <button class="gbtn" id="google-login-btn" style="background:#fff;color:#3c4043;border:1.5px solid #ddd;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px" onclick="_loginComGoogle()">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg>
+    Entrar com Google
+  </button>
+  <div style="text-align:center;color:#999;font-size:11px;margin-bottom:14px">ou</div>
   <div class="lbd" id="pin-msg">${firstTime?'Crie sua senha de acesso (mín. 4 dígitos):':'Digite sua senha de acesso:'}</div>
   <input type="password" id="pin-inp" inputmode="numeric" maxlength="12" autocomplete="current-password"
     style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:18px;letter-spacing:.3em;text-align:center;font-family:'DM Sans',sans-serif;margin-bottom:14px;box-sizing:border-box;outline:none"
@@ -6271,6 +6279,36 @@ function _showPinScreen(onSuccess){
   document.body.appendChild(ov);
   setTimeout(()=>document.getElementById('pin-inp')?.focus(),120);
   window._pinOnSuccess=onSuccess;
+}
+
+async function _loginComGoogle(){
+  const btn=document.getElementById('google-login-btn');
+  const _origHtml=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='Conectando…';}
+  try{
+    await new Promise(res=>{
+      const check=()=>window.google?.accounts?.oauth2?res():setTimeout(check,300);
+      setTimeout(check,300);
+    });
+    await _requestToken('select_account');
+    const r=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{'Authorization':'Bearer '+_gToken}});
+    if(!r.ok)throw new Error('Não deu pra confirmar a conta Google.');
+    const info=await r.json();
+    if((info.email||'').toLowerCase()!==_OWNER_EMAIL){
+      _gToken=null;
+      alert('Essa conta Google ('+(info.email||'?')+') não tem acesso a este app.');
+      return;
+    }
+    sessionStorage.setItem(_AUTH_KEY,'1');
+    document.getElementById('login-ov')?.remove();
+    window._pinOnSuccess?.();
+  }catch(e){
+    const ignored=['popup_closed_by_user','access_denied'];
+    if(!ignored.some(s=>(e.message||'').includes(s)))
+      alert('Erro ao entrar com Google:\n'+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML=_origHtml;}
+  }
 }
 
 function _doLogin(isFirst){
