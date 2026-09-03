@@ -2549,7 +2549,7 @@ async function enviarAssinar(){
     if(btn)btn.textContent='⏳ Enviando…';
     const wRes=await fetch('https://florelle.brunadonaa.workers.dev/sign',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:_wkHeaders({'Content-Type':'application/json'}),
       body:JSON.stringify({data:encoded})
     });
     if(!wRes.ok)throw new Error('Serviço de link indisponível ('+wRes.status+'). Tente novamente.');
@@ -2792,7 +2792,7 @@ async function _sigConfirm(){
     // 3. Salvar HTML no servidor para acesso futuro pelo app da Bruna (fire-and-forget)
     if(p.brideId){
       fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(p.brideId),{
-        method:'POST',headers:{'Content-Type':'application/json'},
+        method:'POST',headers:_wkHeaders({'Content-Type':'application/json'}),
         body:JSON.stringify({html:signedHtmlStr})
       }).catch(e=>console.warn('Falha ao salvar contrato no KV:',e));
     }
@@ -2936,7 +2936,7 @@ async function verContratoAssinado(){
   const b=DATA.find(x=>x.id===window._curModalId);
   if(!b){alert('Noiva não encontrada.');return;}
   try{
-    const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id));
+    const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()});
     const {html,error}=await r.json();
     if(error||!html){alert('Contrato não encontrado no servidor.\nA noiva precisa assinar pelo link enviado.');return;}
     const closedHtml=html.includes('</body>')?html.replace('</body>','<button style="position:fixed;top:16px;left:16px;background:#5a7a52;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-family:sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.22);z-index:999" onclick="window.close()">&#8592; Fechar</button></body>'):html;
@@ -2970,7 +2970,7 @@ async function _handleSignedConfirmation(brideId,ts,nome){
     for(let i=0;i<2&&!_pcOk;i++){
       try{
         const r=await fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
-          method:'POST',headers:{'Content-Type':'application/json'},
+          method:'POST',headers:_wkHeaders({'Content-Type':'application/json'}),
           body:JSON.stringify({brideId,ts,nome})
         });
         _pcOk=r.ok;
@@ -2993,7 +2993,7 @@ async function _uploadContratoAssinadoDrive(b){
   // 1. Buscar HTML assinado do KV
   let html;
   try{
-    const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id));
+    const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()});
     const j=await r.json();
     if(!j.html){_showCalToast('Contrato assinado ainda não chegou no servidor — tente de novo em instantes (☁️ Drive na noiva).','err');return;}
     html=j.html;
@@ -3050,7 +3050,7 @@ async function _reuploadContratosAssinados(){
   let ok=0,falhou=0;
   for(const b of noivas){
     try{
-      const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id));
+      const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()});
       const j=await r.json();
       if(j.html){await _uploadContratoAssinadoDrive(b);ok++;}else{falhou++;}
     }catch(e){falhou++;}
@@ -5088,8 +5088,13 @@ function syncDriveBtn(){
   }
 }
 
-/* ── CLOUD SYNC (Worker — automático, sem auth) ── */
+/* ── CLOUD SYNC (Worker) ── */
 const _WK='https://florelle.brunadonaa.workers.dev';
+// Senha compartilhada com o Worker — protege os dados das noivas (nome, CPF,
+// endereço, telefone, contratos) contra qualquer pessoa que descubra a URL do
+// Worker. Precisa bater com a variável APP_SECRET configurada no Cloudflare.
+const _APP_SECRET='y4Rcc02jn7jxH0xuJ1SH5gQbNaSbuTWqHdJDhZNT0ZQ';
+function _wkHeaders(extra){return{...( extra||{}),'X-App-Secret':_APP_SECRET};}
 let _cloudTimer=null;
 let _pendingPush=false;
 function _queueCloudSync(){
@@ -5102,7 +5107,7 @@ async function _cloudPush(){
   if(!DATA.length)return;
   if(!navigator.onLine){_showCalToast('⚠️ Sem internet — vai sincronizar quando a conexão voltar');return;}
   try{
-    const r=await fetch(_WK+'/data',{method:'POST',headers:{'Content-Type':'application/json','X-Data-Version':_dataVersion},body:JSON.stringify(DATA)});
+    const r=await fetch(_WK+'/data',{method:'POST',headers:_wkHeaders({'Content-Type':'application/json','X-Data-Version':_dataVersion}),body:JSON.stringify(DATA)});
     if(r.status===409){
       const j=await r.json().catch(()=>({}));
       _dataVersion=j.version||_dataVersion;
@@ -5118,7 +5123,7 @@ async function _cloudPush(){
 async function _cloudPull(){
   if(_pendingPush)return; // tem mudança local ainda não sincronizada — não sobrescreve
   try{
-    const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store'});
+    const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store',headers:_wkHeaders()});
     if(!r.ok)return;
     const d=await r.json();
     _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
@@ -5132,7 +5137,7 @@ async function _cloudPull(){
 }
 async function _cloudInit(){
   try{
-    const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store'});
+    const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store',headers:_wkHeaders()});
     if(!r.ok)return;
     const d=await r.json();
     _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
@@ -5551,7 +5556,7 @@ async function waAnalyze(){
     if(_waImages.length)body.images=_waImages.map(({mediaType,data})=>({mediaType,data}));
     const resp=await fetch('https://florelle.brunadonaa.workers.dev/analyze-wa',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:_wkHeaders({'Content-Type':'application/json'}),
       body:JSON.stringify(body)
     });
 
@@ -6151,7 +6156,7 @@ const _AUTH_KEY='florelle_authed_v1';
 
 async function _processPendingConfirms(){
   try{
-    const r=await fetch('https://florelle.brunadonaa.workers.dev/pending-confirms');
+    const r=await fetch('https://florelle.brunadonaa.workers.dev/pending-confirms',{headers:_wkHeaders()});
     const {confirms}=await r.json();
     if(!confirms||!confirms.length)return;
     let changed=false;
@@ -6173,7 +6178,7 @@ async function _processPendingConfirms(){
     // Devolve ao KV os que não foram encontrados localmente
     for(const c of unprocessed){
       fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
-        method:'POST',headers:{'Content-Type':'application/json'},
+        method:'POST',headers:_wkHeaders({'Content-Type':'application/json'}),
         body:JSON.stringify(c)
       }).catch(()=>{});
     }

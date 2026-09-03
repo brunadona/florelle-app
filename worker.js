@@ -11,7 +11,7 @@
 const CORS = {
   'Access-Control-Allow-Origin': 'https://brunadona.github.io',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Data-Version',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Data-Version, X-App-Secret',
   'Access-Control-Expose-Headers': 'X-Data-Version',
 };
 
@@ -20,6 +20,16 @@ function json(obj, status = 200) {
     status,
     headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' },
   });
+}
+
+// Exige o header X-App-Secret em todo endpoint que expõe dados reais de clientes
+// (nome, CPF, endereço, telefone, contratos) ou gasta a chave da IA — sem isso,
+// qualquer pessoa que descobrisse a URL do Worker conseguia ler/escrever tudo.
+// Único endpoint que fica de fora: GET /sign/:token, porque esse token já é o
+// próprio controle de acesso (link único mandado pra noiva assinar).
+function checkAppSecret(request, env) {
+  if (!env.APP_SECRET) return true; // ainda não configurado — não trava o app
+  return request.headers.get('X-App-Secret') === env.APP_SECRET;
 }
 
 // Gera token alfanumérico de 8 chars (sem ambíguos 0/O/I/l)
@@ -42,6 +52,7 @@ export default {
 
     // POST /sign  →  salva dados, devolve token
     if (request.method === 'POST' && url.pathname === '/sign') {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
       let body;
       try { body = await request.json(); }
       catch { return json({ error: 'JSON inválido' }, 400); }
@@ -77,6 +88,7 @@ export default {
 
     // POST /contract/:brideId  →  salva HTML do contrato assinado (TTL 2 anos)
     if (request.method === 'POST' && url.pathname.startsWith('/contract/')) {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
       const brideId = decodeURIComponent(url.pathname.slice(10));
       if (!brideId) return json({ error: 'brideId obrigatório' }, 400);
 
@@ -94,6 +106,7 @@ export default {
 
     // GET /contract/:brideId  →  recupera HTML do contrato assinado
     if (request.method === 'GET' && url.pathname.startsWith('/contract/')) {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
       const brideId = decodeURIComponent(url.pathname.slice(10));
       if (!brideId) return json({ error: 'brideId obrigatório' }, 400);
 
@@ -105,6 +118,7 @@ export default {
 
     // POST /pending-confirm  →  salva confirmação pendente (quando app aberto sem dados)
     if (request.method === 'POST' && url.pathname === '/pending-confirm') {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
       let body;
       try { body = await request.json(); } catch { return json({ error: 'JSON inválido' }, 400); }
       if (!body.brideId) return json({ error: 'brideId obrigatório' }, 400);
@@ -119,6 +133,7 @@ export default {
 
     // GET /pending-confirms  →  retorna e apaga lista de confirmações pendentes
     if (request.method === 'GET' && url.pathname === '/pending-confirms') {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
       const raw = await env.SIGN_KV.get('pc_list');
       if (!raw) return json({ confirms: [] });
       await env.SIGN_KV.delete('pc_list');
@@ -127,6 +142,7 @@ export default {
 
     // POST /analyze-wa  →  analisa conversa do WhatsApp com Claude (chave fica no Worker)
     if (request.method === 'POST' && url.pathname === '/analyze-wa') {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
       if (!env.ANTHROPIC_KEY) return json({ error: 'Chave Anthropic não configurada no Worker' }, 500);
 
       let body;
@@ -196,6 +212,7 @@ Retorne apenas o JSON.`;
     // Formato armazenado: { data: [...], version: "<timestamp>" }. Compatível com o
     // formato antigo (array puro) que já estava salvo no KV antes dessa mudança.
     if (request.method === 'GET' && url.pathname === '/data') {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
       const raw = await env.SIGN_KV.get('florelle_app_data');
       if (!raw) return new Response('null', { headers: { ...CORS, 'Content-Type': 'application/json' } });
       let dataOnly = raw, version = '0';
@@ -214,6 +231,7 @@ Retorne apenas o JSON.`;
     // (header X-Data-Version). Se já tem uma versão mais nova salva (outro dispositivo
     // salvou primeiro), rejeita com 409 em vez de sobrescrever silenciosamente.
     if (request.method === 'POST' && url.pathname === '/data') {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
       const text = await request.text();
       let arr;
       try { arr = JSON.parse(text); } catch { return json({ error: 'JSON inválido' }, 400); }
