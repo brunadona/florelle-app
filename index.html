@@ -5096,13 +5096,21 @@ const _WK='https://florelle.brunadonaa.workers.dev';
 const _APP_SECRET='y4Rcc02jn7jxH0xuJ1SH5gQbNaSbuTWqHdJDhZNT0ZQ';
 function _wkHeaders(extra){return{...( extra||{}),'X-App-Secret':_APP_SECRET};}
 let _cloudTimer=null;
-let _pendingPush=false;
+// _pendingPush e _dataVersion ficam salvos no localStorage, não só em memória —
+// se o app for fechado antes do envio (ex: 2 segundos de debounce não completaram),
+// uma variável só em memória voltaria a false/vazio no próximo carregamento e o
+// _cloudInit() de startup poderia sobrescrever a mudança que ainda não foi enviada.
+const PENDING_PUSH_KEY='florelle_pending_push';
+function _getPendingPush(){try{return localStorage.getItem(PENDING_PUSH_KEY)==='1';}catch{return false;}}
+function _setPendingPush(v){try{v?localStorage.setItem(PENDING_PUSH_KEY,'1'):localStorage.removeItem(PENDING_PUSH_KEY);}catch{}}
 function _queueCloudSync(){
-  _pendingPush=true; // bloqueia _cloudPull até essa mudança local chegar no servidor
+  _setPendingPush(true); // bloqueia _cloudPull/_cloudInit até essa mudança local chegar no servidor
   clearTimeout(_cloudTimer);
   _cloudTimer=setTimeout(_cloudPush,2000);
 }
-let _dataVersion='';
+const DATA_VERSION_KEY='florelle_data_version';
+let _dataVersion=(()=>{try{return localStorage.getItem(DATA_VERSION_KEY)||'';}catch{return'';}})();
+function _setDataVersion(v){if(!v)return;_dataVersion=v;try{localStorage.setItem(DATA_VERSION_KEY,v);}catch{}}
 async function _cloudPush(){
   if(!DATA.length)return;
   if(!navigator.onLine){_showCalToast('⚠️ Sem internet — vai sincronizar quando a conexão voltar');return;}
@@ -5110,23 +5118,23 @@ async function _cloudPush(){
     const r=await fetch(_WK+'/data',{method:'POST',headers:_wkHeaders({'Content-Type':'application/json','X-Data-Version':_dataVersion}),body:JSON.stringify(DATA)});
     if(r.status===409){
       const j=await r.json().catch(()=>({}));
-      _dataVersion=j.version||_dataVersion;
+      _setDataVersion(j.version);
       _showCalToast('⚠️ Outro dispositivo salvou uma versão mais nova — sua mudança NÃO foi enviada ainda, pra não apagar a dele. Abra o app nesse outro aparelho, ou tente salvar de novo em instantes.','err');
       return;
     }
     if(!r.ok){_showCalToast('⚠️ Falha ao salvar na nuvem ('+r.status+')');return;}
     const j=await r.json().catch(()=>({}));
-    if(j.version)_dataVersion=j.version;
-    _pendingPush=false;
+    _setDataVersion(j.version);
+    _setPendingPush(false);
   }catch(e){_showCalToast('⚠️ Sem conexão com a nuvem');}
 }
 async function _cloudPull(){
-  if(_pendingPush)return; // tem mudança local ainda não sincronizada — não sobrescreve
+  if(_getPendingPush())return; // tem mudança local ainda não sincronizada — não sobrescreve
   try{
     const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store',headers:_wkHeaders()});
     if(!r.ok)return;
     const d=await r.json();
-    _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
+    _setDataVersion(r.headers.get('X-Data-Version'));
     if(!Array.isArray(d)||!d.length)return;
     _pushHistorySnapshot(DATA,true); // guarda o estado atual antes de substituir, por segurança
     DATA=d;
@@ -5136,11 +5144,17 @@ async function _cloudPull(){
   }catch{}
 }
 async function _cloudInit(){
+  if(_getPendingPush()){
+    // Tem uma mudança local que ficou sem confirmar o envio (ex: fechou o app rápido
+    // demais). Não sobrescreve com o servidor — manda essa mudança primeiro.
+    if(DATA.length)_cloudPush();
+    return;
+  }
   try{
     const r=await fetch(_WK+'/data?_='+Date.now(),{cache:'no-store',headers:_wkHeaders()});
     if(!r.ok)return;
     const d=await r.json();
-    _dataVersion=r.headers.get('X-Data-Version')||_dataVersion;
+    _setDataVersion(r.headers.get('X-Data-Version'));
     if(Array.isArray(d)&&d.length){
       _pushHistorySnapshot(DATA,true); // guarda o estado atual antes de substituir, por segurança
       DATA=d;
@@ -5346,7 +5360,7 @@ window.addEventListener('offline',()=>setSyncStatus('offline'));
 window.addEventListener('online',()=>{
   if(_syncPending&&_gToken)_saveToDrive();
   else if(_syncSt==='offline')setSyncStatus(_gToken?'ok':'idle');
-  if(_pendingPush)_cloudPush();
+  if(_getPendingPush())_cloudPush();
 });
 
 // Recarrega do Worker quando usuário volta ao app (sincroniza mudanças de outros dispositivos)
