@@ -5104,6 +5104,40 @@ async function handleAnexoFiles(e){
   st.textContent='';
 }
 
+// Sobe as imagens que a usuária mandou junto da conversa (pra IA analisar) direto
+// pro Drive da noiva, como anexo — antes elas eram usadas só pra análise e descartadas.
+async function _saveWaImagesToDrive(images){
+  if(!images||!images.length)return;
+  try{await _ensureToken();}
+  catch(e){_showCalToast('Imagens da conversa não foram enviadas ao Drive: conecte ao Google e adicione manualmente se precisar.','err');return;}
+  const nomNoiva=(gv('m-nome')||'').trim()||'Sem Nome';
+  let ok=0;
+  try{
+    const noivId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);
+    if(!_mDriveFolder){_mDriveFolder=noivId;syncDriveBtn();}
+    for(const img of images){
+      try{
+        const byteChars=atob(img.data);
+        const byteNums=new Array(byteChars.length);
+        for(let i=0;i<byteChars.length;i++)byteNums[i]=byteChars.charCodeAt(i);
+        const blob=new Blob([new Uint8Array(byteNums)],{type:img.mediaType});
+        const fname=img.name||('conversa-'+(ok+1)+'.jpg');
+        const meta=new Blob([JSON.stringify({name:fname,parents:[noivId]})],{type:'application/json'});
+        const form=new FormData();form.append('metadata',meta);form.append('file',blob);
+        const up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',{
+          method:'POST',headers:{'Authorization':'Bearer '+_gToken},body:form,
+        });
+        if(!up.ok)continue;
+        const drv=await up.json();
+        mAnexos.push({id:uid(),nome:drv.name,url:drv.webViewLink,driveId:drv.id||null,mimeType:img.mediaType||'',addedAt:Date.now()});
+        ok++;
+      }catch(e){}
+    }
+    if(ok){renderAnexos();_showCalToast('📎 '+ok+' imagem(ns) da conversa salva(s) no Drive.');}
+    else if(images.length){_showCalToast('Não foi possível salvar as imagens da conversa no Drive.','err');}
+  }catch(e){_showCalToast('Falha ao salvar imagens da conversa no Drive.','err');}
+}
+
 function syncDriveBtn(){
   const btn=g('anx-pasta-btn');if(!btn)return;
   if(_mDriveFolder){
@@ -5627,6 +5661,7 @@ async function waAnalyze(){
       throw new Error('A IA retornou um formato inesperado. Tente novamente.');
     }
 
+    const _capturedWaImages=_waImages.slice(); // guarda antes do closeWaImport() limpar
     closeWaImport();
 
     // Tenta encontrar noiva existente por telefone ou nome
@@ -5694,6 +5729,7 @@ async function waAnalyze(){
       if(g('bdup'))g('bdup').classList.add('hidden');
     }
     g('ov').classList.remove('hidden');
+    if(_capturedWaImages.length)_saveWaImagesToDrive(_capturedWaImages);
     // destaca campo de telefone se ficou vazio (contato salvo no WhatsApp)
     setTimeout(()=>{
       const tel=g('m-tel');
