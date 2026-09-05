@@ -2404,13 +2404,22 @@ async function salvarContratoDrive(){
   if(!_gToken){
     try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');return;}
   }
-  // Se já foi assinado pela noiva, sobe o HTML assinado de verdade (com a assinatura dela), não um rascunho novo
+  // Sempre confere no servidor se já existe um contrato assinado, mesmo que a flag local
+  // "contratoAssinado" esteja falsa — ela só é setada quando a Bruna abre o link de confirmação
+  // que a noiva manda; se isso nunca acontece, o assinado de verdade fica só no servidor e o
+  // rascunho (sem assinatura nenhuma) era subido no lugar dele por engano.
   const _b=DATA.find(x=>x.id===editId);
-  if(_b&&_b.contratoAssinado){
-    await _uploadContratoAssinadoDrive(_b);
-    const fid=_b.driveFolder||_mDriveFolder;
-    if(fid)window.open('https://drive.google.com/drive/folders/'+fid,'_blank');
-    return;
+  if(_b){
+    const signedHtml=await _uploadContratoAssinadoDrive(_b,true);
+    if(signedHtml){
+      if(!_b.contratoAssinado){_b.contratoAssinado=true;save();renderAll();}
+      const fid=_b.driveFolder||_mDriveFolder;
+      if(fid)window.open('https://drive.google.com/drive/folders/'+fid,'_blank');
+      // Abre o contrato assinado de verdade (com a assinatura dela) numa aba — o Drive só mostra
+      // código-fonte cru na pré-visualização de .html, não renderiza a página.
+      window.open(URL.createObjectURL(new Blob([signedHtml],{type:'text/html'})),'_blank');
+      return;
+    }
   }
   const nome = gv('m-nome').trim()||'Contrato';
   const nomNoiva = gv('m-nome').trim()||'Sem Nome';
@@ -2429,13 +2438,14 @@ async function salvarContratoDrive(){
   _showCalToast('Salvando contrato no Drive...');
 
   try{
-    const pdfBlob=await _htmlStrToPdfBlob(html_contrato);
-    const fname=`Contrato — ${nome}`+(pdfBlob?'.pdf':'.html');
-    const r = await _driveUpsertFile(fname,folderId,pdfBlob||new Blob([html_contrato],{type:'text/html'}),pdfBlob?'application/pdf':'text/html');
+    const blob=new Blob([html_contrato],{type:'text/html'});
+    const r = await _driveUpsertFile(`Contrato — ${nome}.html`,folderId,blob,'text/html');
     if(r.ok){
-      const d=await r.json();
       setTimeout(()=>_showCalToast('Contrato salvo no Drive ✓'),200);
       if(folderId)window.open('https://drive.google.com/drive/folders/'+folderId,'_blank');
+      // O Drive não renderiza .html na pré-visualização (só mostra código-fonte) — abre o
+      // contrato de verdade numa aba à parte, com a fonte e o layout corretos.
+      window.open(URL.createObjectURL(blob),'_blank');
     } else {
       throw new Error('Erro ao salvar: '+r.status);
     }
@@ -2987,10 +2997,12 @@ async function _handleSignedConfirmation(brideId,ts,nome){
   history.replaceState({},'',location.pathname);
 }
 
-// Busca contrato assinado do KV e faz upload para a pasta da noiva no Drive
-async function _uploadContratoAssinadoDrive(b){
+// Busca contrato assinado do KV e faz upload para a pasta da noiva no Drive.
+// silentIfMissing: não mostra toast de erro se não existir contrato assinado ainda (usado quando
+// isso é só uma checagem "será que já assinou?", não uma ação que a Bruna pediu explicitamente).
+async function _uploadContratoAssinadoDrive(b,silentIfMissing){
   if(!_gToken){
-    try{await _ensureToken();}catch(e){_showCalToast('Contrato assinado, mas não deu pra salvar no Drive: conecte ao Google e clique em ☁️ Drive na noiva.','err');return;}
+    try{await _ensureToken();}catch(e){if(!silentIfMissing)_showCalToast('Contrato assinado, mas não deu pra salvar no Drive: conecte ao Google e clique em ☁️ Drive na noiva.','err');return;}
   }
 
   // 1. Buscar HTML assinado do KV
@@ -2998,7 +3010,7 @@ async function _uploadContratoAssinadoDrive(b){
   try{
     const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()});
     const j=await r.json();
-    if(!j.html){_showCalToast('Contrato assinado ainda não chegou no servidor — tente de novo em instantes (☁️ Drive na noiva).','err');return;}
+    if(!j.html){if(!silentIfMissing)_showCalToast('Contrato assinado ainda não chegou no servidor — tente de novo em instantes (☁️ Drive na noiva).','err');return;}
     html=j.html;
   }catch(e){_showCalToast('Falha de conexão ao buscar contrato assinado — tente de novo (☁️ Drive na noiva).','err');return;}
 
@@ -3025,14 +3037,14 @@ async function _uploadContratoAssinadoDrive(b){
     }catch(e){console.warn('Pasta Drive:',e);}
   }
 
-  // 3. Upload do contrato assinado — como PDF quando possível: o Drive não renderiza .html
-  // ao vivo na pré-visualização (mostra o código-fonte cru, por segurança), mas exibe PDF normalmente.
+  // 3. Upload do HTML assinado (fiel ao que a noiva assinou — a conversão pra PDF via canvas
+  // cortava conteúdo e trocava a fonte, então mantemos .html e abrimos ele direto quando precisa ver)
   const nomeLimpo=(b.nome||'Noiva').replace(/[/\\?*:|"<>]/g,'');
-  const pdfBlob=await _htmlStrToPdfBlob(html);
-  const fileName='Contrato Assinado — '+nomeLimpo+(pdfBlob?'.pdf':'.html');
-  const r=await _driveUpsertFile(fileName,folderId,pdfBlob||new Blob([html],{type:'text/html'}),pdfBlob?'application/pdf':'text/html');
+  const fileName='Contrato Assinado — '+nomeLimpo+'.html';
+  const r=await _driveUpsertFile(fileName,folderId,new Blob([html],{type:'text/html'}),'text/html');
   if(r.ok){
     _showCalToast('📄 Contrato assinado salvo no Drive ✓');
+    return html;
   }else{
     _showCalToast('Erro ao salvar contrato no Drive: '+r.status,'err');
   }
