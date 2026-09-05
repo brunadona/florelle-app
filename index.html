@@ -2792,9 +2792,14 @@ async function _htmlStrToPdfBlob(htmlStr){
     const pdfC=document.createElement('canvas');
     pdfC.width=rc.width;pdfC.height=rc.height;
     pdfC.getContext('2d').drawImage(rc,0,0);
+    // Página com a largura padrão de A4 (595pt) — usar o tamanho em pixels direto criava uma página
+    // mais larga que o normal, e o visualizador do Drive não encaixava sem rolar de lado (parecia
+    // "cortado"). A altura acompanha a proporção real do conteúdo (página única, bem alta).
     const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF({unit:'px',format:[rc.width,rc.height],orientation:'portrait'});
-    pdf.addImage(pdfC.toDataURL('image/jpeg',0.92),'JPEG',0,0,rc.width,rc.height);
+    const pageWpt=595.28;
+    const pageHpt=pageWpt*(rc.height/rc.width);
+    const pdf=new jsPDF({unit:'pt',format:[pageWpt,pageHpt],orientation:'portrait'});
+    pdf.addImage(pdfC.toDataURL('image/jpeg',0.92),'JPEG',0,0,pageWpt,pageHpt);
     return pdf.output('blob');
   }catch(pdfErr){
     console.warn('PDF via canvas falhou, usando HTML:',pdfErr.message);
