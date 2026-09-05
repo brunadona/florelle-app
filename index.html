@@ -2429,8 +2429,9 @@ async function salvarContratoDrive(){
   _showCalToast('Salvando contrato no Drive...');
 
   try{
-    const blob = new Blob([html_contrato],{type:'text/html'});
-    const r = await _driveUpsertFile(`Contrato — ${nome}.html`,folderId,blob,'text/html');
+    const pdfBlob=await _htmlStrToPdfBlob(html_contrato);
+    const fname=`Contrato — ${nome}`+(pdfBlob?'.pdf':'.html');
+    const r = await _driveUpsertFile(fname,folderId,pdfBlob||new Blob([html_contrato],{type:'text/html'}),pdfBlob?'application/pdf':'text/html');
     if(r.ok){
       const d=await r.json();
       setTimeout(()=>_showCalToast('Contrato salvo no Drive ✓'),200);
@@ -2746,6 +2747,48 @@ function _sigClear(){
   ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
+// Renderiza o HTML do contrato num canvas e converte pra PDF (Drive não renderiza .html ao vivo
+// por segurança — só mostra o código-fonte cru — mas exibe PDF em preview normalmente).
+// Retorna null se a conversão falhar (chamador cai de volta pro .html puro).
+async function _htmlStrToPdfBlob(htmlStr){
+  try{
+    const doc3=new DOMParser().parseFromString(htmlStr,'text/html');
+    const pageEl=doc3.querySelector('.page');
+    if(!pageEl)throw new Error('no-page');
+    const styleEl=doc3.querySelector('style');
+    const injSt=document.createElement('style');
+    injSt.id='_sp_st';
+    if(styleEl)injSt.textContent=styleEl.textContent
+      .replace(/@import[^;]+;/g,'')
+      .replace(/url\(["']?data:image\/svg[^)]+\)/g,'none');
+    pageEl.style.backgroundImage='none';
+    document.head.appendChild(injSt);
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
+    wrap.appendChild(pageEl);
+    document.body.appendChild(wrap);
+    await new Promise(r=>setTimeout(r,400));
+    const rc=await html2canvas(wrap,{
+      scale:1.5,useCORS:false,allowTaint:false,
+      foreignObjectRendering:false,logging:false,backgroundColor:'#e4dcd0'
+    });
+    document.body.removeChild(wrap);
+    document.getElementById('_sp_st')?.remove();
+    const pdfC=document.createElement('canvas');
+    pdfC.width=rc.width;pdfC.height=rc.height;
+    pdfC.getContext('2d').drawImage(rc,0,0);
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:'px',format:[rc.width,rc.height],orientation:'portrait'});
+    pdf.addImage(pdfC.toDataURL('image/jpeg',0.92),'JPEG',0,0,rc.width,rc.height);
+    return pdf.output('blob');
+  }catch(pdfErr){
+    console.warn('PDF via canvas falhou, usando HTML:',pdfErr.message);
+    try{document.getElementById('_sp_st')?.remove();}catch(_){}
+    try{const w=document.querySelector('div[style*="-9999px"]');if(w)w.remove();}catch(_){}
+    return null;
+  }
+}
+
 function _sigIsEmpty(){
   const canvas=document.getElementById('sig-canvas');
   if(!canvas)return true;
@@ -2794,45 +2837,9 @@ async function _sigConfirm(){
     }
 
     // 4. Tentar gerar PDF via html2canvas; se falhar usa HTML diretamente
-    let fileBlob=null;
-    let isPdf=false;
-    try{
-      const doc3=new DOMParser().parseFromString(signedHtmlStr,'text/html');
-      const pageEl=doc3.querySelector('.page');
-      if(!pageEl)throw new Error('no-page');
-      const styleEl=doc3.querySelector('style');
-      const injSt=document.createElement('style');
-      injSt.id='_sp_st';
-      if(styleEl)injSt.textContent=styleEl.textContent
-        .replace(/@import[^;]+;/g,'')
-        .replace(/url\(["']?data:image\/svg[^)]+\)/g,'none');
-      pageEl.style.backgroundImage='none';
-      document.head.appendChild(injSt);
-      const wrap=document.createElement('div');
-      wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
-      wrap.appendChild(pageEl);
-      document.body.appendChild(wrap);
-      await new Promise(r=>setTimeout(r,400));
-      const rc=await html2canvas(wrap,{
-        scale:1.5,useCORS:false,allowTaint:false,
-        foreignObjectRendering:false,logging:false,backgroundColor:'#e4dcd0'
-      });
-      document.body.removeChild(wrap);
-      document.getElementById('_sp_st')?.remove();
-      const pdfC=document.createElement('canvas');
-      pdfC.width=rc.width;pdfC.height=rc.height;
-      pdfC.getContext('2d').drawImage(rc,0,0);
-      const {jsPDF}=window.jspdf;
-      const pdf=new jsPDF({unit:'px',format:[rc.width,rc.height],orientation:'portrait'});
-      pdf.addImage(pdfC.toDataURL('image/jpeg',0.92),'JPEG',0,0,rc.width,rc.height);
-      fileBlob=pdf.output('blob');
-      isPdf=true;
-    }catch(pdfErr){
-      console.warn('PDF via canvas falhou, usando HTML:',pdfErr.message);
-      try{document.getElementById('_sp_st')?.remove();}catch(_){}
-      try{const w=document.querySelector('div[style*="-9999px"]');if(w)w.remove();}catch(_){}
-      fileBlob=new Blob([signedHtmlStr],{type:'text/html'});
-    }
+    let fileBlob=await _htmlStrToPdfBlob(signedHtmlStr);
+    let isPdf=!!fileBlob;
+    if(!fileBlob)fileBlob=new Blob([signedHtmlStr],{type:'text/html'});
 
     const nomeLimpo=(p.nome||'').replace(/\s+/g,'_');
     window._signedPdfBlob=fileBlob;
@@ -3018,10 +3025,12 @@ async function _uploadContratoAssinadoDrive(b){
     }catch(e){console.warn('Pasta Drive:',e);}
   }
 
-  // 3. Upload do HTML assinado
+  // 3. Upload do contrato assinado — como PDF quando possível: o Drive não renderiza .html
+  // ao vivo na pré-visualização (mostra o código-fonte cru, por segurança), mas exibe PDF normalmente.
   const nomeLimpo=(b.nome||'Noiva').replace(/[/\\?*:|"<>]/g,'');
-  const fileName='Contrato Assinado — '+nomeLimpo+'.html';
-  const r=await _driveUpsertFile(fileName,folderId,new Blob([html],{type:'text/html'}),'text/html');
+  const pdfBlob=await _htmlStrToPdfBlob(html);
+  const fileName='Contrato Assinado — '+nomeLimpo+(pdfBlob?'.pdf':'.html');
+  const r=await _driveUpsertFile(fileName,folderId,pdfBlob||new Blob([html],{type:'text/html'}),pdfBlob?'application/pdf':'text/html');
   if(r.ok){
     _showCalToast('📄 Contrato assinado salvo no Drive ✓');
   }else{
