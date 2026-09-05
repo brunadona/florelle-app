@@ -2406,10 +2406,19 @@ async function salvarContratoDrive(){
   }
   // Se já foi assinado pela noiva, sobe o HTML assinado de verdade (com a assinatura dela), não um rascunho novo
   const _b=DATA.find(x=>x.id===editId);
-  if(_b&&_b.contratoAssinado){await _uploadContratoAssinadoDrive(_b);return;}
+  if(_b&&_b.contratoAssinado){
+    await _uploadContratoAssinadoDrive(_b);
+    const fid=_b.driveFolder||_mDriveFolder;
+    if(fid)window.open('https://drive.google.com/drive/folders/'+fid,'_blank');
+    return;
+  }
   const nome = gv('m-nome').trim()||'Contrato';
-  // Buscar pasta da noiva no Drive
-  const folderId = _mDriveFolder||null;
+  const nomNoiva = gv('m-nome').trim()||'Sem Nome';
+  // Buscar (ou criar) a pasta da noiva no Drive — sem pasta, o contrato ia pra raiz e o botão Drive não tinha pra onde abrir
+  let folderId = _mDriveFolder||null;
+  if(!folderId){
+    try{folderId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);_mDriveFolder=folderId;syncDriveBtn();}catch(e){}
+  }
 
   // Gerar HTML do contrato
   const contratoWin = {document:{write:()=>{},close:()=>{}}};
@@ -2439,6 +2448,7 @@ async function salvarContratoDrive(){
     if(r.ok){
       const d=await r.json();
       setTimeout(()=>_showCalToast('Contrato salvo no Drive ✓'),200);
+      if(folderId)window.open('https://drive.google.com/drive/folders/'+folderId,'_blank');
     } else {
       throw new Error('Erro ao salvar: '+r.status);
     }
@@ -5559,8 +5569,24 @@ function waLoadFile(input){
         }
         const txt=await txtFile.async('string');
         sv2('wa-txt',txt);
-        if(fn){fn.textContent='📎 '+txtFile.name+' (do ZIP)';fn.style.display='';}
         g('wa-txt').focus();
+        // pega as fotos que vieram junto no export "com mídia" do WhatsApp — antes só o .txt era lido e as mídias do zip eram descartadas
+        const imgExt=/\.(jpe?g|png|webp)$/i;
+        const imgFiles=Object.values(zip.files).filter(f=>!f.dir&&imgExt.test(f.name));
+        const MAX=4;
+        let added=0;
+        for(const imgF of imgFiles){
+          if(_waImages.length>=MAX)break;
+          try{
+            const b64=await imgF.async('base64');
+            if(b64.length*0.75>4*1024*1024)continue; // >4MB, pula (mesmo limite do upload manual)
+            const ext=imgF.name.split('.').pop().toLowerCase();
+            _waImages.push({mediaType:'image/'+(ext==='jpg'?'jpeg':ext),data:b64,name:imgF.name});
+            added++;
+          }catch(err){}
+        }
+        _renderWaImgPrev();
+        if(fn){fn.textContent='📎 '+txtFile.name+' (do ZIP)'+(added?' + '+added+' foto(s)':'');fn.style.display='';}
       }catch(err){
         if(fn){fn.textContent='Erro ao abrir o ZIP: '+err.message;fn.style.display='';}
       }
