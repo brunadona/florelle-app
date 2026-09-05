@@ -2407,12 +2407,10 @@ async function salvarContratoDrive(){
   // rascunho (sem assinatura nenhuma) era subido no lugar dele por engano.
   const _b=DATA.find(x=>x.id===editId);
   if(_b){
-    const signedHtml=await _uploadContratoAssinadoDrive(_b,true);
-    if(signedHtml){
+    const signedBlob=await _uploadContratoAssinadoDrive(_b,true);
+    if(signedBlob){
       if(!_b.contratoAssinado){_b.contratoAssinado=true;save();renderAll();}
-      // Abre o contrato assinado de verdade (com a assinatura dela) numa aba — o Drive só mostra
-      // código-fonte cru na pré-visualização de .html, não renderiza a página.
-      window.open(URL.createObjectURL(new Blob([signedHtml],{type:'text/html'})),'_blank');
+      window.open(URL.createObjectURL(signedBlob),'_blank');
       // Abre por último pra ficar em primeiro plano — é essa que tem as fotos e o resto da pasta.
       const fid=_b.driveFolder||_mDriveFolder;
       if(fid)window.open('https://drive.google.com/drive/folders/'+fid,'_blank');
@@ -2436,12 +2434,12 @@ async function salvarContratoDrive(){
   _showCalToast('Salvando contrato no Drive...');
 
   try{
-    const blob=new Blob([html_contrato],{type:'text/html'});
-    const r = await _driveUpsertFile(`Contrato — ${nome}.html`,folderId,blob,'text/html');
+    const pdfBlob=await _htmlStrToPdfBlob(html_contrato);
+    const blob=pdfBlob||new Blob([html_contrato],{type:'text/html'});
+    const fname=`Contrato — ${nome}`+(pdfBlob?'.pdf':'.html');
+    const r = await _driveUpsertFile(fname,folderId,blob,pdfBlob?'application/pdf':'text/html');
     if(r.ok){
       setTimeout(()=>_showCalToast('Contrato salvo no Drive ✓'),200);
-      // O Drive não renderiza .html na pré-visualização (só mostra código-fonte) — abre o
-      // contrato de verdade numa aba à parte, com a fonte e o layout corretos.
       window.open(URL.createObjectURL(blob),'_blank');
       // Abre por último pra ficar em primeiro plano — é essa que tem as fotos e o resto da pasta.
       if(folderId)window.open('https://drive.google.com/drive/folders/'+folderId,'_blank');
@@ -2767,19 +2765,27 @@ async function _htmlStrToPdfBlob(htmlStr){
     const styleEl=doc3.querySelector('style');
     const injSt=document.createElement('style');
     injSt.id='_sp_st';
+    // Mantém o @import da fonte (Google Fonts serve com CORS liberado, useCORS:true abaixo lida com
+    // isso) — removê-lo fazia cair sempre na fonte de sistema, diferente do contrato de verdade.
     if(styleEl)injSt.textContent=styleEl.textContent
-      .replace(/@import[^;]+;/g,'')
       .replace(/url\(["']?data:image\/svg[^)]+\)/g,'none');
     pageEl.style.backgroundImage='none';
     document.head.appendChild(injSt);
+    try{
+      await document.fonts.load('400 11.5pt "EB Garamond"');
+      await document.fonts.load('700 11.5pt "EB Garamond"');
+      await document.fonts.load('italic 18pt "EB Garamond"');
+      await document.fonts.ready;
+    }catch(e){}
     const wrap=document.createElement('div');
     wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
     wrap.appendChild(pageEl);
     document.body.appendChild(wrap);
-    await new Promise(r=>setTimeout(r,400));
+    await new Promise(r=>setTimeout(r,150));
     const rc=await html2canvas(wrap,{
-      scale:1.5,useCORS:false,allowTaint:false,
-      foreignObjectRendering:false,logging:false,backgroundColor:'#e4dcd0'
+      scale:1.5,useCORS:true,allowTaint:false,
+      foreignObjectRendering:false,logging:false,backgroundColor:'#e4dcd0',
+      windowWidth:700,width:700
     });
     document.body.removeChild(wrap);
     document.getElementById('_sp_st')?.remove();
@@ -3020,14 +3026,16 @@ async function _uploadContratoAssinadoDrive(b,silentIfMissing){
     }catch(e){console.warn('Pasta Drive:',e);}
   }
 
-  // 3. Upload do HTML assinado (fiel ao que a noiva assinou — a conversão pra PDF via canvas
-  // cortava conteúdo e trocava a fonte, então mantemos .html e abrimos ele direto quando precisa ver)
+  // 3. Upload do contrato assinado — como PDF (renderiza certo dentro do próprio Drive); cai pra
+  // .html só se a conversão falhar.
   const nomeLimpo=(b.nome||'Noiva').replace(/[/\\?*:|"<>]/g,'');
-  const fileName='Contrato Assinado — '+nomeLimpo+'.html';
-  const r=await _driveUpsertFile(fileName,folderId,new Blob([html],{type:'text/html'}),'text/html');
+  const pdfBlob=await _htmlStrToPdfBlob(html);
+  const blob=pdfBlob||new Blob([html],{type:'text/html'});
+  const fileName='Contrato Assinado — '+nomeLimpo+(pdfBlob?'.pdf':'.html');
+  const r=await _driveUpsertFile(fileName,folderId,blob,pdfBlob?'application/pdf':'text/html');
   if(r.ok){
     _showCalToast('📄 Contrato assinado salvo no Drive ✓');
-    return html;
+    return blob;
   }else{
     _showCalToast('Erro ao salvar contrato no Drive: '+r.status,'err');
   }
