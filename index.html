@@ -2429,22 +2429,8 @@ async function salvarContratoDrive(){
   _showCalToast('Salvando contrato no Drive...');
 
   try{
-    // Criar arquivo HTML no Drive (abre direto no browser)
-    const metadata = {
-      name: `Contrato — ${nome}.html`,
-      mimeType: 'text/html',
-      ...(folderId ? {parents:[folderId]} : {})
-    };
     const blob = new Blob([html_contrato],{type:'text/html'});
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)],{type:'application/json'}));
-    form.append('file', blob);
-
-    const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+_gToken},
-      body:form
-    });
+    const r = await _driveUpsertFile(`Contrato — ${nome}.html`,folderId,blob,'text/html');
     if(r.ok){
       const d=await r.json();
       setTimeout(()=>_showCalToast('Contrato salvo no Drive ✓'),200);
@@ -3035,13 +3021,7 @@ async function _uploadContratoAssinadoDrive(b){
   // 3. Upload do HTML assinado
   const nomeLimpo=(b.nome||'Noiva').replace(/[/\\?*:|"<>]/g,'');
   const fileName='Contrato Assinado — '+nomeLimpo+'.html';
-  const meta={name:fileName,mimeType:'text/html',...(folderId?{parents:[folderId]}:{})};
-  const form=new FormData();
-  form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
-  form.append('file',new Blob([html],{type:'text/html'}));
-  const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',{
-    method:'POST',headers:{'Authorization':'Bearer '+_gToken},body:form
-  });
+  const r=await _driveUpsertFile(fileName,folderId,new Blob([html],{type:'text/html'}),'text/html');
   if(r.ok){
     _showCalToast('📄 Contrato assinado salvo no Drive ✓');
   }else{
@@ -5062,6 +5042,30 @@ async function _drvFetch(method,path,body,ct){
     if(r.status===401){_gToken=null;throw new Error('Sessão expirada. Clique em Anexar novamente.');}
   }
   return r;
+}
+
+// Sobe um arquivo pra uma pasta do Drive sem duplicar: se já existe um arquivo com esse nome
+// na pasta, atualiza o conteúdo dele; senão cria um novo. Evita "Contrato — Fulana.html" x4.
+async function _driveUpsertFile(name,folderId,blob,mimeType){
+  let fileId=null;
+  try{
+    const q=`name='${name.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false`;
+    const r=await _drvFetch('GET',`/files?q=${encodeURIComponent(q)}&fields=files(id)&spaces=drive`);
+    const d=await r.json();
+    if(d.files?.length)fileId=d.files[0].id;
+  }catch(e){}
+  if(fileId){
+    return fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&fields=id,name,webViewLink`,{
+      method:'PATCH',headers:{'Authorization':'Bearer '+_gToken,'Content-Type':mimeType},body:blob
+    });
+  }
+  const metadata={name,mimeType,...(folderId?{parents:[folderId]}:{})};
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify(metadata)],{type:'application/json'}));
+  form.append('file',blob);
+  return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',{
+    method:'POST',headers:{'Authorization':'Bearer '+_gToken},body:form
+  });
 }
 
 async function _getOrCreateFolder(name,parentId){
