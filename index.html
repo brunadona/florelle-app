@@ -2413,11 +2413,12 @@ async function salvarContratoDrive(){
     const signedHtml=await _uploadContratoAssinadoDrive(_b,true);
     if(signedHtml){
       if(!_b.contratoAssinado){_b.contratoAssinado=true;save();renderAll();}
-      const fid=_b.driveFolder||_mDriveFolder;
-      if(fid)window.open('https://drive.google.com/drive/folders/'+fid,'_blank');
       // Abre o contrato assinado de verdade (com a assinatura dela) numa aba — o Drive só mostra
       // código-fonte cru na pré-visualização de .html, não renderiza a página.
       window.open(URL.createObjectURL(new Blob([signedHtml],{type:'text/html'})),'_blank');
+      // Abre por último pra ficar em primeiro plano — é essa que tem as fotos e o resto da pasta.
+      const fid=_b.driveFolder||_mDriveFolder;
+      if(fid)window.open('https://drive.google.com/drive/folders/'+fid,'_blank');
       return;
     }
   }
@@ -2442,10 +2443,11 @@ async function salvarContratoDrive(){
     const r = await _driveUpsertFile(`Contrato — ${nome}.html`,folderId,blob,'text/html');
     if(r.ok){
       setTimeout(()=>_showCalToast('Contrato salvo no Drive ✓'),200);
-      if(folderId)window.open('https://drive.google.com/drive/folders/'+folderId,'_blank');
       // O Drive não renderiza .html na pré-visualização (só mostra código-fonte) — abre o
       // contrato de verdade numa aba à parte, com a fonte e o layout corretos.
       window.open(URL.createObjectURL(blob),'_blank');
+      // Abre por último pra ficar em primeiro plano — é essa que tem as fotos e o resto da pasta.
+      if(folderId)window.open('https://drive.google.com/drive/folders/'+folderId,'_blank');
     } else {
       throw new Error('Erro ao salvar: '+r.status);
     }
