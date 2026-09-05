@@ -1355,9 +1355,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="fr-ctrt">
         <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
         <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲 WhatsApp</button>
-        <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salvar contrato no Google Drive">☁️ Drive</button>
+        <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Abrir contrato (assinado, se já tiver) e a pasta da noiva no Drive">☁️ Drive</button>
         <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️ Assinar</button>
-        <button class="bctrt hidden" id="btn-ver-contrato" onclick="verContratoAssinado()" title="Ver contrato assinado pela noiva" style="background:#5a7a5c;color:#fff">📄 Ver assinado</button>
       </div>
       <button class="bsav" onclick="saveModal()">Salvar</button>
     </div>
@@ -1998,8 +1997,6 @@ function openModal(id){
   fillForm(b);
   g('bdel').classList.remove('hidden');
   if(g('bdup'))g('bdup').classList.remove('hidden');
-  const btnVC=g('btn-ver-contrato');
-  if(btnVC)btnVC.classList.toggle('hidden',!b.contratoAssinado);
   g('ov').classList.remove('hidden');
 }
 
@@ -2944,22 +2941,6 @@ async function _notifyBrunaWpp(wpp,msg){
     }catch(e){if(e.name==='AbortError')return;}
   }
   window.open('https://wa.me/55'+wpp+'?text='+msg,'_blank');
-}
-
-// Busca o contrato assinado do KV e abre em nova aba (chamado do modal da Bruna)
-async function verContratoAssinado(){
-  const b=DATA.find(x=>x.id===window._curModalId);
-  if(!b){alert('Noiva não encontrada.');return;}
-  try{
-    const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()});
-    const {html,error}=await r.json();
-    if(error||!html){alert('Contrato não encontrado no servidor.\nA noiva precisa assinar pelo link enviado.');return;}
-    const closedHtml=html.includes('</body>')?html.replace('</body>','<button style="position:fixed;top:16px;left:16px;background:#5a7a52;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-family:sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.22);z-index:999" onclick="window.close()">&#8592; Fechar</button></body>'):html;
-    const blob=new Blob([closedHtml],{type:'text/html'});
-    const url=URL.createObjectURL(blob);
-    window.open(url,'_blank');
-    setTimeout(()=>URL.revokeObjectURL(url),60000);
-  }catch(e){alert('Erro ao buscar contrato:\n'+e.message);}
 }
 
 async function _handleSignedConfirmation(brideId,ts,nome){
