@@ -2788,10 +2788,11 @@ async function _htmlStrToPdfBlob(htmlStr){
     const assEl=wrap.querySelector('.ass-bloco');
     let assStartPx=null,assEndPx=null;
     if(assEl){assStartPx=assEl.offsetTop*RENDER_SCALE;assEndPx=assStartPx+assEl.offsetHeight*RENDER_SCALE;}
+    // (sem windowWidth/width aqui — forçar isso desalinhava a captura com a página real do app
+    // ao redor do wrap, cortando a margem esquerda do contrato)
     const rc=await html2canvas(wrap,{
       scale:RENDER_SCALE,useCORS:true,allowTaint:false,
-      foreignObjectRendering:false,logging:false,backgroundColor:'#e4dcd0',
-      windowWidth:700,width:700
+      foreignObjectRendering:false,logging:false,backgroundColor:'#e4dcd0'
     });
     document.body.removeChild(wrap);
     document.getElementById('_sp_st')?.remove();
