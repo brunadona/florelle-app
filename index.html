@@ -2782,24 +2782,48 @@ async function _htmlStrToPdfBlob(htmlStr){
     wrap.appendChild(pageEl);
     document.body.appendChild(wrap);
     await new Promise(r=>setTimeout(r,150));
+    const RENDER_SCALE=1.5;
+    // Mede a posição do bloco de assinatura ENQUANTO wrap ainda está no documento (offsetTop/offsetHeight
+    // voltam 0 depois de removido) — usado abaixo pra nunca cortar esse bloco entre duas páginas.
+    const assEl=wrap.querySelector('.ass-bloco');
+    let assStartPx=null,assEndPx=null;
+    if(assEl){assStartPx=assEl.offsetTop*RENDER_SCALE;assEndPx=assStartPx+assEl.offsetHeight*RENDER_SCALE;}
     const rc=await html2canvas(wrap,{
-      scale:1.5,useCORS:true,allowTaint:false,
+      scale:RENDER_SCALE,useCORS:true,allowTaint:false,
       foreignObjectRendering:false,logging:false,backgroundColor:'#e4dcd0',
       windowWidth:700,width:700
     });
     document.body.removeChild(wrap);
     document.getElementById('_sp_st')?.remove();
-    const pdfC=document.createElement('canvas');
-    pdfC.width=rc.width;pdfC.height=rc.height;
-    pdfC.getContext('2d').drawImage(rc,0,0);
-    // Página com a largura padrão de A4 (595pt) — usar o tamanho em pixels direto criava uma página
-    // mais larga que o normal, e o visualizador do Drive não encaixava sem rolar de lado (parecia
-    // "cortado"). A altura acompanha a proporção real do conteúdo (página única, bem alta).
+    // Página com a largura padrão de A4 (595pt) partida em várias páginas de altura A4 também —
+    // uma página só, gigante e mais larga que o normal, fazia o visualizador do Drive não encaixar
+    // sem rolar de lado (parecia "cortado"). Se uma quebra cairia no meio do bloco de assinatura,
+    // empurra o bloco inteiro pra próxima página (senão "Assinatura:" fica numa página e a imagem
+    // da assinatura na outra, parecendo contrato sem assinar).
     const {jsPDF}=window.jspdf;
-    const pageWpt=595.28;
-    const pageHpt=pageWpt*(rc.height/rc.width);
+    const pageWpt=595.28,pageHpt=841.89;
+    const pageHpx=Math.floor(pageHpt*(rc.width/pageWpt));
+    const breaks=[];
+    let y=0;
+    while(y<rc.height){
+      let next=Math.min(y+pageHpx,rc.height);
+      if(assStartPx!=null&&next>assStartPx&&next<assEndPx)next=assStartPx;
+      if(next<=y)next=Math.min(y+pageHpx,rc.height);
+      breaks.push(next);
+      y=next;
+    }
     const pdf=new jsPDF({unit:'pt',format:[pageWpt,pageHpt],orientation:'portrait'});
-    pdf.addImage(pdfC.toDataURL('image/jpeg',0.92),'JPEG',0,0,pageWpt,pageHpt);
+    let prevY=0;
+    breaks.forEach((brk,i)=>{
+      const slice=document.createElement('canvas');
+      slice.width=rc.width;slice.height=pageHpx;
+      const sctx=slice.getContext('2d');
+      sctx.fillStyle='#e4dcd0';sctx.fillRect(0,0,rc.width,pageHpx);
+      sctx.drawImage(rc,0,prevY,rc.width,brk-prevY,0,0,rc.width,brk-prevY);
+      if(i>0)pdf.addPage([pageWpt,pageHpt],'portrait');
+      pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',0,0,pageWpt,pageHpt);
+      prevY=brk;
+    });
     return pdf.output('blob');
   }catch(pdfErr){
     console.warn('PDF via canvas falhou, usando HTML:',pdfErr.message);
