@@ -2778,8 +2778,11 @@ async function _htmlStrToPdfBlob(htmlStr){
     injSt.id='_sp_st';
     // Mantém o @import da fonte (Google Fonts serve com CORS liberado, useCORS:true abaixo lida com
     // isso) — removê-lo fazia cair sempre na fonte de sistema, diferente do contrato de verdade.
-    if(styleEl)injSt.textContent=styleEl.textContent
-      .replace(/url\(["']?data:image\/svg[^)]+\)/g,'none');
+    // NÃO mexe no CSS por regex pra tirar o fundo SVG (a linha de baixo já sobrescreve isso direto
+    // no elemento, que tem prioridade sobre a classe de qualquer jeito) — um regex assim aqui cortava
+    // no meio de um "url(...)" que existe DENTRO do próprio SVG (filter='url(%23n)'), corrompendo o
+    // resto da regra .page{} e zerando o padding (a margem lateral do contrato sumia inteira).
+    if(styleEl)injSt.textContent=styleEl.textContent;
     pageEl.style.backgroundImage='none';
     document.head.appendChild(injSt);
     try{
