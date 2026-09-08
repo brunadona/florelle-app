@@ -2402,8 +2402,16 @@ async function saveModal(){
 }
 
 async function salvarContratoDrive(){
+  // Abre a(s) aba(s) JÁ AQUI, antes de qualquer "await" — no celular (e em navegadores mais
+  // estritos) window.open só é permitido dentro do mesmo toque/clique; um await no meio faz o
+  // navegador tratar a chamada como popup e bloquear, o que fazia "Drive" simplesmente não abrir
+  // nada no celular mesmo funcionando no computador.
+  const winDoc=window.open('','_blank');
+  const winFolder=window.open('','_blank');
+  const _closeUnused=()=>{try{winDoc&&winDoc.close();}catch(e){}try{winFolder&&winFolder.close();}catch(e){}};
+
   if(!_gToken){
-    try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');return;}
+    try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');_closeUnused();return;}
   }
   // Sempre confere no servidor se já existe um contrato assinado, mesmo que a flag local
   // "contratoAssinado" esteja falsa — ela só é setada quando a Bruna abre o link de confirmação
@@ -2414,10 +2422,10 @@ async function salvarContratoDrive(){
     const signedBlob=await _uploadContratoAssinadoDrive(_b,true);
     if(signedBlob){
       if(!_b.contratoAssinado){_b.contratoAssinado=true;save();renderAll();}
-      window.open(URL.createObjectURL(signedBlob),'_blank');
-      // Abre por último pra ficar em primeiro plano — é essa que tem as fotos e o resto da pasta.
+      if(winDoc)winDoc.location.href=URL.createObjectURL(signedBlob);
       const fid=_b.driveFolder||_mDriveFolder;
-      if(fid)window.open('https://drive.google.com/drive/folders/'+fid,'_blank');
+      if(fid&&winFolder)winFolder.location.href='https://drive.google.com/drive/folders/'+fid;
+      else if(winFolder)winFolder.close();
       return;
     }
   }
@@ -2429,11 +2437,8 @@ async function salvarContratoDrive(){
     try{folderId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);_mDriveFolder=folderId;syncDriveBtn();}catch(e){}
   }
 
-  // Gerar HTML do contrato
-  const contratoWin = {document:{write:()=>{},close:()=>{}}};
-  // Vamos gerar o HTML e converter para blob
   const html_contrato = _buildContratoHTML();
-  if(!html_contrato){alert('Preencha os dados da noiva antes de salvar o contrato.');return;}
+  if(!html_contrato){alert('Preencha os dados da noiva antes de salvar o contrato.');_closeUnused();return;}
 
   _showCalToast('Salvando contrato no Drive...');
 
@@ -2444,13 +2449,15 @@ async function salvarContratoDrive(){
     const r = await _driveUpsertFile(fname,folderId,blob,pdfBlob?'application/pdf':'text/html');
     if(r.ok){
       setTimeout(()=>_showCalToast('Contrato salvo no Drive ✓'),200);
-      window.open(URL.createObjectURL(blob),'_blank');
-      // Abre por último pra ficar em primeiro plano — é essa que tem as fotos e o resto da pasta.
-      if(folderId)window.open('https://drive.google.com/drive/folders/'+folderId,'_blank');
+      if(winDoc)winDoc.location.href=URL.createObjectURL(blob);
+      if(folderId&&winFolder)winFolder.location.href='https://drive.google.com/drive/folders/'+folderId;
+      else if(winFolder)winFolder.close();
     } else {
+      _closeUnused();
       throw new Error('Erro ao salvar: '+r.status);
     }
   }catch(e){
+    _closeUnused();
     _showCalToast('Erro ao salvar no Drive: '+e.message,'err');
   }
 }
