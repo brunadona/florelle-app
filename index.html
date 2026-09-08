@@ -2416,9 +2416,11 @@ async function salvarContratoDrive(){
   // (sessão expirada, rede, etc.) deixava a aba já aberta travada em about:blank pra sempre, sem
   // fechar nem avisar nada, porque a exceção não era pega em todo caminho.
   try{
-    if(!_gToken){
-      try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');return;}
-    }
+    // Se ainda não tem token, NÃO tenta abrir o popup de login do Google aqui — ele ia competir
+    // com a aba que a gente já abriu (só é permitido 1 popup por toque/clique nos navegadores mais
+    // estritos), e o navegador bloqueava o popup do Google silenciosamente, sem erro nenhum, deixando
+    // a aba travada em about:blank pra sempre. Em vez disso, pede pra conectar pelo botão certo antes.
+    if(!_gToken){_showCalToast('Conecte ao Google Drive primeiro (botão "Drive" no topo) e tente de novo','err');return;}
     // Sempre confere no servidor se já existe um contrato assinado, mesmo que a flag local
     // "contratoAssinado" esteja falsa — ela só é setada quando a Bruna abre o link de confirmação
     // que a noiva manda; se isso nunca acontece, o assinado de verdade fica só no servidor e o
