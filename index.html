@@ -2403,15 +2403,13 @@ async function saveModal(){
 
 async function salvarContratoDrive(){
   const _b=DATA.find(x=>x.id===editId);
-  // Se a pasta já é conhecida (o normal — ela é criada quando a noiva é cadastrada), abre a aba
-  // JÁ direto nela, na hora do clique, sem esperar nada — é o único jeito realmente confiável em
-  // qualquer navegador/plataforma (inclusive celular). Só cai pro "abre em branco e navega depois"
-  // (menos confiável, mas melhor que nada) se ainda não soubermos a pasta.
-  const knownFolderId=_mDriveFolder||(_b&&_b.driveFolder)||null;
-  const win=knownFolderId
-    ?window.open('https://drive.google.com/drive/folders/'+knownFolderId,'_blank')
-    :window.open('','_blank');
-  let _navigated=!!knownFolderId;
+  // Abre a aba em branco JÁ AQUI, na hora do clique — no celular (e navegadores mais estritos)
+  // window.open só é permitido dentro do mesmo toque. Só navega ela pra pasta no FINAL, depois que
+  // o contrato realmente terminou de subir — se abríssemos direto na pasta antes disso, ela mostraria
+  // a listagem de ANTES do upload (o Drive não atualiza sozinho, e não dá pra recarregar depois uma
+  // aba que já navegou pra outro domínio — bloqueado por segurança do navegador).
+  const win=window.open('','_blank');
+  let _navigated=false;
   const _goto=(fid)=>{if(!_navigated&&fid&&win){win.location.href='https://drive.google.com/drive/folders/'+fid;_navigated=true;}};
 
   // Garante que a aba SEMPRE termina com algum destino ou fechada — antes, qualquer erro no meio
@@ -2436,9 +2434,9 @@ async function salvarContratoDrive(){
     const nome = gv('m-nome').trim()||'Contrato';
     const nomNoiva = gv('m-nome').trim()||'Sem Nome';
     // Buscar (ou criar) a pasta da noiva no Drive — sem pasta, o contrato ia pra raiz e o botão Drive não tinha pra onde abrir
-    let folderId = knownFolderId;
+    let folderId = _mDriveFolder||null;
     if(!folderId){
-      try{folderId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);_mDriveFolder=folderId;syncDriveBtn();_goto(folderId);}catch(e){}
+      try{folderId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);_mDriveFolder=folderId;syncDriveBtn();}catch(e){}
     }
 
     const html_contrato = _buildContratoHTML();
