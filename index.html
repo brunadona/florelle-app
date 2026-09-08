@@ -2796,13 +2796,20 @@ async function _htmlStrToPdfBlob(htmlStr){
     wrap.style.cssText='position:absolute;left:-9999px;top:0;width:700px;z-index:-1';
     wrap.appendChild(pageEl);
     document.body.appendChild(wrap);
-    await new Promise(r=>setTimeout(r,150));
+    // Força um reflow e espera 2 frames de pintura antes de "fotografar" — dá mais estabilidade
+    // ao html2canvas depois da fonte carregar.
+    void wrap.offsetHeight;
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    await new Promise(r=>setTimeout(r,200));
     const RENDER_SCALE=1.5;
-    // Mede a posição do bloco de assinatura ENQUANTO wrap ainda está no documento (offsetTop/offsetHeight
-    // voltam 0 depois de removido) — usado abaixo pra nunca cortar esse bloco entre duas páginas.
-    const assEl=wrap.querySelector('.ass-bloco');
-    let assStartPx=null,assEndPx=null;
-    if(assEl){assStartPx=assEl.offsetTop*RENDER_SCALE;assEndPx=assStartPx+assEl.offsetHeight*RENDER_SCALE;}
+    // Mede a posição de CADA parágrafo/linha/cabeçalho/bloco de assinatura ENQUANTO wrap ainda está
+    // no documento (offsetTop/offsetHeight voltam 0 depois de removido) — usado abaixo pra nunca
+    // cortar nenhum desses elementos no meio entre duas páginas. Sem isso, uma quebra podia cair
+    // bem no meio de uma linha de texto — cortava a linha ao meio numa página e ela reaparecia
+    // (ou parecia reaparecer, por causa da compressão JPEG bem na borda) no topo da próxima,
+    // dando a impressão de conteúdo duplicado/cortado em toda quebra de página.
+    const _protectedEls=Array.from(wrap.querySelectorAll('p, .c, .sec-t, .ass-bloco'));
+    const _protectedSpans=_protectedEls.map(el=>({start:el.offsetTop*RENDER_SCALE,end:(el.offsetTop+el.offsetHeight)*RENDER_SCALE}));
     // (sem windowWidth/width aqui — forçar isso desalinhava a captura com a página real do app
     // ao redor do wrap, cortando a margem esquerda do contrato)
     const rc=await html2canvas(wrap,{
@@ -2813,31 +2820,43 @@ async function _htmlStrToPdfBlob(htmlStr){
     document.getElementById('_sp_st')?.remove();
     // Página com a largura padrão de A4 (595pt) partida em várias páginas de altura A4 também —
     // uma página só, gigante e mais larga que o normal, fazia o visualizador do Drive não encaixar
-    // sem rolar de lado (parecia "cortado"). Se uma quebra cairia no meio do bloco de assinatura,
-    // empurra o bloco inteiro pra próxima página (senão "Assinatura:" fica numa página e a imagem
-    // da assinatura na outra, parecendo contrato sem assinar).
+    // sem rolar de lado (parecia "cortado").
     const {jsPDF}=window.jspdf;
     const pageWpt=595.28,pageHpt=841.89;
-    const pageHpx=Math.floor(pageHpt*(rc.width/pageWpt));
+    // Margem de cima/baixo de cada página impressa — sem isso só a 1ª página (topo do conteúdo) e a
+    // última (fim do conteúdo, com o padding do próprio .page) sobravam espaço; as páginas do meio
+    // ficavam com o texto colado na borda de cima E de baixo (o corte que a Bruna via).
+    const marginPt=36;
+    const ptPerPx=pageWpt/rc.width;
+    const pageHpx=Math.floor((pageHpt-marginPt*2)/ptPerPx);
     const breaks=[];
     let y=0;
     while(y<rc.height){
       let next=Math.min(y+pageHpx,rc.height);
-      if(assStartPx!=null&&next>assStartPx&&next<assEndPx)next=assStartPx;
-      if(next<=y)next=Math.min(y+pageHpx,rc.height);
+      // empurra a quebra pra antes de qualquer elemento que ela cortaria no meio (o elemento
+      // inteiro vai pra próxima página); repete até estabilizar, caso um ajuste esbarre noutro.
+      let changed=true,iter=0;
+      while(changed&&iter<20){
+        changed=false;iter++;
+        for(const sp of _protectedSpans){
+          if(next>sp.start&&next<sp.end&&sp.start>y){next=sp.start;changed=true;}
+        }
+      }
+      if(next<=y)next=Math.min(y+pageHpx,rc.height); // elemento maior que uma página inteira: sem como evitar
       breaks.push(next);
       y=next;
     }
     const pdf=new jsPDF({unit:'pt',format:[pageWpt,pageHpt],orientation:'portrait'});
     let prevY=0;
     breaks.forEach((brk,i)=>{
+      const sh=brk-prevY;
       const slice=document.createElement('canvas');
-      slice.width=rc.width;slice.height=pageHpx;
-      const sctx=slice.getContext('2d');
-      sctx.fillStyle='#e4dcd0';sctx.fillRect(0,0,rc.width,pageHpx);
-      sctx.drawImage(rc,0,prevY,rc.width,brk-prevY,0,0,rc.width,brk-prevY);
+      slice.width=rc.width;slice.height=sh;
+      slice.getContext('2d').drawImage(rc,0,prevY,rc.width,sh,0,0,rc.width,sh);
       if(i>0)pdf.addPage([pageWpt,pageHpt],'portrait');
-      pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',0,0,pageWpt,pageHpt);
+      pdf.setFillColor(228,220,208); // #e4dcd0 — mesma cor de fundo do papel do contrato
+      pdf.rect(0,0,pageWpt,pageHpt,'F');
+      pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',0,marginPt,pageWpt,sh*ptPerPx);
       prevY=brk;
     });
     return pdf.output('blob');
