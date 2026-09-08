@@ -2357,6 +2357,10 @@ async function saveModal(){
     saveInv();updInvBadge();
   }
   const _savedBrideId=editId||newId;
+  if(_pendingWaImages&&_pendingWaImages.length){
+    _saveWaImagesToDrive(_savedBrideId,_pendingWaImages);
+    _pendingWaImages=null;
+  }
   save();closeModal();renderAll();
   // Stage transitions: checklist de entrega + mensagem WPP (funciona no mobile via modal)
   if(_oldEtapa&&rec.etapa!==_oldEtapa){
@@ -5160,17 +5164,25 @@ async function handleAnexoFiles(e){
   st.textContent='';
 }
 
-// Sobe as imagens que a usuária mandou junto da conversa (pra IA analisar) direto
-// pro Drive da noiva, como anexo — antes elas eram usadas só pra análise e descartadas.
-async function _saveWaImagesToDrive(images){
+// Sobe as imagens que a usuária mandou junto da conversa (pra IA analisar) direto pro Drive da
+// noiva, como anexo — antes elas eram usadas só pra análise e descartadas. Recebe o id do registro
+// JÁ SALVO (chamado de saveModal, depois que o id existe de verdade) e anexa direto nele + save(),
+// em vez de mexer no mAnexos da tela — isso evitava perder o anexo se a noiva fosse salva/fechada
+// antes do upload (assíncrono) terminar.
+async function _saveWaImagesToDrive(brideId,images){
   if(!images||!images.length)return;
   try{await _ensureToken();}
   catch(e){_showCalToast('Imagens da conversa não foram enviadas ao Drive: conecte ao Google e adicione manualmente se precisar.','err');return;}
-  const nomNoiva=(gv('m-nome')||'').trim()||'Sem Nome';
+  const b=DATA.find(x=>x.id===brideId);
+  if(!b)return;
+  const nomNoiva=(b.nome||'').trim()||'Sem Nome';
   let ok=0;
   try{
-    const noivId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);
-    if(!_mDriveFolder){_mDriveFolder=noivId;syncDriveBtn();}
+    const noivId=b.driveFolder||await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);
+    if(!b.driveFolder){
+      b.driveFolder=noivId;
+      if(window._curModalId===brideId){_mDriveFolder=noivId;syncDriveBtn();}
+    }
     for(const img of images){
       try{
         const byteChars=atob(img.data);
@@ -5185,11 +5197,14 @@ async function _saveWaImagesToDrive(images){
         });
         if(!up.ok)continue;
         const drv=await up.json();
-        mAnexos.push({id:uid(),nome:drv.name,url:drv.webViewLink,driveId:drv.id||null,mimeType:img.mediaType||'',addedAt:Date.now()});
+        const bNow=DATA.find(x=>x.id===brideId);
+        if(!bNow)continue;
+        (bNow.anexos=bNow.anexos||[]).push({id:uid(),nome:drv.name,url:drv.webViewLink,driveId:drv.id||null,mimeType:img.mediaType||'',addedAt:Date.now()});
+        if(window._curModalId===brideId){mAnexos.push(bNow.anexos[bNow.anexos.length-1]);renderAnexos();}
         ok++;
       }catch(e){}
     }
-    if(ok){renderAnexos();_showCalToast('📎 '+ok+' imagem(ns) da conversa salva(s) no Drive.');}
+    if(ok){save();_showCalToast('📎 '+ok+' imagem(ns) da conversa salva(s) no Drive.');}
     else if(images.length){_showCalToast('Não foi possível salvar as imagens da conversa no Drive.','err');}
   }catch(e){_showCalToast('Falha ao salvar imagens da conversa no Drive.','err');}
 }
@@ -5654,6 +5669,10 @@ function waLoadFile(input){
 }
 
 let _waImages=[];
+// Imagens da conversa esperando a noiva ser salva, pra saber em qual registro (id estável) anexar —
+// subir direto pro mAnexos da tela dava corrida: se a noiva era salva antes do upload terminar,
+// closeModal() zerava mAnexos e a imagem já enviada ao Drive se perdia do registro.
+let _pendingWaImages=null;
 
 function waAddImages(input){
   const MAX=4;
@@ -5801,7 +5820,10 @@ async function waAnalyze(){
       if(g('bdup'))g('bdup').classList.add('hidden');
     }
     g('ov').classList.remove('hidden');
-    if(_capturedWaImages.length)_saveWaImagesToDrive(_capturedWaImages);
+    // Só sobe as imagens pro Drive depois que a noiva for salva (saveModal chama isso) — antes disso
+    // não existe um id estável pra anexar, e subir na hora corria risco de perder o anexo se ela
+    // salvasse rápido (ver comentário perto de _pendingWaImages).
+    if(_capturedWaImages.length)_pendingWaImages=_capturedWaImages;
     // destaca campo de telefone se ficou vazio (contato salvo no WhatsApp)
     setTimeout(()=>{
       const tel=g('m-tel');
