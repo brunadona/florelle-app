@@ -1561,10 +1561,25 @@ function _migratePagIds(){
   if(changed)save();
 }
 function save(){
-  try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));}
-  catch(e){if(e.name==='QuotaExceededError')alert('Armazenamento local cheio. Remova alguns anexos para continuar salvando.');}
+  if(!_persistData()){
+    // localStorage cheio. O maior gasto é o backup local (florelle_v3_history) e os
+    // dados reais também vão pro Drive/nuvem, então dá pra enxugar sem risco.
+    // Libera espaço em etapas, do menos destrutivo pro mais, até o save passar.
+    try{const h=_historyLoad();localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(-5)));}catch{}
+    if(!_persistData()){
+      try{localStorage.removeItem(HISTORY_KEY);}catch{}
+      // tira imagens em base64 de anexos antigos que já têm link do Drive
+      DATA.forEach(b=>(b.anexos||[]).forEach(a=>{if(a.url&&(a.data||a.dataUrl)){delete a.data;delete a.dataUrl;}}));
+      if(!_persistData())
+        alert('O armazenamento deste navegador está cheio. Seus dados estão salvos no Google Drive — recarregue a página ou limpe os dados do site neste aparelho.');
+    }
+  }
   _pushHistorySnapshot(DATA);
   _queueCloudSync();
+}
+function _persistData(){
+  try{localStorage.setItem('florelle_v3',JSON.stringify(DATA));return true;}
+  catch(e){console.warn('Falha ao salvar:',e);return false;}
 }
 
 /* ── UTILS ───────────────────────────────────── */
@@ -5333,7 +5348,8 @@ async function _cloudInit(){
    um ponto de restauração. Não é um backup único: é uma lista com os últimos
    pontos, pra nunca depender de "só sobrou uma cópia". */
 const HISTORY_KEY='florelle_v3_history';
-const HISTORY_MAX=30;
+const HISTORY_MAX=10;
+const HISTORY_MAX_BYTES=1500000; // teto de ~1.5MB pro backup local não estourar a cota do navegador
 function _historyLoad(){
   try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');}catch{return[];}
 }
@@ -5358,7 +5374,9 @@ function _pushHistorySnapshot(current,force){
       inv:JSON.parse(JSON.stringify((typeof INV!=='undefined'&&INV)||[]))
     });
     while(hist.length>HISTORY_MAX)hist.shift();
-    localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));
+    let s=JSON.stringify(hist);
+    while(hist.length>1&&s.length>HISTORY_MAX_BYTES){hist.shift();s=JSON.stringify(hist);}
+    localStorage.setItem(HISTORY_KEY,s);
   }catch{}
 }
 function _restaurarBackup(){
