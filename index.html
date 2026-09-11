@@ -2440,7 +2440,7 @@ async function salvarContratoDrive(opts){
     // do rascunho.
     const signedBlob=await _uploadContratoAssinadoDrive(_b,true);
     if(signedBlob){
-      if(!_b.contratoAssinado){_b.contratoAssinado=true;save();renderAll();}
+      if(_marcarContratoAssinado(_b)){save();renderAll();}
       if(!silent)_showCalToast('📄 Contrato assinado salvo no Drive ✓');
       return;
     }
@@ -2906,11 +2906,20 @@ async function _sigConfirm(){
     const signedHtmlStr='<!DOCTYPE html>'+doc2.documentElement.outerHTML;
 
     // 3. Salvar HTML no servidor para acesso futuro pelo app da Bruna (fire-and-forget)
+    const _tsAssin=Date.now();
     if(p.brideId){
       fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(p.brideId),{
         method:'POST',headers:_wkHeaders({'Content-Type':'application/json'}),
         body:JSON.stringify({html:signedHtmlStr})
       }).catch(e=>console.warn('Falha ao salvar contrato no KV:',e));
+      // 3.1 Registra a assinatura como pendente de confirmação JÁ AGORA, sem depender da noiva
+      // apertar "Notificar pelo WhatsApp" nem da Bruna abrir esse link. O app da Bruna consome
+      // /pending-confirms sozinho toda vez que abre — é isso que faz o contrato assinado
+      // aparecer automático no sistema, mesmo se a noiva nunca mandar a confirmação.
+      fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
+        method:'POST',headers:_wkHeaders({'Content-Type':'application/json'}),
+        body:JSON.stringify({brideId:p.brideId,ts:_tsAssin,nome:p.nome||''})
+      }).catch(e=>console.warn('Falha ao registrar confirmação pendente:',e));
     }
 
     // 4. Tentar gerar PDF via html2canvas; se falhar usa HTML diretamente
@@ -2929,7 +2938,7 @@ async function _sigConfirm(){
     setTimeout(()=>URL.revokeObjectURL(dlUrl),30000);
 
     // Montar URL de confirmação para o app da Bruna
-    const ts=Date.now();
+    const ts=_tsAssin;
     const brideId=encodeURIComponent(p.brideId||'');
     const nomeEnc=encodeURIComponent(p.nome||'');
     const confirmUrl='https://brunadona.github.io/florelle-app/?signed='+brideId+'&ts='+ts+'&nome='+nomeEnc;
@@ -3011,18 +3020,28 @@ async function _notifyBrunaWpp(wpp,msg){
   window.open('https://wa.me/55'+wpp+'?text='+msg,'_blank');
 }
 
+// Marca o contrato como assinado (flag + data + avança a etapa no pipeline pra "Contrato
+// assinado") sempre do MESMO jeito, não importa quem descobriu a assinatura — link de
+// confirmação, pending-confirms no boot, ou o reenvio manual. Um só lugar garante que o
+// card sempre muda de coluna quando o contrato é detectado, em vez de só marcar uma flag
+// interna que ninguém vê no Kanban. Devolve false se já estava marcada (nada a fazer).
+function _marcarContratoAssinado(b,ts){
+  if(b.contratoAssinado)return false;
+  b.contratoAssinado=true;
+  b.contratoAssinadoEm=ts||Date.now();
+  const PIPE=['lead','retomar','contratoEnviado','contratoAssinado','reserva','secagem','montagem','embalado','entregue'];
+  const cur=PIPE.indexOf(b.etapa);
+  const tgt=PIPE.indexOf('contratoAssinado');
+  if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
+  return true;
+}
+
 async function _handleSignedConfirmation(brideId,ts,nome){
   const b=DATA.find(x=>x.id===brideId);
   const tsNum=parseInt(ts);
   const dt=ts&&!isNaN(tsNum)?new Date(tsNum).toLocaleString('pt-BR'):'';
   if(b){
-    b.contratoAssinado=true;
-    b.contratoAssinadoEm=ts;
-    // Avança a etapa para "Contrato assinado" se ainda não passou
-    const PIPE=['lead','retomar','contratoEnviado','contratoAssinado','reserva','secagem','montagem','embalado','entregue'];
-    const cur=PIPE.indexOf(b.etapa);
-    const tgt=PIPE.indexOf('contratoAssinado');
-    if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
+    _marcarContratoAssinado(b,ts);
     save();renderAll();
     // Upload automático para o Drive — agora ou assim que o Google conectar (_syncContratosDrive
     // roda de novo no próximo boot / login e reenvia o que não subiu).
@@ -3113,7 +3132,7 @@ async function _reuploadContratosAssinados(){
       const r=await _comTeto(fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()}),12000);
       const j=await r.json();
       if(j.html){
-        if(!b.contratoAssinado){b.contratoAssinado=true;save();renderAll();}
+        if(_marcarContratoAssinado(b)){save();renderAll();}
         await _comTeto(_uploadContratoAssinadoDrive(b,true),20000);
         ok++;
       }
@@ -6405,16 +6424,10 @@ async function _processPendingConfirms(){
     if(!confirms||!confirms.length)return;
     let changed=false;
     const unprocessed=[];
-    const PIPE=['lead','retomar','contratoEnviado','contratoAssinado','reserva','secagem','montagem','embalado','entregue'];
     for(const c of confirms){
       const b=DATA.find(x=>x.id===c.brideId);
       if(!b){unprocessed.push(c);continue;}
-      if(b.contratoAssinado)continue;
-      b.contratoAssinado=true;
-      b.contratoAssinadoEm=c.ts;
-      const cur=PIPE.indexOf(b.etapa);
-      const tgt=PIPE.indexOf('contratoAssinado');
-      if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
+      if(!_marcarContratoAssinado(b,c.ts))continue;
       b._ctrtDriveOk=false; // garante que _syncContratosDrive vai subir esse
       if(_gToken)_uploadContratoAssinadoDrive(b,true).catch(()=>{});
       changed=true;
