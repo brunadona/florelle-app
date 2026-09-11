@@ -1358,6 +1358,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         Abrir pasta no Drive
       </a>
       <p class="anx-hint" style="margin-top:6px;font-size:10.5px">Salvo em <strong>FLORELLE - NOIVAS / [nome da noiva]</strong></p>
+      <p class="anx-hint" style="margin-top:8px"><a href="javascript:void(0)" onclick="_marcarAssinadoManual()" style="font-size:10.5px;color:var(--txl);text-decoration:underline">Noiva já assinou e não apareceu sozinho? Marcar manualmente</a></p>
     </div>
    </div><!-- /mcol-r -->
   </div><!-- /mbdy-cols -->
@@ -2952,27 +2953,36 @@ async function _sigConfirm(){
     doc2.body.appendChild(printBtn2);
     const signedHtmlStr='<!DOCTYPE html>'+doc2.documentElement.outerHTML;
 
-    // 3. Salvar HTML no servidor para acesso futuro pelo app da Bruna (fire-and-forget)
+    // 3. Salvar HTML no servidor + registrar confirmação pendente — com retry, e ESPERANDO
+    // terminar antes de dizer "assinado" pra noiva. Antes eram fire-and-forget: se a rede do
+    // celular dela falhasse bem nesse instante, o contrato nunca chegava no servidor e sumia
+    // pra sempre — nada pra "Reenviar contratos assinados" reenviar depois, porque nunca
+    // existiu do lado de lá.
     const _tsAssin=Date.now();
+    let _kvPromise=Promise.resolve(null),_pcPromise=Promise.resolve(null);
     if(p.brideId){
-      fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(p.brideId),{
+      _kvPromise=_fetchComRetry('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(p.brideId),{
         method:'POST',headers:_wkHeaders({'Content-Type':'application/json'}),
         body:JSON.stringify({html:signedHtmlStr})
-      }).catch(e=>console.warn('Falha ao salvar contrato no KV:',e));
+      }).catch(e=>{console.warn('Falha ao salvar contrato no KV:',e);return null;});
       // 3.1 Registra a assinatura como pendente de confirmação JÁ AGORA, sem depender da noiva
       // apertar "Notificar pelo WhatsApp" nem da Bruna abrir esse link. O app da Bruna consome
       // /pending-confirms sozinho toda vez que abre — é isso que faz o contrato assinado
       // aparecer automático no sistema, mesmo se a noiva nunca mandar a confirmação.
-      fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
+      _pcPromise=_fetchComRetry('https://florelle.brunadonaa.workers.dev/pending-confirm',{
         method:'POST',headers:_wkHeaders({'Content-Type':'application/json'}),
         body:JSON.stringify({brideId:p.brideId,ts:_tsAssin,nome:p.nome||''})
-      }).catch(e=>console.warn('Falha ao registrar confirmação pendente:',e));
+      }).catch(e=>{console.warn('Falha ao registrar confirmação pendente:',e);return null;});
     }
 
-    // 4. Tentar gerar PDF via html2canvas; se falhar usa HTML diretamente
+    // 4. Tentar gerar PDF via html2canvas (roda em paralelo com o salvamento acima); se falhar usa HTML diretamente
     let fileBlob=await _htmlStrToPdfBlob(signedHtmlStr);
     let isPdf=!!fileBlob;
     if(!fileBlob)fileBlob=new Blob([signedHtmlStr],{type:'text/html'});
+
+    // Só decide o que mostrar pra noiva depois de saber se o registro no servidor deu certo.
+    const [_kvRes,_pcRes]=await Promise.all([_kvPromise,_pcPromise]);
+    const _registradoOk=!!(_kvRes||_pcRes);
 
     const nomeLimpo=(p.nome||'').replace(/\s+/g,'_');
     window._signedPdfBlob=fileBlob;
@@ -3012,6 +3022,7 @@ async function _sigConfirm(){
     O ${fileType} foi salvo no seu dispositivo.<br>
     Agora notifique a Florelle pelo WhatsApp.${extraTip}
   </p>
+  ${_registradoOk?'':`<p style="background:#FEEDEA;color:#B03420;font-size:12.5px;line-height:1.5;margin:0;padding:10px 12px;border-radius:8px;max-width:320px">⚠️ Sem conexão no momento — não deu pra avisar a Florelle automaticamente. É <b>muito importante</b> tocar no botão abaixo pra ela saber que você assinou.</p>`}
   ${brunaWpp?`<button onclick="_notifyBrunaWpp('${brunaWpp}','${wppMsg}')" style="display:block;width:100%;max-width:320px;padding:14px 20px;border-radius:9px;background:#25d366;color:#fff;border:none;font-size:16px;cursor:pointer;font-family:inherit;font-weight:600">
     💬 Notificar + Enviar ${fileType} pelo WhatsApp
   </button>`:`<p style="color:#aaa;font-size:13px;margin:0">Envie o ${fileType} para a Florelle pelo WhatsApp.</p>`}
@@ -3081,6 +3092,23 @@ function _marcarContratoAssinado(b,ts){
   const tgt=PIPE.indexOf('contratoAssinado');
   if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
   return true;
+}
+
+// Válvula de escape: mesmo com o resto tudo automático, uma rede ruim no celular da noiva no
+// instante exato da assinatura pode fazer o registro nunca chegar no servidor (nada pra
+// "Reenviar contratos assinados" reenviar, porque nunca existiu do lado de lá). Nesse caso a
+// Bruna sabe (a noiva avisou, mandou o PDF por fora) e só precisa que o card mude de coluna.
+function _marcarAssinadoManual(){
+  if(!editId){alert('Salve a noiva antes de marcar o contrato como assinado.');return;}
+  const b=DATA.find(x=>x.id===editId);if(!b)return;
+  if(b.contratoAssinado){_showCalToast('Já estava marcado como assinado.');return;}
+  if(!confirm('Marcar o contrato de '+_nomeDisp(b)+' como assinado?\n\nUse isso só se a assinatura não apareceu sozinha (ex: a noiva confirmou por fora do sistema) — o Drive não vai ter o PDF assinado, então anexe ele manualmente se tiver.'))return;
+  _marcarContratoAssinado(b);
+  save();renderAll();
+  // Reflete a etapa de verdade (uma noiva que já passou de "contrato assinado", tipo secagem,
+  // não deve voltar pra trás — _marcarContratoAssinado só avança quando faz sentido).
+  sv2('m-etapa',b.etapa);_renderPipelineBar(b.etapa);
+  _showCalToast('✅ Contrato marcado como assinado.');
 }
 
 async function _handleSignedConfirmation(brideId,ts,nome){
@@ -5363,6 +5391,22 @@ const _WK='https://florelle.brunadonaa.workers.dev';
 // Worker. Precisa bater com a variável APP_SECRET configurada no Cloudflare.
 const _APP_SECRET='y4Rcc02jn7jxH0xuJ1SH5gQbNaSbuTWqHdJDhZNT0ZQ';
 function _wkHeaders(extra){return{...( extra||{}),'X-App-Secret':_APP_SECRET};}
+// Tenta uma requisição algumas vezes com espera crescente antes de desistir. Usado nos
+// registros da assinatura (contrato + pending-confirm): uma rede instável no celular da noiva
+// bem naquele instante não pode ser motivo do contrato assinado nunca chegar no servidor.
+async function _fetchComRetry(url,opts,tentativas){
+  const max=tentativas||3;
+  let lastErr;
+  for(let i=0;i<max;i++){
+    try{
+      const r=await fetch(url,opts);
+      if(r.ok)return r;
+      lastErr=new Error('HTTP '+r.status);
+    }catch(e){lastErr=e;}
+    if(i<max-1)await new Promise(res=>setTimeout(res,800*(i+1)));
+  }
+  throw lastErr;
+}
 let _cloudTimer=null;
 // _pendingPush e _dataVersion ficam salvos no localStorage, não só em memória —
 // se o app for fechado antes do envio (ex: 2 segundos de debounce não completaram),
