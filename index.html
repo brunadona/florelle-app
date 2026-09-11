@@ -3102,17 +3102,24 @@ async function _reuploadContratosAssinados(){
   }
   if(!DATA.length){_showCalToast('Nenhuma noiva cadastrada.');return;}
   _showCalToast('Verificando contrato assinado de '+DATA.length+' noiva(s) no servidor...');
-  let ok=0,semContrato=0;
+  // Teto por noiva: sem isso, uma trava em QUALQUER ponto (rede caiu, token expirou no meio
+  // de 101 noivas...) parava o processo inteiro sem aviso nenhum, e "verificando" ficava
+  // escrito na tela pra sempre.
+  const _comTeto=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('demorou demais')),ms))]);
+  let ok=0,checado=0;
   for(const b of DATA){
+    checado++;
     try{
-      const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()});
+      const r=await _comTeto(fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()}),12000);
       const j=await r.json();
       if(j.html){
         if(!b.contratoAssinado){b.contratoAssinado=true;save();renderAll();}
-        await _uploadContratoAssinadoDrive(b,true);
+        await _comTeto(_uploadContratoAssinadoDrive(b,true),20000);
         ok++;
-      }else{semContrato++;}
+      }
     }catch(e){}
+    if(checado%15===0||checado===DATA.length)
+      _showCalToast(`Verificando... ${checado}/${DATA.length} (${ok} salvo${ok===1?'':'s'} até agora)`);
   }
   _showCalToast(ok?`Reenvio concluído: ${ok} contrato(s) salvo(s) no Drive`:'Nenhum contrato assinado encontrado no servidor.');
 }
@@ -5077,7 +5084,13 @@ async function _ensureToken(){
 function _silentReauth(){
   return new Promise((resolve,reject)=>{
     if(!_initGClient()){reject(new Error('Google ainda não carregou.'));return;}
+    // O callback do GIS às vezes nunca chega (iframe silencioso bloqueado, sem 3rd-party
+    // cookies, etc) — sem um teto isso deixava _drvFetch (e qualquer upload no Drive)
+    // travado pra sempre nessa chamada, parecendo que o app simplesmente "parou".
+    let done=false;
+    const timer=setTimeout(()=>{if(!done){done=true;reject(new Error('Reautenticação silenciosa demorou demais.'));}},8000);
     _gClient.callback=(r)=>{
+      if(done)return;done=true;clearTimeout(timer);
       if(r.error){reject(new Error(r.error_description||r.error));return;}
       _gToken=r.access_token;resolve(_gToken);
     };
