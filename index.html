@@ -3200,22 +3200,35 @@ async function _reuploadContratosAssinados(){
   // de 101 noivas...) parava o processo inteiro sem aviso nenhum, e "verificando" ficava
   // escrito na tela pra sempre.
   const _comTeto=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('demorou demais')),ms))]);
+  const PIPE=['lead','retomar','contratoEnviado','contratoAssinado','reserva','secagem','montagem','embalado','entregue'];
+  const idxContratoEnviado=PIPE.indexOf('contratoEnviado');
   let ok=0,checado=0;
+  const corrigidas=[],semRegistro=[];
   for(const b of DATA){
     checado++;
+    const jaEstava=b.contratoAssinado;
     try{
       const r=await _comTeto(fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()}),12000);
       const j=await r.json();
       if(j.html){
-        if(_marcarContratoAssinado(b)){save();renderAll();}
+        const corrigiu=_marcarContratoAssinado(b);
+        if(corrigiu){save();renderAll();corrigidas.push(_nomeDisp(b));}
         await _comTeto(_uploadContratoAssinadoDrive(b,true),20000);
         ok++;
+      } else if(!jaEstava && PIPE.indexOf(b.etapa)>=idxContratoEnviado){
+        // Contrato já foi enviado pra essa noiva (não é só um lead) e não tem assinatura em
+        // lugar nenhum — só reporta se de fato já passou dessa fase, senão toda noiva que
+        // ainda nem recebeu contrato apareceria aqui como "problema".
+        semRegistro.push(_nomeDisp(b));
       }
     }catch(e){}
     if(checado%15===0||checado===DATA.length)
       _showCalToast(`Verificando... ${checado}/${DATA.length} (${ok} salvo${ok===1?'':'s'} até agora)`);
   }
-  _showCalToast(ok?`Reenvio concluído: ${ok} contrato(s) salvo(s) no Drive`:'Nenhum contrato assinado encontrado no servidor.');
+  let msg=ok?`Reenvio concluído: ${ok} contrato(s) salvo(s) no Drive`:'Nenhum contrato assinado encontrado no servidor.';
+  if(corrigidas.length)msg+='\n\n✅ Corrigidas agora (tinham assinatura no servidor mas não estavam marcadas):\n• '+corrigidas.join('\n• ');
+  if(semRegistro.length)msg+='\n\n⚠️ SEM registro nenhum no servidor (a assinatura nunca chegou lá — use "Marcar manualmente" no card, no painel Arquivos, ou peça pra assinar de novo):\n• '+semRegistro.join('\n• ');
+  alert(msg);
 }
 
 function _contratoHTMLStr(p){
