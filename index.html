@@ -3091,23 +3091,30 @@ async function _uploadContratoAssinadoDrive(b,silentIfMissing){
   }
 }
 
-// Reenvia pro Drive o contrato assinado de todas as noivas (corrige uploads que falharam silenciosamente)
+// Reenvia pro Drive o contrato assinado de todas as noivas (corrige uploads que falharam silenciosamente).
+// Confere no SERVIDOR pra cada noiva, não só nas que já têm a flag local "contratoAssinado" — essa
+// flag só é setada quando a Bruna abre o link de confirmação (ou o pending-confirms pega no boot);
+// se isso nunca aconteceu numa noiva, o assinado de verdade fica só no servidor e essa noiva era
+// pulada aqui, mesmo tendo contrato assinado pra valer. É por isso que "só reenviou 2, tem mais".
 async function _reuploadContratosAssinados(){
   if(!_gToken){
     try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');return;}
   }
-  const noivas=DATA.filter(b=>b.contratoAssinado);
-  if(!noivas.length){_showCalToast('Nenhuma noiva com contrato assinado.');return;}
-  _showCalToast('Reenviando '+noivas.length+' contrato(s) pro Drive...');
-  let ok=0,falhou=0;
-  for(const b of noivas){
+  if(!DATA.length){_showCalToast('Nenhuma noiva cadastrada.');return;}
+  _showCalToast('Verificando contrato assinado de '+DATA.length+' noiva(s) no servidor...');
+  let ok=0,semContrato=0;
+  for(const b of DATA){
     try{
       const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()});
       const j=await r.json();
-      if(j.html){await _uploadContratoAssinadoDrive(b);ok++;}else{falhou++;}
-    }catch(e){falhou++;}
+      if(j.html){
+        if(!b.contratoAssinado){b.contratoAssinado=true;save();renderAll();}
+        await _uploadContratoAssinadoDrive(b,true);
+        ok++;
+      }else{semContrato++;}
+    }catch(e){}
   }
-  _showCalToast(`Reenvio concluído: ${ok} salvo(s)`+(falhou?`, ${falhou} sem contrato no servidor`:''));
+  _showCalToast(ok?`Reenvio concluído: ${ok} contrato(s) salvo(s) no Drive`:'Nenhum contrato assinado encontrado no servidor.');
 }
 
 function _contratoHTMLStr(p){
