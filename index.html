@@ -2170,6 +2170,16 @@ function _produtosDaNoiva(b){
   if((b.produto||'')==='multiplos')return b.multiplosItens||[];
   return [b.produto||''];
 }
+// Quantas vezes um item do estoque é usado no pedido, dada a lista de produtos do pedido
+// (_produtosDaNoiva ou o equivalente lido do form). Item específico de produto (redoma,
+// moldura, isopor): 1x por produto do combo que usa esse item. Item comum (cola, verniz,
+// inseticida...): 1x por PEÇA do combo — um combo de 2 peças gasta o dobro de acabamento.
+// Exceção: Sílica seca as peças do combo no mesmo lote, então conta 1x sempre (não por peça).
+function _qtdUsosItem(item,produtos){
+  if(item.porProduto)return item.porProduto.filter(p=>produtos.includes(p)).length;
+  if(item.nome==='Sílica')return produtos.length?1:0;
+  return produtos.length;
+}
 
 /* ── SYNC AUTO REMINDERS (tempo real) ────────── */
 function syncAutoRems(){
@@ -4179,16 +4189,10 @@ function calcCustoBuque(produto,redomaOverride,subprodutos){
   let total = CUSTOS_VARIAVEIS;
   INV.forEach(item=>{
     if(item.nome==='Custos variáveis') return;
-    if(item.porProduto){
-      // Cada alvo do combo que usa esse item consome sua própria unidade (cúpula + mini
-      // cúpula = 2 bolas de isopor, mesmo as duas usando a mesma linha de estoque).
-      const usos=item.porProduto.filter(p=>alvos.includes(p)).length;
-      if(!usos)return;
-      const preco=(redomaOverride!=null&&item.nome==='Redoma sob medida')?redomaOverride:(item.precoUnit||0);
-      total += (item.consumo||0) * preco * usos;
-      return;
-    }
-    total += (item.consumo||0) * (item.precoUnit||0);
+    const usos=_qtdUsosItem(item,alvos);
+    if(!usos)return;
+    const preco=(redomaOverride!=null&&item.nome==='Redoma sob medida')?redomaOverride:(item.precoUnit||0);
+    total += (item.consumo||0) * preco * usos;
   });
   return total;
 }
@@ -4207,10 +4211,9 @@ function _invNoivasQueUsam(item){
   let ativas=DATA.filter(b=>etapas.includes(b.etapa));
   // Embalagem já "em mãos" foi descontada do qtdAtual — não conta como necessidade
   if(etapa==='embalagem') ativas=ativas.filter(b=>(b.statusEmbalagem||'naoEncomendada')!=='emMaos');
-  if(!item.porProduto) return ativas.length;
-  // Soma quantos produtos do pedido de cada noiva usam esse item — não só quantas noivas
-  // (um combo "Múltiplos" com cúpula + mini cúpula precisa de 2 redomas, não 1).
-  return ativas.reduce((n,b)=>n+_produtosDaNoiva(b).filter(p=>item.porProduto.includes(p)).length,0);
+  // Soma quantas vezes cada noiva usa esse item — não só quantas noivas (um combo "Múltiplos"
+  // com cúpula + mini cúpula precisa de 2 redomas e o dobro de material comum, não 1).
+  return ativas.reduce((n,b)=>n+_qtdUsosItem(item,_produtosDaNoiva(b)),0);
 }
 
 // Retorna o custo de compra para repor o item (baseado na unidade de venda)
@@ -4253,11 +4256,8 @@ function _listaComprasNoiva(b){
   const redomaOk = (b.redomaStatus||'naoEncomendada') === 'emMaos';
   const embOk    = (b.statusEmbalagem||'naoEncomendada') === 'emMaos';
   return INV.map(item=>{
-    let qtd=1;
-    if(item.porProduto){
-      qtd=produtos.filter(p=>item.porProduto.includes(p)).length; // combo pode precisar de 2+ (cúpula + mini cúpula)
-      if(!qtd)return null;
-    }
+    const qtd=_qtdUsosItem(item,produtos);
+    if(!qtd)return null;
     const nmLow = item.nome.toLowerCase();
     let jaEmMaos = false;
     if(nmLow.startsWith('redoma') || nmLow.startsWith('cúpula') || nmLow.startsWith('cupula')) jaEmMaos = redomaOk;
@@ -6003,11 +6003,8 @@ function _deductInvForBride(b){
     if((item.etapaConsumo||'montagem')==='secagem')return;
     // Embalagem é descontada via statusEmbalagem='emMaos' no saveModal
     if((item.etapaConsumo||'montagem')==='embalagem')return;
-    let qtd=1;
-    if(item.porProduto){
-      qtd=produtos.filter(p=>item.porProduto.includes(p)).length; // combo: pode gastar 2+ unidades
-      if(!qtd)return;
-    }
+    const qtd=_qtdUsosItem(item,produtos);
+    if(!qtd)return;
     const c=Number(item.consumo||0)*qtd;if(!c)return;
     item.qtdAtual=Math.max(0,Number(item.qtdAtual||0)-c);
     item.historico=item.historico||[];
