@@ -1355,7 +1355,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="fr-ctrt">
         <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
         <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲 WhatsApp</button>
-        <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Salva o contrato (assinado, se já tiver) no Drive — depois clique em 'Abrir pasta no Drive' pra ver">☁️ Drive</button>
+        <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Abre a pasta da noiva no Drive e salva lá o contrato (assinado, se já tiver)">☁️ Drive</button>
         <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️ Assinar</button>
       </div>
       <button class="bsav" onclick="saveModal()">Salvar</button>
@@ -2409,61 +2409,59 @@ async function saveModal(){
   // Auto-create Drive folder for new brides
   if(isNew&&newId){
     if(_gToken){
-      _autoCreateBrideFolder(newId, nome, rec.dataCasamento);
+      _autoCreateBrideFolder(newId);
     } else {
       _flashSyncBtn('Conecte ao Drive para criar a pasta de '+nome);
     }
   }
 }
 
-async function salvarContratoDrive(){
-  // Não abre nenhuma aba/janela sozinho — window.open() por script depende de coisas fora do
-  // nosso controle (bloqueio de popup no celular, o popup de login do Google competindo pela
-  // mesma permissão, extensões/sessões de automação no navegador...), e sempre que uma dessas
-  // interfere a aba fica travada em about:blank. Em vez disso, sobe o contrato e deixa o link
-  // "Abrir pasta no Drive" (que já existe na tela) pronto — a Bruna clica nele quando quiser, o
-  // que é um clique de verdade dela e nunca é bloqueado por nada disso.
+async function salvarContratoDrive(opts){
+  // opts.silent = chamada automática (do gerarContrato). Sem silent = clique no botão ☁️ Drive.
+  const silent=opts&&opts.silent===true;
   const _b=DATA.find(x=>x.id===editId);
+
+  // No CLIQUE: abre o Drive AGORA, sincronamente, enquanto ainda é o gesto dela. Depois de
+  // qualquer await o navegador bloqueia abrir aba nova (principalmente no celular). URL real
+  // (não about:blank) — se já sabemos a pasta abre nela, senão abre a busca pelo nome.
+  if(!silent){
+    const nm=((_b&&_b.nome)||gv('m-nome')||'').trim();
+    const url=_b&&_b.driveFolder
+      ? 'https://drive.google.com/drive/folders/'+_b.driveFolder
+      : 'https://drive.google.com/drive/search?q='+encodeURIComponent(nm);
+    window.open(url,'_blank');
+  }
+
   try{
     if(!_gToken){
+      if(silent)return; // gerarContrato: sem Google conectado agora, não incomoda — o assinado sobe depois
       try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');return;}
     }
-    // Sempre confere no servidor se já existe um contrato assinado, mesmo que a flag local
-    // "contratoAssinado" esteja falsa — ela só é setada quando a Bruna abre o link de confirmação
-    // que a noiva manda; se isso nunca acontece, o assinado de verdade fica só no servidor e o
-    // rascunho (sem assinatura nenhuma) era subido no lugar dele por engano.
-    if(_b){
-      const signedBlob=await _uploadContratoAssinadoDrive(_b,true);
-      if(signedBlob){
-        if(!_b.contratoAssinado){_b.contratoAssinado=true;save();renderAll();}
-        _showCalToast('📄 Contrato salvo no Drive ✓ — clique em "Abrir pasta no Drive" pra ver');
-        return;
-      }
-    }
-    const nome = gv('m-nome').trim()||'Contrato';
-    const nomNoiva = gv('m-nome').trim()||'Sem Nome';
-    // Buscar (ou criar) a pasta da noiva no Drive — sem pasta, o contrato ia pra raiz e o botão Drive não tinha pra onde abrir
-    let folderId = _mDriveFolder||null;
-    if(!folderId){
-      try{folderId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);_mDriveFolder=folderId;syncDriveBtn();}catch(e){}
+    if(!_b){if(!silent)alert('Salve a noiva antes de salvar o contrato.');return;}
+
+    // Confere no servidor se já tem contrato ASSINADO — mesmo que a flag local esteja falsa
+    // (ela só é setada quando a Bruna abre o link de confirmação). O assinado sempre ganha
+    // do rascunho.
+    const signedBlob=await _uploadContratoAssinadoDrive(_b,true);
+    if(signedBlob){
+      if(!_b.contratoAssinado){_b.contratoAssinado=true;save();renderAll();}
+      if(!silent)_showCalToast('📄 Contrato assinado salvo no Drive ✓');
+      return;
     }
 
-    const html_contrato = _buildContratoHTML();
-    if(!html_contrato){alert('Preencha os dados da noiva antes de salvar o contrato.');return;}
-
-    _showCalToast('Salvando contrato no Drive...');
-
+    // Sem assinatura ainda: sobe o rascunho.
+    const html_contrato=_buildContratoHTML();
+    if(!html_contrato){if(!silent)alert('Preencha os dados da noiva antes de salvar o contrato.');return;}
+    const folderId=await _ensureBrideFolder(_b);
+    if(!silent)_showCalToast('Salvando contrato no Drive...');
     const pdfBlob=await _htmlStrToPdfBlob(html_contrato);
     const blob=pdfBlob||new Blob([html_contrato],{type:'text/html'});
-    const fname=`Contrato — ${nome}`+(pdfBlob?'.pdf':'.html');
-    const r = await _driveUpsertFile(fname,folderId,blob,pdfBlob?'application/pdf':'text/html');
-    if(r.ok){
-      setTimeout(()=>_showCalToast('📄 Contrato salvo no Drive ✓ — clique em "Abrir pasta no Drive" pra ver'),200);
-    } else {
-      throw new Error('Erro ao salvar: '+r.status);
-    }
+    const fname=`Contrato — ${(_b.nome||'Sem Nome').replace(/[/\\?*:|"<>]/g,'')}`+(pdfBlob?'.pdf':'.html');
+    const r=await _driveUpsertFile(fname,folderId,blob,pdfBlob?'application/pdf':'text/html');
+    if(!r.ok)throw new Error('Erro ao salvar: '+r.status);
+    if(!silent)setTimeout(()=>_showCalToast('📄 Contrato salvo no Drive ✓'),200);
   }catch(e){
-    _showCalToast('Erro ao salvar no Drive: '+e.message,'err');
+    if(!silent)_showCalToast('Erro ao salvar no Drive: '+e.message,'err');
   }
 }
 
@@ -3030,8 +3028,9 @@ async function _handleSignedConfirmation(brideId,ts,nome){
     const tgt=PIPE.indexOf('contratoAssinado');
     if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
     save();renderAll();
-    // Upload automático para o Drive (fire-and-forget, só se já autenticado)
-    _uploadContratoAssinadoDrive(b).catch(e=>console.warn('Upload Drive:',e));
+    // Upload automático para o Drive — agora ou assim que o Google conectar (_syncContratosDrive
+    // roda de novo no próximo boot / login e reenvia o que não subiu).
+    if(_gToken)_uploadContratoAssinadoDrive(b,true).catch(e=>console.warn('Upload Drive:',e));
     setTimeout(()=>{alert('✅ Contrato assinado!\n\n'+(b.nome||nome)+' assinou'+(dt?' em '+dt:'')+'.\n\nRegistro atualizado no app.');},200);
   }else{
     // Noiva não encontrada neste dispositivo — salva confirmação pendente no KV
@@ -3071,32 +3070,10 @@ async function _uploadContratoAssinadoDrive(b,silentIfMissing){
     html=j.html;
   }catch(e){_showCalToast('Falha de conexão ao buscar contrato assinado — tente de novo (☁️ Drive na noiva).','err');return;}
 
-  // 2. Garantir pasta da noiva no Drive
-  let folderId=b.driveFolder||null;
-  if(!folderId){
-    try{
-      const folderName=_brideFolderName(b.nome||'',b.dataCasamento||'');
-      let r=await _drvFetch('POST','/files',
-        JSON.stringify({name:folderName,mimeType:'application/vnd.google-apps.folder',parents:[GD_NOIVAS_ID]}),
-        'application/json'
-      );
-      if(!r.ok&&(r.status===403||r.status===404)){
-        const rootId=await _getOrCreateFolder(GD_ROOT,'root');
-        r=await _drvFetch('POST','/files',
-          JSON.stringify({name:folderName,mimeType:'application/vnd.google-apps.folder',parents:[rootId]}),
-          'application/json'
-        );
-      }
-      if(r.ok){
-        const d=await r.json();
-        if(d.id){
-          folderId=d.id;b.driveFolder=d.id;save();
-          // Se o modal dessa noiva estiver aberto, atualiza o link "Abrir pasta no Drive" já visível nele.
-          if(window._curModalId===b.id||editId===b.id){_mDriveFolder=d.id;syncDriveBtn();}
-        }
-      }
-    }catch(e){console.warn('Pasta Drive:',e);}
-  }
+  // 2. Garantir pasta da noiva no Drive (mesma pasta que o botão "Abrir pasta" abre)
+  let folderId;
+  try{folderId=await _ensureBrideFolder(b);}
+  catch(e){if(!silentIfMissing)_showCalToast('Contrato assinado, mas não deu pra achar a pasta no Drive — clique em ☁️ Drive na noiva.','err');return;}
 
   // 3. Upload do contrato assinado — como PDF (renderiza certo dentro do próprio Drive); cai pra
   // .html só se a conversão falhar.
@@ -3107,7 +3084,8 @@ async function _uploadContratoAssinadoDrive(b,silentIfMissing){
   try{
     const r=await _driveUpsertFile(fileName,folderId,blob,pdfBlob?'application/pdf':'text/html');
     if(r.ok){
-      _showCalToast('📄 Contrato assinado salvo no Drive ✓');
+      b._ctrtDriveOk=true;save();
+      if(!silentIfMissing)_showCalToast('📄 Contrato assinado salvo no Drive ✓');
       return blob;
     }else{
       _showCalToast('Erro ao salvar contrato no Drive: '+r.status,'err');
@@ -3368,6 +3346,9 @@ function gerarContrato(){
   const w=window.open('','_blank');
   if(w){w.document.write(pageHTML);w.document.close();}
   else{alert('Pop-up bloqueado. Permita pop-ups para este site e tente novamente.');}
+  // Sobe o contrato pro Drive automaticamente assim que é gerado (silencioso, sem popup de
+  // login) — pra nunca depender da Bruna lembrar de clicar em ☁️ Drive.
+  salvarContratoDrive({silent:true});
 }
 
 function delBride(){
@@ -3385,27 +3366,10 @@ function _brideFolderName(nome,dataCasamento){
   return `${nome} - ${d}-${m}-${y}`;
 }
 
-async function _autoCreateBrideFolder(brideId,nome,dataCasamento){
-  try{
-    const name=_brideFolderName(nome,dataCasamento);
-    // Try hardcoded parent first; fall back to named root if 403/404
-    let r=await _drvFetch('POST','/files',
-      JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:[GD_NOIVAS_ID]}),
-      'application/json'
-    );
-    if(!r.ok&&(r.status===403||r.status===404)){
-      const rootId=await _getOrCreateFolder(GD_ROOT,'root');
-      r=await _drvFetch('POST','/files',
-        JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:[rootId]}),
-        'application/json'
-      );
-    }
-    if(!r.ok)return;
-    const d=await r.json();
-    if(!d.id)return;
-    const i=DATA.findIndex(x=>x.id===brideId);
-    if(i!==-1){DATA[i].driveFolder=d.id;save();}
-  }catch(e){console.warn('Drive folder creation failed:',e);}
+async function _autoCreateBrideFolder(brideId){
+  const b=DATA.find(x=>x.id===brideId);
+  if(!b)return;
+  try{await _ensureBrideFolder(b);}catch(e){console.warn('Drive folder creation failed:',e);}
 }
 
 function _flashSyncBtn(msg){
@@ -5165,6 +5129,48 @@ async function _getOrCreateFolder(name,parentId){
   return(await cr.json()).id;
 }
 
+// Única fonte de verdade pra "qual pasta do Drive é dessa noiva". TODO upload (contrato,
+// fotos da conversa, anexos) passa por aqui — assim o arquivo sempre cai no mesmo lugar que
+// o botão "Abrir pasta no Drive" abre. Reaproveita pasta antiga (com ou sem data no nome).
+// Exige _gToken já pronto; joga erro se não conseguir a pasta (nunca devolve null calado,
+// que era o que fazia o contrato ir parar solto na raiz do Drive).
+async function _ensureBrideFolder(b){
+  if(!b)throw new Error('Noiva não encontrada');
+  if(b.driveFolder)return b.driveFolder;
+  const nome=(b.nome||'').trim()||'Sem Nome';
+  const candidatos=[...new Set([_brideFolderName(nome,b.dataCasamento||''),nome])];
+  let fid=null;
+  for(const n of candidatos){
+    try{
+      const q=`name='${n.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and '${GD_NOIVAS_ID}' in parents and trashed=false`;
+      const r=await _drvFetch('GET',`/files?q=${encodeURIComponent(q)}&fields=files(id)&spaces=drive`);
+      const d=await r.json();
+      if(d.files?.length){fid=d.files[0].id;break;}
+    }catch(e){}
+  }
+  if(!fid)fid=await _getOrCreateFolder(_brideFolderName(nome,b.dataCasamento||''),GD_NOIVAS_ID);
+  if(!fid)throw new Error('Não consegui criar a pasta da noiva no Drive');
+  b.driveFolder=fid;save();
+  if(window._curModalId===b.id||editId===b.id){_mDriveFolder=fid;syncDriveBtn();}
+  return fid;
+}
+
+// Reenvia pro Drive todo contrato assinado que ainda não subiu (é o que importa pro caso
+// "daqui um ano ela reclama e eu preciso do contrato"). Silencioso e idempotente
+// (_driveUpsertFile atualiza no lugar, não duplica). Chamado toda vez que o Google conecta
+// — é isso que garante que um contrato NUNCA fica só no servidor por falha de upload.
+async function _syncContratosDrive(){
+  if(!_gToken)return;
+  for(const b of DATA){
+    if(!b.contratoAssinado||b._ctrtDriveOk)continue;
+    try{
+      const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(b.id),{headers:_wkHeaders()});
+      const j=await r.json();
+      if(j.html)await _uploadContratoAssinadoDrive(b,true);
+    }catch(e){}
+  }
+}
+
 async function handleAnexoClick(){
   const st=g('anx-status');
   try{
@@ -5187,7 +5193,8 @@ async function handleAnexoFiles(e){
   for(const f of files){
     try{
       st.textContent='Enviando "'+f.name+'"…';
-      const noivId=await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);
+      const _bAnx=editId?DATA.find(x=>x.id===editId):null;
+      const noivId=_bAnx?await _ensureBrideFolder(_bAnx):await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);
       if(!_mDriveFolder){_mDriveFolder=noivId;syncDriveBtn();}
       const meta=new Blob([JSON.stringify({name:f.name,parents:[noivId]})],{type:'application/json'});
       const form=new FormData();form.append('metadata',meta);form.append('file',f);
@@ -5220,11 +5227,7 @@ async function _saveWaImagesToDrive(brideId,images){
   const nomNoiva=(b.nome||'').trim()||'Sem Nome';
   let ok=0;
   try{
-    const noivId=b.driveFolder||await _getOrCreateFolder(nomNoiva,GD_NOIVAS_ID);
-    if(!b.driveFolder){
-      b.driveFolder=noivId;
-      if(window._curModalId===brideId){_mDriveFolder=noivId;syncDriveBtn();}
-    }
+    const noivId=await _ensureBrideFolder(b);
     for(const img of images){
       try{
         const byteChars=atob(img.data);
@@ -5434,6 +5437,7 @@ async function syncInit(){
       _gClient.requestAccessToken({prompt:''});
     });
     setSyncStatus('ok');
+    _syncContratosDrive(); // reenvia pro Drive qualquer contrato assinado que não subiu
   }catch{
     setSyncStatus('idle');
   }
@@ -5445,6 +5449,7 @@ async function syncLogin(){
     setSyncStatus('syncing');
     if(!_gToken)await _requestToken('select_account');
     setSyncStatus('ok');
+    _syncContratosDrive(); // aproveita que conectou pra subir contratos assinados pendentes
   }catch(e){
     const ignored=['popup_closed_by_user','access_denied'];
     setSyncStatus('idle');
@@ -6395,10 +6400,11 @@ async function _processPendingConfirms(){
       const cur=PIPE.indexOf(b.etapa);
       const tgt=PIPE.indexOf('contratoAssinado');
       if(cur>=0&&cur<tgt)b.etapa='contratoAssinado';
-      _uploadContratoAssinadoDrive(b).catch(()=>{});
+      b._ctrtDriveOk=false; // garante que _syncContratosDrive vai subir esse
+      if(_gToken)_uploadContratoAssinadoDrive(b,true).catch(()=>{});
       changed=true;
     }
-    if(changed){save();renderAll();_showCalToast('✅ Contrato(s) assinado(s) registrado(s)!');}
+    if(changed){save();renderAll();_showCalToast('✅ Contrato(s) assinado(s) registrado(s)!');_syncContratosDrive();}
     // Devolve ao KV os que não foram encontrados localmente
     for(const c of unprocessed){
       fetch('https://florelle.brunadonaa.workers.dev/pending-confirm',{
