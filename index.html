@@ -2604,7 +2604,13 @@ async function enviarAssinar(){
     const pagHTML=(fpTxt?fpTxt+'<br>':'')+(cartaoParcelaStr?cartaoParcelaStr+'<br>':'')+pagLinhas.join('<br>');
 
     const brunaWpp=_getBrunaWpp();
-    const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,brideId:window._curModalId||'',brunaWpp};
+    // brideId: editId é a fonte de verdade de "qual noiva tá sendo editada" (setado em TODO
+    // ponto de entrada, incluindo o "Importar do WhatsApp" quando casa com uma noiva já
+    // existente). window._curModalId só é setado dentro de openModal() — ficava com o id de
+    // uma noiva ANTERIOR (ou vazio) quando o link de assinatura era gerado logo depois de um
+    // import por WhatsApp, sem passar por openModal(). O contrato assinado ia parar salvo sob
+    // o id errado no servidor — nunca aparecia na noiva de verdade, pra sempre.
+    const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,brideId:editId||window._curModalId||'',brunaWpp};
     const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
 
     // Enviar ao worker para obter token curto
@@ -2621,7 +2627,7 @@ async function enviarAssinar(){
     const signUrl='https://brunadona.github.io/florelle-app/?sign='+token;
 
     // Salvar link no registro da noiva
-    const id=window._curModalId;
+    const id=editId||window._curModalId;
     if(id){const b=DATA.find(x=>x.id===id);if(b){b.autentiqueLink=signUrl;save();}}
 
     const primeiroNome=nome.split(' ')[0];
@@ -5962,6 +5968,7 @@ async function waAnalyze(){
     if(match){
       // Modo edição: mescla campos novos sobre os existentes (não apaga o que já tinha)
       editId=match.id;
+      window._curModalId=match.id; // mantém em sincronia com editId — usado em vários lugares como "qual noiva tá aberta"
       mRem=JSON.parse(JSON.stringify(match.lembretes||[]));
       mAnexos=JSON.parse(JSON.stringify(match.anexos||[]));
       _mDriveFolder=match.driveFolder||'';
@@ -5992,7 +5999,7 @@ async function waAnalyze(){
       g('bdel').classList.remove('hidden');
       _showCalToast('Noiva encontrada: '+_nomeDisp(match)+' — campos atualizados');
     } else {
-      editId=null;mRem=[];mAnexos=[];_mDriveFolder='';
+      editId=null;window._curModalId=null;mRem=[];mAnexos=[];_mDriveFolder='';
       fillForm({
         etapa:          'lead',
         nome:           parsed.nome||'',
