@@ -2010,6 +2010,12 @@ function openModal(id){
   if(b.dataCasamento&&b.dataCasamento>today()){const _re=/s[íi]lica|redoma|montagem|embalagem/i;mRem=mRem.filter(r=>!_re.test(r.text||''));}
   _mDriveFolder=b.driveFolder||'';
   fillForm(b);
+  // Garante a pasta da noiva no Drive já na abertura (se o Google estiver conectado e ela já
+  // passou da fase de lead), pra o botão ☁️ Drive / "Abrir pasta" abrir direto na pasta certa
+  // no primeiro clique — sem cair numa busca por nome. Evita criar pasta vazia pra lead que
+  // ela só abriu de passagem.
+  if(!b.driveFolder&&_gToken&&!['lead','retomar','cancelado'].includes(b.etapa||'lead'))
+    _ensureBrideFolder(b).catch(()=>{});
   g('bdel').classList.remove('hidden');
   if(g('bdup'))g('bdup').classList.remove('hidden');
   g('ov').classList.remove('hidden');
