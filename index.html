@@ -815,6 +815,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Reenviar contratos assinados pro Drive
   </button>
+  <button class="hmi" onclick="_recuperarContratosOrfaos();closeHMenu()" title="Recupera contrato assinado que ficou preso no servidor com o id de outra noiva (ou vazio)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Buscar contratos assinados presos (id errado)
+  </button>
   <button class="hmi" onclick="_restaurarBackup();closeHMenu()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
     Restaurar backup automático
@@ -3234,6 +3238,53 @@ async function _reuploadContratosAssinados(){
   let msg=ok?`Reenvio concluído: ${ok} contrato(s) salvo(s) no Drive`:'Nenhum contrato assinado encontrado no servidor.';
   if(corrigidas.length)msg+='\n\n✅ Corrigidas agora (tinham assinatura no servidor mas não estavam marcadas):\n• '+corrigidas.join('\n• ');
   if(semRegistro.length)msg+='\n\n⚠️ SEM registro nenhum no servidor (a assinatura nunca chegou lá — use "Marcar manualmente" no card, no painel Arquivos, ou peça pra assinar de novo):\n• '+semRegistro.join('\n• ');
+  alert(msg);
+}
+
+// Recupera contrato assinado que ficou preso no servidor sob um id que NÃO pertence a
+// nenhuma noiva atual — era o bug do link de "Assinar" gerado logo após "Importar do
+// WhatsApp" (corrigido, mas quem já assinou assim ficou com o contrato preso lá). Busca
+// todo "contrato órfão", casa pelo nome de dentro do próprio HTML com uma noiva sem
+// assinatura marcada, e reatribui pro id certo — sem pedir pra ninguém assinar de novo.
+function _normNome(s){return(s||'').toLowerCase().trim();}
+async function _recuperarContratosOrfaos(){
+  if(!_gToken){
+    try{await _ensureToken();}catch(e){_showCalToast('Conecte ao Google Drive primeiro','err');return;}
+  }
+  _showCalToast('Procurando contratos presos sob id errado...');
+  let orphans;
+  try{
+    const ids=DATA.map(b=>b.id).join(',');
+    const r=await fetch('https://florelle.brunadonaa.workers.dev/contracts-orphans?ids='+encodeURIComponent(ids),{headers:_wkHeaders()});
+    const j=await r.json();
+    if(j.error)throw new Error(j.error);
+    orphans=j.orphans||[];
+  }catch(e){
+    alert('Erro ao buscar contratos presos:\n'+e.message+'\n\nEsse recurso precisa que o worker.js tenha sido atualizado no Cloudflare (endpoint /contracts-orphans) — se ainda não foi, peça pro Claude te lembrar como fazer o deploy manual.');
+    return;
+  }
+  if(!orphans.length){alert('Nenhum contrato preso encontrado no servidor. ✅');return;}
+
+  const recuperados=[],semNoivaCorrespondente=[],semNomeLegivel=[];
+  for(const o of orphans){
+    if(!o.nome){semNomeLegivel.push('id "'+(o.id||'(vazio)')+'"');continue;}
+    const alvo=DATA.find(b=>!b.contratoAssinado&&_normNome(b.nome)===_normNome(o.nome));
+    if(!alvo){semNoivaCorrespondente.push(o.nome);continue;}
+    try{
+      const r=await fetch('https://florelle.brunadonaa.workers.dev/contract/'+encodeURIComponent(alvo.id),{
+        method:'POST',headers:_wkHeaders({'Content-Type':'application/json'}),
+        body:JSON.stringify({html:o.html})
+      });
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      if(_marcarContratoAssinado(alvo)){save();renderAll();}
+      await _uploadContratoAssinadoDrive(alvo,true);
+      recuperados.push(_nomeDisp(alvo));
+    }catch(e){semNoivaCorrespondente.push(o.nome+' (falhou ao reatribuir: '+e.message+')');}
+  }
+  let msg='Contratos presos encontrados: '+orphans.length;
+  if(recuperados.length)msg+='\n\n✅ Recuperados e reatribuídos à noiva certa:\n• '+recuperados.join('\n• ');
+  if(semNoivaCorrespondente.length)msg+='\n\n⚠️ Nome no contrato não bateu com nenhuma noiva sem assinatura marcada (confira o nome/se ela já não estava marcada):\n• '+semNoivaCorrespondente.join('\n• ');
+  if(semNomeLegivel.length)msg+='\n\n⚠️ Sem nome legível dentro do contrato — precisa olhar manualmente ('+semNomeLegivel.join(', ')+').';
   alert(msg);
 }
 

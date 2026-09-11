@@ -116,6 +116,32 @@ export default {
       return json({ html });
     }
 
+    // GET /contracts-orphans?ids=id1,id2,...  →  lista contratos assinados (ct:*) guardados sob
+    // um id que NÃO está entre os ids que o app mandou (todas as noivas que existem hoje).
+    // Existe pra recuperar contrato preso num id errado: um bug real fazia o link de assinatura
+    // sair com o id de outra noiva (ou vazio) quando gerado logo após "Importar do WhatsApp" —
+    // o contrato assinado ficava salvo, só que numa gaveta que nenhuma noiva reconhece. Devolve
+    // o HTML inteiro de cada órfão (são poucos) pra o app tentar casar pelo nome e reatribuir.
+    if (request.method === 'GET' && url.pathname === '/contracts-orphans') {
+      if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
+      const validIds = new Set((url.searchParams.get('ids') || '').split(',').filter(Boolean));
+      const orphans = [];
+      let cursor;
+      do {
+        const page = await env.SIGN_KV.list({ prefix: 'ct:', cursor });
+        for (const k of page.keys) {
+          const id = k.name.slice(3);
+          if (validIds.has(id)) continue;
+          const html = await env.SIGN_KV.get(k.name);
+          if (!html) continue;
+          const m = html.match(/Nome completo:\s*([^<]*)</);
+          orphans.push({ id, nome: m ? m[1].trim() : null, html });
+        }
+        cursor = page.list_complete ? undefined : page.cursor;
+      } while (cursor);
+      return json({ orphans });
+    }
+
     // POST /pending-confirm  →  salva confirmação pendente (quando app aberto sem dados)
     if (request.method === 'POST' && url.pathname === '/pending-confirm') {
       if (!checkAppSecret(request, env)) return json({ error: 'Não autorizado' }, 401);
