@@ -1157,6 +1157,22 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <label class="ro"><input type="radio" name="prod" value="multiplos" onchange="updateCustoBuque(true)"><span class="rl">Múltiplos</span></label>
         </div>
       </div>
+      <div class="frow f1 hidden" id="multiplos-itens-row">
+        <div class="fg">
+          <label class="fl">Quais produtos compõem o combo</label>
+          <div class="rg">
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula 18×30</span></label>
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="cupulaMini" onchange="updateCustoBuque()"><span class="rl">Mini cúpula 9,5×13</span></label>
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30 (acrílico)</span></label>
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42 (acrílico)</span></label>
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira37x40" onchange="updateCustoBuque()"><span class="rl">Quadro 37×40 (madeira)</span></label>
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira40x60" onchange="updateCustoBuque()"><span class="rl">Quadro 40×60 (madeira)</span></label>
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira50x70" onchange="updateCustoBuque()"><span class="rl">Quadro 50×70 (madeira)</span></label>
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
+          </div>
+          <p class="hint">Marque os produtos do combo — é isso que faz o custo de material (redoma, isopor, moldura de cada um) e o lucro saírem certos.</p>
+        </div>
+      </div>
       <div class="frow f1">
         <div class="fg"><label class="fl">Observações do produto</label><textarea id="m-prod-obs" class="fta" placeholder="Detalhes, medidas, cor do quadro…"></textarea></div>
       </div>
@@ -2054,6 +2070,8 @@ function fillForm(b){
   sv2('m-custo',      b.custoMaterial||'');
 
   setRad('prod',      b.produto||'');
+  _setMultiplosItens(b.multiplosItens);
+  if(g('multiplos-itens-row'))g('multiplos-itens-row').classList.toggle('hidden',b.produto!=='multiplos');
   setRad('emb',       b.statusEmbalagem||'naoEncomendada');
   setRad('pag',       b.formaPagamento||'');
   g('cartao-parcelas').style.display=b.formaPagamento==='cartao'?'':'none';
@@ -2133,6 +2151,24 @@ function pecaChg(el){
 function pecaVis(){
   const o=document.querySelector('input[name="pecas"][value="outro"]');
   g('m-outro').classList.toggle('hidden',!(o&&o.checked));
+}
+
+// "Múltiplos" (ex: cúpula + mini cúpula no mesmo pedido) não é um produto de verdade pro
+// cálculo de material — é um combo de outros produtos. Sem saber QUAIS, calcCustoBuque não
+// tinha como somar a redoma/moldura de cada um (só os consumíveis comuns eram contados).
+function _getMultiplosItens(){
+  return Array.from(document.querySelectorAll('input[name="multiplosItens"]:checked')).map(c=>c.value);
+}
+function _setMultiplosItens(arr){
+  const set=new Set(arr||[]);
+  document.querySelectorAll('input[name="multiplosItens"]').forEach(c=>c.checked=set.has(c.value));
+}
+// Lista de produtos "de verdade" usados por essa noiva pra qualquer cálculo de material
+// (custo, lista de compras, dedução de estoque) — o próprio produto, ou os itens marcados
+// do combo quando o produto é "Múltiplos".
+function _produtosDaNoiva(b){
+  if((b.produto||'')==='multiplos')return b.multiplosItens||[];
+  return [b.produto||''];
 }
 
 /* ── SYNC AUTO REMINDERS (tempo real) ────────── */
@@ -2260,6 +2296,7 @@ async function saveModal(){
     cerimonialTel:  gv('m-cerim-tel').trim(),
     retiradaBuque:  radVal('retiradaBuque'),
     produto:        radVal('prod'),
+    multiplosItens: radVal('prod')==='multiplos'?_getMultiplosItens():[],
     produtoObs:     gv('m-prod-obs').trim(),
     statusEmbalagem:radVal('emb')||'naoEncomendada',
     dataEntregaEmbalagem:gv('m-emb-d'),
@@ -4105,11 +4142,13 @@ function updateCustoBuque(force){
   // Campo valor da redoma: visível só para quadroSobMedida
   const redomaPrecoRow=g('redoma-preco-row');
   if(redomaPrecoRow)redomaPrecoRow.classList.toggle('hidden',produto!=='quadroSobMedida');
+  const multiplosRow=g('multiplos-itens-row');
+  if(multiplosRow)multiplosRow.classList.toggle('hidden',produto!=='multiplos');
   updateCustoBuque._lastProd=produto;
   if(!produto){setTimeout(_calcMargem,0);return;}
   const _rpRaw=_parseBRL(gv('m-redoma-preco'));
   const redomaOverride=produto==='quadroSobMedida'&&_rpRaw>0?_rpRaw/100:null;
-  const custo=calcCustoBuque(produto,redomaOverride);
+  const custo=calcCustoBuque(produto,redomaOverride,_getMultiplosItens());
   sv2('m-custo',_fmtBRLInput(custo));
   const _curVal=gv('m-valor').trim();
   // force=true (troca de produto): sempre atualiza pro preço sugerido do produto novo.
@@ -4131,14 +4170,25 @@ function updateCustoBuque(force){
 }
 
 /* ── CUSTO DO BUQUÊ ──────────────────────────── */
-function calcCustoBuque(produto,redomaOverride){
+// subprodutos: só usado quando produto==='multiplos' — lista dos produtos reais que compõem
+// o combo (ex: ['cupulaM','cupulaMini']). Sem isso, um item específico de produto (redoma,
+// moldura) nunca batia com "multiplos" e ficava de fora do custo inteiro.
+function calcCustoBuque(produto,redomaOverride,subprodutos){
   const CUSTOS_VARIAVEIS = 50.00;
+  const alvos = produto==='multiplos' ? (subprodutos||[]) : [produto||''];
   let total = CUSTOS_VARIAVEIS;
   INV.forEach(item=>{
-    if(item.porProduto && !item.porProduto.includes(produto||'')) return;
     if(item.nome==='Custos variáveis') return;
-    const preco=(redomaOverride!=null&&item.nome==='Redoma sob medida')?redomaOverride:(item.precoUnit||0);
-    total += (item.consumo||0) * preco;
+    if(item.porProduto){
+      // Cada alvo do combo que usa esse item consome sua própria unidade (cúpula + mini
+      // cúpula = 2 bolas de isopor, mesmo as duas usando a mesma linha de estoque).
+      const usos=item.porProduto.filter(p=>alvos.includes(p)).length;
+      if(!usos)return;
+      const preco=(redomaOverride!=null&&item.nome==='Redoma sob medida')?redomaOverride:(item.precoUnit||0);
+      total += (item.consumo||0) * preco * usos;
+      return;
+    }
+    total += (item.consumo||0) * (item.precoUnit||0);
   });
   return total;
 }
@@ -4158,7 +4208,9 @@ function _invNoivasQueUsam(item){
   // Embalagem já "em mãos" foi descontada do qtdAtual — não conta como necessidade
   if(etapa==='embalagem') ativas=ativas.filter(b=>(b.statusEmbalagem||'naoEncomendada')!=='emMaos');
   if(!item.porProduto) return ativas.length;
-  return ativas.filter(b=>item.porProduto.includes(b.produto||'')).length;
+  // Soma quantos produtos do pedido de cada noiva usam esse item — não só quantas noivas
+  // (um combo "Múltiplos" com cúpula + mini cúpula precisa de 2 redomas, não 1).
+  return ativas.reduce((n,b)=>n+_produtosDaNoiva(b).filter(p=>item.porProduto.includes(p)).length,0);
 }
 
 // Retorna o custo de compra para repor o item (baseado na unidade de venda)
@@ -4197,23 +4249,27 @@ function _invNeeded(item){
 
 // Gera lista de compras para uma noiva específica
 function _listaComprasNoiva(b){
-  const produto = b.produto||'';
+  const produtos = _produtosDaNoiva(b);
   const redomaOk = (b.redomaStatus||'naoEncomendada') === 'emMaos';
   const embOk    = (b.statusEmbalagem||'naoEncomendada') === 'emMaos';
   return INV.map(item=>{
-    if(item.porProduto && !item.porProduto.includes(produto)) return null;
+    let qtd=1;
+    if(item.porProduto){
+      qtd=produtos.filter(p=>item.porProduto.includes(p)).length; // combo pode precisar de 2+ (cúpula + mini cúpula)
+      if(!qtd)return null;
+    }
     const nmLow = item.nome.toLowerCase();
     let jaEmMaos = false;
     if(nmLow.startsWith('redoma') || nmLow.startsWith('cúpula') || nmLow.startsWith('cupula')) jaEmMaos = redomaOk;
     if(nmLow.startsWith('embalagem')) jaEmMaos = embOk;
     return {
       nome: item.nome,
-      consumo: item.consumo,
+      consumo: item.consumo*qtd,
       unidade: item.unidade,
       precoUnit: item.precoUnit,
-      custo: item.consumo * item.precoUnit,
+      custo: item.consumo*qtd * item.precoUnit,
       comprarAntes: item.comprarAntes||false,
-      temEstoque: jaEmMaos || Number(item.qtdAtual||0) >= item.consumo,
+      temEstoque: jaEmMaos || Number(item.qtdAtual||0) >= item.consumo*qtd,
     };
   }).filter(Boolean);
 }
@@ -5940,15 +5996,19 @@ function dupBride(){
 function _deductInvForBride(b){
   if(b.invDeducted)return;
   b.invDeducted=true;
-  const prod=b.produto||'';
+  const produtos=_produtosDaNoiva(b);
   let changed=false;
   INV.forEach(item=>{
     // Sílica/plástico já foram consumidos ao entrar em secagem — não descontar aqui
     if((item.etapaConsumo||'montagem')==='secagem')return;
     // Embalagem é descontada via statusEmbalagem='emMaos' no saveModal
     if((item.etapaConsumo||'montagem')==='embalagem')return;
-    if(item.porProduto&&!item.porProduto.includes(prod))return;
-    const c=Number(item.consumo||0);if(!c)return;
+    let qtd=1;
+    if(item.porProduto){
+      qtd=produtos.filter(p=>item.porProduto.includes(p)).length; // combo: pode gastar 2+ unidades
+      if(!qtd)return;
+    }
+    const c=Number(item.consumo||0)*qtd;if(!c)return;
     item.qtdAtual=Math.max(0,Number(item.qtdAtual||0)-c);
     item.historico=item.historico||[];
     item.historico.unshift({data:today(),quantidade:-c,obs:'Montagem: '+_nomeDisp(b)});
