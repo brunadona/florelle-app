@@ -1355,7 +1355,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="fr-ctrt">
         <button class="bctrt" id="btn-contrato" onclick="gerarContrato()" title="Gerar contrato PDF">📄 Contrato</button>
         <button class="bctrt" id="btn-wpp-contrato" onclick="enviarContratoWpp()" title="Enviar contrato por WhatsApp">📲 WhatsApp</button>
-        <button class="bctrt" id="btn-drive-contrato" onclick="salvarContratoDrive()" title="Abre a pasta da noiva no Drive e salva lá o contrato (assinado, se já tiver)">☁️ Drive</button>
+        <a class="bctrt" id="btn-drive-contrato" href="https://drive.google.com/drive/u/0/my-drive" target="_blank" rel="noopener" onclick="salvarContratoDrive()" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none" title="Abre a pasta da noiva no Drive e salva lá o contrato (assinado, se já tiver)">☁️ Drive</a>
         <button class="bctrt" id="btn-autentique" onclick="enviarAssinar()" title="Enviar link de assinatura digital para a noiva via WhatsApp">✍️ Assinar</button>
       </div>
       <button class="bsav" onclick="saveModal()">Salvar</button>
@@ -2417,21 +2417,11 @@ async function saveModal(){
 }
 
 async function salvarContratoDrive(opts){
-  // opts.silent = chamada automática (do gerarContrato). Sem silent = clique no botão ☁️ Drive.
+  // opts.silent = chamada automática (do gerarContrato). Sem silent = clique no botão ☁️ Drive
+  // — que é um <a target="_blank"> de verdade: o próprio clique já abre a pasta no Drive
+  // (window.open por script trava no navegador dela). Aqui a gente só sobe o contrato por baixo.
   const silent=opts&&opts.silent===true;
   const _b=DATA.find(x=>x.id===editId);
-
-  // No CLIQUE: abre o Drive AGORA, sincronamente, enquanto ainda é o gesto dela. Depois de
-  // qualquer await o navegador bloqueia abrir aba nova (principalmente no celular). URL real
-  // (não about:blank) — se já sabemos a pasta abre nela, senão abre a busca pelo nome.
-  if(!silent){
-    const nm=((_b&&_b.nome)||gv('m-nome')||'').trim();
-    const url=_b&&_b.driveFolder
-      ? 'https://drive.google.com/drive/folders/'+_b.driveFolder
-      : 'https://drive.google.com/drive/search?q='+encodeURIComponent(nm);
-    window.open(url,'_blank');
-  }
-
   try{
     if(!_gToken){
       if(silent)return; // gerarContrato: sem Google conectado agora, não incomoda — o assinado sobe depois
@@ -5255,15 +5245,14 @@ async function _saveWaImagesToDrive(brideId,images){
 }
 
 function syncDriveBtn(){
-  const btn=g('anx-pasta-btn');if(!btn)return;
-  if(_mDriveFolder){
-    btn.href='https://drive.google.com/drive/folders/'+_mDriveFolder;
-  } else {
-    const nome=gv('m-nome').trim();
-    btn.href=nome
-      ?'https://drive.google.com/drive/search?q='+encodeURIComponent(nome)
-      :'https://drive.google.com';
-  }
+  const nome=gv('m-nome').trim();
+  const href=_mDriveFolder
+    ?'https://drive.google.com/drive/folders/'+_mDriveFolder
+    :(nome?'https://drive.google.com/drive/search?q='+encodeURIComponent(nome):'https://drive.google.com/drive/u/0/my-drive');
+  // Os dois botões de Drive são <a> de verdade (não window.open, que trava no navegador dela):
+  // mantém o href sempre apontando pra pasta da noiva, pra abrir de primeira em qualquer aparelho.
+  const b1=g('anx-pasta-btn');if(b1)b1.href=href;
+  const b2=g('btn-drive-contrato');if(b2)b2.href=href;
 }
 
 /* ── CLOUD SYNC (Worker) ── */
