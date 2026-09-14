@@ -1152,7 +1152,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <div class="rg">
           <label class="ro"><input type="radio" name="prod" value="quadro25x30" onchange="updateCustoBuque(true)"><span class="rl">Quadro 25×30 (acrílico)</span></label>
           <label class="ro"><input type="radio" name="prod" value="quadro32x42" onchange="updateCustoBuque(true)"><span class="rl">Quadro 32×42 (acrílico)</span></label>
-          <label class="ro"><input type="radio" name="prod" value="quadroMadeira37x40" onchange="updateCustoBuque(true)"><span class="rl">Quadro 37×40 (madeira)</span></label>
+          <label class="ro"><input type="radio" name="prod" value="quadroMadeira37x40" onchange="updateCustoBuque(true)"><span class="rl">Quadro 30×40 (madeira)</span></label>
           <label class="ro"><input type="radio" name="prod" value="quadroMadeira40x60" onchange="updateCustoBuque(true)"><span class="rl">Quadro 40×60 (madeira)</span></label>
           <label class="ro"><input type="radio" name="prod" value="quadroMadeira50x70" onchange="updateCustoBuque(true)"><span class="rl">Quadro 50×70 (madeira)</span></label>
           <label class="ro"><input type="radio" name="prod" value="quadroSobMedida" onchange="updateCustoBuque(true)"><span class="rl">Quadro sob medida</span></label>
@@ -1169,7 +1169,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
             <label class="ro"><input type="checkbox" name="multiplosItens" value="cupulaMini" onchange="updateCustoBuque()"><span class="rl">Mini cúpula 9,5×13</span></label>
             <label class="ro"><input type="checkbox" name="multiplosItens" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30 (acrílico)</span></label>
             <label class="ro"><input type="checkbox" name="multiplosItens" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42 (acrílico)</span></label>
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira37x40" onchange="updateCustoBuque()"><span class="rl">Quadro 37×40 (madeira)</span></label>
+            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira37x40" onchange="updateCustoBuque()"><span class="rl">Quadro 30×40 (madeira)</span></label>
             <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira40x60" onchange="updateCustoBuque()"><span class="rl">Quadro 40×60 (madeira)</span></label>
             <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira50x70" onchange="updateCustoBuque()"><span class="rl">Quadro 50×70 (madeira)</span></label>
             <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
@@ -1501,7 +1501,7 @@ const COLS=[
   {id:'cancelado',       label:'Cancelado / Rejeitado',color:'#A8A098'},
 ];
 
-const PLABEL={quadro25x30:'Quadro 25×30 (acrílico)',quadro32x42:'Quadro 32×42 (acrílico)',quadroMadeira37x40:'Quadro 37×40 (madeira)',quadroMadeira40x60:'Quadro 40×60 (madeira)',quadroMadeira50x70:'Quadro 50×70 (madeira)',quadroSobMedida:'Sob medida',cupulaM:'Cúpula 18×30',cupulaMini:'Mini cúpula 9,5×13',multiplos:'Múltiplos',cupulaG:'⚠️ Produto descontinuado',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
+const PLABEL={quadro25x30:'Quadro 25×30 (acrílico)',quadro32x42:'Quadro 32×42 (acrílico)',quadroMadeira37x40:'Quadro 30×40 (madeira)',quadroMadeira40x60:'Quadro 40×60 (madeira)',quadroMadeira50x70:'Quadro 50×70 (madeira)',quadroSobMedida:'Sob medida',cupulaM:'Cúpula 18×30',cupulaMini:'Mini cúpula 9,5×13',multiplos:'Múltiplos',cupulaG:'⚠️ Produto descontinuado',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
 // Preços sugeridos por produto (editável aqui)
 // Valores "à vista / 3x no pix" do Portfólio criativo 2026 (fonte oficial de preço pro cliente).
 const PRECO_SUGERIDO={quadro25x30:'1.580,00',quadro32x42:'1.780,00',quadroMadeira37x40:'1.680,00',quadroMadeira40x60:'1.780,00',quadroMadeira50x70:'1.980,00',cupulaM:'1.480,00',cupulaMini:'780,00',quadroSobMedida:'',multiplos:''};
@@ -2532,7 +2532,7 @@ function _buildContratoHTML(){
   const produto   = radVal('prod');
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
-  const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 37×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
+  const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 30×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
   const modeloTxt = prodMap[produto]||produto||'';
   const chkSim=rep==='sim',chkNao=rep==='nao';
   const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
@@ -2586,7 +2586,7 @@ async function enviarAssinar(){
     const produto=radVal('prod');
     const pecas=Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
     const pecasOutro=gv('m-outro').trim();
-    const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 37×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
+    const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 30×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
     const modeloTxt=prodMap[produto]||produto||'';
     const chkSim=rep==='sim',chkNao=rep==='nao';
     const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
@@ -3505,7 +3505,7 @@ function gerarContrato(){
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
 
-  const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 37×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
+  const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 30×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
   const modeloTxt = prodMap[produto]||produto||'';
 
   const chkSim    = rep==='sim';
@@ -4149,9 +4149,9 @@ const INV_DEFAULT=[
   {nome:'Embalagem cúpula', qtdAtual:2,   unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['cupulaM','cupulaMini'],                       etapaConsumo:'embalagem', linkCompra:''},
   {nome:'Embalagem quadro', qtdAtual:1,   unidade:'un',   precoUnit:80.00, consumo:1,   qtdCompra:1,   precoCompra:80,   comprarAntes:true,  porPedido:false,porProduto:['quadro25x30','quadro32x42','quadroSobMedida','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70'],etapaConsumo:'embalagem', linkCompra:''},
   {nome:'Redoma sob medida',qtdAtual:0,   unidade:'un',   precoUnit:400.00,consumo:1,   qtdCompra:1,   precoCompra:400,  comprarAntes:false, porPedido:true, porProduto:['quadroSobMedida'],                         etapaConsumo:'montagem',  linkCompra:''},
-  {nome:'Moldura madeira 37×40',qtdAtual:0,unidade:'un',  precoUnit:290.00,consumo:1,   qtdCompra:1,   precoCompra:290,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira37x40'],           etapaConsumo:'montagem',  linkCompra:''},
-  {nome:'Moldura madeira 40×60',qtdAtual:0,unidade:'un',  precoUnit:450.00,consumo:1,   qtdCompra:1,   precoCompra:450,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira40x60'],           etapaConsumo:'montagem',  linkCompra:''},
-  {nome:'Moldura madeira 50×70',qtdAtual:0,unidade:'un',  precoUnit:580.00,consumo:1,   qtdCompra:1,   precoCompra:580,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira50x70'],           etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Moldura madeira 30×40 (revestida, vidro, fundo foam + passe-partout)',qtdAtual:0,unidade:'un',  precoUnit:285.60,consumo:1,   qtdCompra:1,   precoCompra:285.60,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira37x40'],           etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Moldura madeira 40×60 (revestida, vidro, fundo foam + passe-partout)',qtdAtual:0,unidade:'un',  precoUnit:446.30,consumo:1,   qtdCompra:1,   precoCompra:446.30,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira40x60'],           etapaConsumo:'montagem',  linkCompra:''},
+  {nome:'Moldura madeira 50×70 (revestida, vidro, fundo foam + passe-partout)',qtdAtual:0,unidade:'un',  precoUnit:574.00,consumo:1,   qtdCompra:1,   precoCompra:574.00,  comprarAntes:false, porPedido:true, porProduto:['quadroMadeira50x70'],           etapaConsumo:'montagem',  linkCompra:''},
 ];
 function loadInv(){
   try{
@@ -4258,6 +4258,19 @@ function loadInv(){
           };
           INV.forEach(item=>{if(porProdutoV7[item.nome])item.porProduto=porProdutoV7[item.nome];});
           localStorage.setItem('florelle_inv_migv7','1');
+        }
+        // Migração v8: quadro madeira 37×40 virou 30×40 (mudança de tamanho no portfólio), e os
+        // custos reais das molduras (revestida, vidro, fundo foam, passe-partout) vieram da Bruna
+        // — atualiza o item de estoque JÁ EXISTENTE (renomear no INV_DEFAULT não muda o que já
+        // está salvo no navegador dela).
+        if(!localStorage.getItem('florelle_inv_migv8')){
+          const custosV8={
+            'Moldura madeira 37×40':{nome:'Moldura madeira 30×40 (revestida, vidro, fundo foam + passe-partout)',precoUnit:285.60,precoCompra:285.60},
+            'Moldura madeira 40×60':{nome:'Moldura madeira 40×60 (revestida, vidro, fundo foam + passe-partout)',precoUnit:446.30,precoCompra:446.30},
+            'Moldura madeira 50×70':{nome:'Moldura madeira 50×70 (revestida, vidro, fundo foam + passe-partout)',precoUnit:574.00,precoCompra:574.00},
+          };
+          INV.forEach(item=>{if(custosV8[item.nome])Object.assign(item,custosV8[item.nome]);});
+          localStorage.setItem('florelle_inv_migv8','1');
         }
       }
     } else {
