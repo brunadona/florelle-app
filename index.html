@@ -1175,6 +1175,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
             <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
           </div>
           <p class="hint">Marque os produtos do combo — é isso que faz o custo de material (redoma, isopor, moldura de cada um) e o lucro saírem certos.</p>
+          <div id="multiplos-valores" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+          <p class="hint">Informe quanto cobrou de cada peça — o Valor Total do combo é a soma dos dois, não um valor sugerido de tabela.</p>
         </div>
       </div>
       <div class="frow f1">
@@ -2077,6 +2079,7 @@ function fillForm(b){
 
   setRad('prod',      b.produto||'');
   _setMultiplosItens(b.multiplosItens);
+  _setMultiplosValores(b.multiplosValores);
   if(g('multiplos-itens-row'))g('multiplos-itens-row').classList.toggle('hidden',b.produto!=='multiplos');
   setRad('emb',       b.statusEmbalagem||'naoEncomendada');
   setRad('pag',       b.formaPagamento||'');
@@ -2168,6 +2171,36 @@ function _getMultiplosItens(){
 function _setMultiplosItens(arr){
   const set=new Set(arr||[]);
   document.querySelectorAll('input[name="multiplosItens"]').forEach(c=>c.checked=set.has(c.value));
+}
+// Valor Total de um combo não vem de tabela — cada peça é vendida por um preço negociado
+// com a noiva (ex: cúpula por R$1.540 + mini cúpula por R$670). Um campo de valor por
+// peça marcada, somado no Valor Total — nada de "sugerir" um preço genérico pra combo.
+function _renderMultiplosValores(manter){
+  const cont=g('multiplos-valores');if(!cont)return;
+  const itens=_getMultiplosItens();
+  const prev={};
+  if(manter!==false)cont.querySelectorAll('[data-multval]').forEach(inp=>{prev[inp.dataset.multval]=inp.value;});
+  cont.innerHTML=itens.length?itens.map(v=>
+    `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="min-width:170px;color:var(--txm)">${esc(PLABEL[v]||v)}</span><span>R$</span><input type="text" class="fi" style="max-width:110px;height:32px" data-multval="${v}" value="${esc(prev[v]||'')}" placeholder="0,00" oninput="_multiplosValorChg()"></div>`
+  ).join(''):'';
+}
+function _getMultiplosValores(){
+  const o={};
+  document.querySelectorAll('#multiplos-valores [data-multval]').forEach(inp=>{if(inp.value.trim())o[inp.dataset.multval]=inp.value.trim();});
+  return o;
+}
+function _setMultiplosValores(obj){
+  _renderMultiplosValores(false);
+  const vals=obj||{};
+  document.querySelectorAll('#multiplos-valores [data-multval]').forEach(inp=>{
+    if(vals[inp.dataset.multval]!=null)inp.value=vals[inp.dataset.multval];
+  });
+}
+function _multiplosValorChg(){
+  const soma=Array.from(document.querySelectorAll('#multiplos-valores [data-multval]')).reduce((s,inp)=>s+_parseBRL(inp.value),0);
+  sv2('m-valor',_fmtBRLInput(soma/100));
+  updateCustoBuque._lastAutoVal=gv('m-valor');
+  setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
 }
 // Lista de produtos "de verdade" usados por essa noiva pra qualquer cálculo de material
 // (custo, lista de compras, dedução de estoque) — o próprio produto, ou os itens marcados
@@ -2313,6 +2346,7 @@ async function saveModal(){
     retiradaBuque:  radVal('retiradaBuque'),
     produto:        radVal('prod'),
     multiplosItens: radVal('prod')==='multiplos'?_getMultiplosItens():[],
+    multiplosValores: radVal('prod')==='multiplos'?_getMultiplosValores():{},
     produtoObs:     gv('m-prod-obs').trim(),
     statusEmbalagem:radVal('emb')||'naoEncomendada',
     dataEntregaEmbalagem:gv('m-emb-d'),
@@ -4289,6 +4323,10 @@ function updateCustoBuque(force){
   if(redomaPrecoRow)redomaPrecoRow.classList.toggle('hidden',produto!=='quadroSobMedida');
   const multiplosRow=g('multiplos-itens-row');
   if(multiplosRow)multiplosRow.classList.toggle('hidden',produto!=='multiplos');
+  // Sincroniza os campos de valor por peça com o que está marcado (preserva o que já foi
+  // digitado) — mas NÃO recalcula m-valor aqui: isso só acontece quando ela digita um preço
+  // (_multiplosValorChg), pra nunca zerar um valor já salvo só por abrir a noiva de novo.
+  if(produto==='multiplos')_renderMultiplosValores();
   updateCustoBuque._lastProd=produto;
   if(!produto){setTimeout(_calcMargem,0);return;}
   const _rpRaw=_parseBRL(gv('m-redoma-preco'));
