@@ -2018,7 +2018,7 @@ function _calcMargem(){
 
 /* ── MODAL OPEN ──────────────────────────────── */
 function openNew(col){
-  editId=null;mRem=[];mAnexos=[];_mDriveFolder='';
+  editId=null;window._curModalId=null;mRem=[];mAnexos=[];_mDriveFolder='';
   updateCustoBuque._lastProd=null;
   updateCustoBuque._lastAutoVal=null;
   fillForm({etapa:col||'lead'});
@@ -2045,7 +2045,7 @@ function openModal(id){
   g('ov').classList.remove('hidden');
 }
 
-function closeModal(){g('ov').classList.add('hidden');editId=null;mRem=[];mAnexos=[];_mDriveFolder='';}
+function closeModal(){g('ov').classList.add('hidden');editId=null;window._curModalId=null;mRem=[];mAnexos=[];_mDriveFolder='';}
 
 /* ── FORM FILL ───────────────────────────────── */
 function fillForm(b){
@@ -2601,6 +2601,10 @@ async function enviarAssinar(){
   const tel=(gv('m-tel')||'').trim().replace(/\D/g,'');
   if(!nome){alert('Preencha o nome da noiva antes de enviar.');return;}
   if(!tel){alert('Preencha o telefone da noiva para enviar o link de assinatura.');return;}
+  // O link carrega o id da noiva pra o contrato assinado voltar pro card certo. Noiva ainda
+  // não salva não tem id: antes caía num id velho de outra noiva (ou vazio) e a assinatura
+  // se perdia — o card nem existia. Exige salvar antes.
+  if(!editId){alert('Salve a noiva antes de gerar o link de assinatura (botão Salvar). Depois abra o card dela e clique em ✍️ Assinar — assim o contrato assinado volta pro card certo.');return;}
 
   const btn=document.getElementById('btn-autentique');
   if(btn){btn.textContent='⏳ Gerando…';btn.disabled=true;}
@@ -2649,7 +2653,7 @@ async function enviarAssinar(){
     // uma noiva ANTERIOR (ou vazio) quando o link de assinatura era gerado logo depois de um
     // import por WhatsApp, sem passar por openModal(). O contrato assinado ia parar salvo sob
     // o id errado no servidor — nunca aparecia na noiva de verdade, pra sempre.
-    const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,brideId:editId||window._curModalId||'',brunaWpp};
+    const dados={nome,cpf,rg,endereco,cidade,cep,telefone,flores,cerimNome,cerimTel,valor,modeloTxt,chkSim,chkNao,chkConvite,chkTerco,outroTxt,pagHTML,brideId:editId,brunaWpp};
     const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
 
     // Enviar ao worker para obter token curto
@@ -2666,7 +2670,7 @@ async function enviarAssinar(){
     const signUrl='https://brunadona.github.io/florelle-app/?sign='+token;
 
     // Salvar link no registro da noiva
-    const id=editId||window._curModalId;
+    const id=editId;
     if(id){const b=DATA.find(x=>x.id===id);if(b){b.autentiqueLink=signUrl;save();}}
 
     const primeiroNome=nome.split(' ')[0];
@@ -3157,7 +3161,13 @@ function _marcarAssinadoManual(){
 }
 
 async function _handleSignedConfirmation(brideId,ts,nome){
-  const b=DATA.find(x=>x.id===brideId);
+  // Se o id do link veio vazio/errado (bug antigo de link gerado de noiva não salva), acha
+  // pelo nome — só quando bate com exatamente UMA noiva, pra nunca marcar a errada.
+  let b=DATA.find(x=>x.id===brideId);
+  if(!b&&nome){
+    const alvo=DATA.filter(x=>_normNome(x.nome)===_normNome(nome));
+    if(alvo.length===1)b=alvo[0];
+  }
   const tsNum=parseInt(ts);
   const dt=ts&&!isNaN(tsNum)?new Date(tsNum).toLocaleString('pt-BR'):'';
   if(b){
