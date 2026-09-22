@@ -1504,9 +1504,12 @@ const COLS=[
 ];
 
 const PLABEL={quadro25x30:'Quadro 25×30 (acrílico)',quadro32x42:'Quadro 32×42 (acrílico)',quadroMadeira37x40:'Quadro 30×40 (madeira)',quadroMadeira40x60:'Quadro 40×60 (madeira)',quadroMadeira50x70:'Quadro 50×70 (madeira)',quadroSobMedida:'Sob medida',cupulaM:'Cúpula 18×30',cupulaMini:'Mini cúpula 9,5×13',multiplos:'Múltiplos',cupulaG:'⚠️ Produto descontinuado',buqueSilica:'⚠️ Produto desatualizado',buqueResina:'⚠️ Produto desatualizado'};
-// Preços sugeridos por produto (editável aqui)
-// Valores "à vista / 3x no pix" do Portfólio criativo 2026 (fonte oficial de preço pro cliente).
+// Preços sugeridos por produto (editável aqui) — dois valores do Portfólio criativo 2026,
+// porque o portfólio vende cada peça por dois preços diferentes conforme a forma de pagamento:
+// PRECO_SUGERIDO = à vista ou 3x no pix (mesmo valor pros dois); PRECO_SUGERIDO_PARC = parcelado
+// em até 6x sem juros (no cartão). updateCustoBuque() escolhe qual usar pela forma de pagamento.
 const PRECO_SUGERIDO={quadro25x30:'1.580,00',quadro32x42:'1.780,00',quadroMadeira37x40:'1.680,00',quadroMadeira40x60:'1.780,00',quadroMadeira50x70:'1.980,00',cupulaM:'1.480,00',cupulaMini:'780,00',quadroSobMedida:'',multiplos:''};
+const PRECO_SUGERIDO_PARC={quadro25x30:'1.760,00',quadro32x42:'1.982,00',quadroMadeira37x40:'1.871,00',quadroMadeira40x60:'1.982,00',quadroMadeira50x70:'2.205,00',cupulaM:'1.650,00',cupulaMini:'875,00',quadroSobMedida:'',multiplos:''};
 const PRECO_PECA_ADICIONAL=50;
 const PAGLABEL={pixAVista:'Pix à vista',pix3x:'Pix parcelado',cartao:'Cartão'};
 const EMBLABEL={naoEncomendada:'À encomendar',encomendada:'Encomendada',emMaos:'Em mãos'};
@@ -2580,9 +2583,8 @@ function _buildContratoHTML(){
   } else {
     pagRows.filter(p=>p.valor).forEach((p,i)=>{pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
   }
-  const fpMap={'pix3x':'Pix parcelado','pixvista':'Pix à vista','cartao':'Cartão'};
   const fpRaw=radVal('pag');
-  const fpTxt=fpMap[fpRaw]||fpRaw||'';
+  const fpTxt=PAGLABEL[fpRaw]||fpRaw||'';
   const cartaoN=parseInt(gv('m-cartao-n'))||null;
   const cartaoVP=gv('m-cartao-vp').trim();
   const cartaoParcelaStr=(fpRaw==='cartao'&&cartaoN&&cartaoVP)?`${cartaoN}× de R$ ${cartaoVP}`:'';
@@ -2638,9 +2640,8 @@ async function enviarAssinar(){
     } else {
       pagRows.filter(p=>p.valor).forEach((p,i)=>{pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
     }
-    const fpMap={'pix3x':'Pix parcelado','pixvista':'Pix à vista','cartao':'Cartão'};
     const fpRaw=radVal('pag');
-    const fpTxt=fpMap[fpRaw]||fpRaw||'';
+    const fpTxt=PAGLABEL[fpRaw]||fpRaw||'';
     const cartaoN=parseInt(gv('m-cartao-n'))||null;
     const cartaoVP=gv('m-cartao-vp').trim();
     const cartaoParcelaStr=(fpRaw==='cartao'&&cartaoN&&cartaoVP)?`${cartaoN}× de R$ ${cartaoVP}`:'';
@@ -3568,9 +3569,8 @@ function gerarContrato(){
   } else {
     pagRows.filter(p=>p.valor).forEach((p,i)=>{pagLinhas.push((i+1)+'ª parcela: R$ '+p.valor+(p.data?' — '+fmt(p.data):'')+(p.pago?' ✓':''));});
   }
-  const fpMap={'pix3x':'Pix parcelado','pixvista':'Pix à vista','cartao':'Cartão'};
   const fpRaw2=radVal('pag');
-  const fpTxt = fpMap[fpRaw2]||fpRaw2||'';
+  const fpTxt = PAGLABEL[fpRaw2]||fpRaw2||'';
   const cartaoN2=parseInt(gv('m-cartao-n'))||null;
   const cartaoVP2=gv('m-cartao-vp').trim();
   const cartaoParcelaStr2=(fpRaw2==='cartao'&&cartaoN2&&cartaoVP2)?`${cartaoN2}× de R$ ${cartaoVP2}`:'';
@@ -3763,6 +3763,9 @@ function pagChg(){
   const prev=_getPagRows();prev._wasReserva=!!pagCalc._lastReservaAtiva;
   g('pag-rows').innerHTML='';
   pagCalc(prev.length?prev:null,true);
+  // Cartão e Pix vendem a mesma peça por preços diferentes (catálogo) — reavalia o valor
+  // sugerido ao trocar a forma de pagamento (só se ela não tiver digitado um valor próprio).
+  updateCustoBuque();
 }
 
 function _parseBRL(s){
@@ -4349,7 +4352,10 @@ function updateCustoBuque(force){
   // o campo estiver vazio ou ainda com o valor que a gente mesmo preencheu, pra não
   // sobrescrever um valor customizado que a usuária digitou à mão.
   if(force||!_curVal||_curVal===updateCustoBuque._lastAutoVal){
-    const sug=PRECO_SUGERIDO[produto];
+    // Cartão parcelado usa o valor "em até 6x sem juros" do portfólio; à vista e pix (parcelado
+    // ou não) usam o mesmo valor "à vista/3x no pix" — os dois preços do catálogo.
+    const tabela=radVal('pag')==='cartao'?PRECO_SUGERIDO_PARC:PRECO_SUGERIDO;
+    const sug=tabela[produto];
     if(sug){
       const pecasCount=[...document.querySelectorAll('input[name="pecas"]:checked')].filter(c=>c.value!=='nenhuma').length;
       const sugCents=_parseBRL(sug);
