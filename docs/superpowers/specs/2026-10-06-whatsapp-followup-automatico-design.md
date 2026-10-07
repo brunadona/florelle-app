@@ -98,16 +98,16 @@ Variável `FU_TEST_PHONE`: se definida, o worker só envia para esse número (o 
 ## Mensagens (templates, categoria Marketing — rascunho para aprovação da Bruna)
 
 **`florelle_fu1`** (2 dias) — cabeçalho: foto de um quadro pronto
-> Oi, {{1}}! Aqui é a Bruna, da Florelle 🌿 Passando pra saber se ficou alguma dúvida sobre a eternização do seu buquê. Posso te mandar mais fotos de trabalhos que já entregamos?
+> Oi! Aqui é a Bruna, da Florelle 🌿 Passando pra saber se ficou alguma dúvida sobre a eternização do seu buquê. Posso te mandar mais fotos de trabalhos que já entregamos?
 
 Botões de resposta rápida: `Quero ver mais fotos` · `Não tenho interesse`
 
 **`florelle_fu2`** (7 dias)
-> Oi, {{1}}! Um detalhe importante: o buquê dura poucos dias depois do casamento, e atendemos um número limitado de noivas por data. Se quiser garantir a sua, é só me responder por aqui 💐
+> Oi! Um detalhe importante: o buquê dura poucos dias depois do casamento, e atendemos um número limitado de noivas por data. Se quiser garantir a sua, é só me responder por aqui 💐
 
 Botões de resposta rápida: `Quero garantir minha data` · `Não tenho interesse`
 
-`{{1}}` = primeiro nome do perfil do WhatsApp; se vazio, "noiva" ("Oi, noiva!"). Variável nunca no início/fim do texto (regra da Meta).
+Templates sem variáveis: o perfil do WhatsApp das noivas geralmente não tem nome, então todas recebem "Oi!" (decisão da Bruna). Na tela do app, registro sem nome mostra o telefone.
 
 ---
 
