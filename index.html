@@ -1163,20 +1163,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
       </div>
       <div class="frow f1 hidden" id="multiplos-itens-row">
         <div class="fg">
-          <label class="fl">Quais produtos compõem o combo</label>
-          <div class="rg">
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="cupulaM" onchange="updateCustoBuque()"><span class="rl">Cúpula 18×30</span></label>
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="cupulaMini" onchange="updateCustoBuque()"><span class="rl">Mini cúpula 9,5×13</span></label>
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadro25x30" onchange="updateCustoBuque()"><span class="rl">Quadro 25×30 (acrílico)</span></label>
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadro32x42" onchange="updateCustoBuque()"><span class="rl">Quadro 32×42 (acrílico)</span></label>
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira37x40" onchange="updateCustoBuque()"><span class="rl">Quadro 30×40 (madeira)</span></label>
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira40x60" onchange="updateCustoBuque()"><span class="rl">Quadro 40×60 (madeira)</span></label>
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroMadeira50x70" onchange="updateCustoBuque()"><span class="rl">Quadro 50×70 (madeira)</span></label>
-            <label class="ro"><input type="checkbox" name="multiplosItens" value="quadroSobMedida" onchange="updateCustoBuque()"><span class="rl">Quadro sob medida</span></label>
+          <label class="fl">Peças do pedido</label>
+          <div id="multiplos-pecas" style="display:flex;flex-direction:column;gap:6px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button type="button" class="bsec" style="height:32px;padding:0 12px;font-size:12px" onclick="_addMultiplosPeca()">+ Adicionar peça</button>
+            <button type="button" class="bsec" style="height:32px;padding:0 12px;font-size:12px" onclick="_dividirTotalPecas()" title="Divide o Valor Total do pedido igualmente entre as peças">Dividir o valor total igualmente</button>
           </div>
-          <p class="hint">Marque os produtos do combo — é isso que faz o custo de material (redoma, isopor, moldura de cada um) e o lucro saírem certos.</p>
-          <div id="multiplos-valores" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
-          <p class="hint">Informe quanto cobrou de cada peça — o Valor Total do combo é a soma dos dois, não um valor sugerido de tabela.</p>
+          <p class="hint">Uma linha por peça (3 cúpulas = 3 linhas). Informe quanto cobrou de cada uma — o Valor Total é a soma. Se você só sabe o total do pedido, preencha o Valor Total e clique em "Dividir o valor total igualmente".</p>
+          <div id="multiplos-resumo" style="margin-top:6px"></div>
         </div>
       </div>
       <div class="frow f1">
@@ -2081,8 +2075,7 @@ function fillForm(b){
   sv2('m-custo',      b.custoMaterial||'');
 
   setRad('prod',      b.produto||'');
-  _setMultiplosItens(b.multiplosItens);
-  _setMultiplosValores(b.multiplosValores);
+  _setMultiplosPecas(b.multiplosItens,b.multiplosValores);
   if(g('multiplos-itens-row'))g('multiplos-itens-row').classList.toggle('hidden',b.produto!=='multiplos');
   setRad('emb',       b.statusEmbalagem||'naoEncomendada');
   setRad('pag',       b.formaPagamento||'');
@@ -2165,62 +2158,115 @@ function pecaVis(){
   g('m-outro').classList.toggle('hidden',!(o&&o.checked));
 }
 
-// "Múltiplos" (ex: cúpula + mini cúpula no mesmo pedido) não é um produto de verdade pro
-// cálculo de material — é um combo de outros produtos. Sem saber QUAIS, calcCustoBuque não
-// tinha como somar a redoma/moldura de cada um (só os consumíveis comuns eram contados).
-function _getMultiplosItens(){
-  return Array.from(document.querySelectorAll('input[name="multiplosItens"]:checked')).map(c=>c.value);
+// "Múltiplos" = pedido com várias peças (ex: 3 cúpulas, ou cúpula + mini cúpula). Cada peça é
+// uma linha com o produto e o preço cobrado — o mesmo produto pode repetir. Enquanto o modal
+// está aberto o DOM é a fonte da verdade; ao salvar vira b.multiplosItens (lista de produtos,
+// com repetição) e b.multiplosValores (lista de preços, na mesma ordem).
+const MULTI_PRODUTOS=['cupulaM','cupulaMini','quadro25x30','quadro32x42','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70','quadroSobMedida'];
+function _multiplosRowHTML(prod,val){
+  const opts=MULTI_PRODUTOS.map(k=>`<option value="${k}"${k===prod?' selected':''}>${esc(PLABEL[k]||k)}</option>`).join('');
+  return `<div class="mp-row" style="display:flex;align-items:center;gap:6px"><span class="mp-n" style="min-width:20px;font-size:12px;color:var(--txl)"></span><select class="fi mp-prod" style="flex:1;min-width:0;height:34px" onchange="_multiplosChg()">${opts}</select><span style="font-size:12px">R$</span><input type="text" class="fi mp-val" style="width:96px;min-width:0;height:34px" value="${esc(val||'')}" placeholder="0,00" oninput="_multiplosValorChg()"><button type="button" class="bdr" title="Remover peça" onclick="_removeMultiplosPeca(this)">${icn('<path d="M1 1l10 10M11 1L1 11"/>',11,11)}</button></div>`;
 }
-function _setMultiplosItens(arr){
-  const set=new Set(arr||[]);
-  document.querySelectorAll('input[name="multiplosItens"]').forEach(c=>c.checked=set.has(c.value));
+function _renumMultiplos(){document.querySelectorAll('#multiplos-pecas .mp-n').forEach((el,i)=>{el.textContent=(i+1)+'.';});}
+function _getMultiplosItens(){return Array.from(document.querySelectorAll('#multiplos-pecas .mp-prod')).map(s=>s.value);}
+function _getMultiplosValores(){return Array.from(document.querySelectorAll('#multiplos-pecas .mp-val')).map(i=>i.value.trim());}
+function _setMultiplosPecas(itens,valores){
+  const cont=g('multiplos-pecas');if(!cont)return;
+  itens=itens||[];
+  // formato antigo: multiplosValores era um objeto {produto:valor} (uma peça por produto)
+  const vals=Array.isArray(valores)?valores:itens.map(k=>(valores&&valores[k])||'');
+  cont.innerHTML=itens.map((k,i)=>_multiplosRowHTML(k,vals[i])).join('');
+  _renumMultiplos();
 }
-// Valor Total de um combo não vem de tabela — cada peça é vendida por um preço negociado
-// com a noiva (ex: cúpula por R$1.540 + mini cúpula por R$670). Um campo de valor por
-// peça marcada, somado no Valor Total — nada de "sugerir" um preço genérico pra combo.
-function _renderMultiplosValores(manter){
-  const cont=g('multiplos-valores');if(!cont)return;
-  const itens=_getMultiplosItens();
-  const prev={};
-  if(manter!==false)cont.querySelectorAll('[data-multval]').forEach(inp=>{prev[inp.dataset.multval]=inp.value;});
-  cont.innerHTML=itens.length?itens.map(v=>
-    `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="min-width:170px;color:var(--txm)">${esc(PLABEL[v]||v)}</span><span>R$</span><input type="text" class="fi" style="max-width:110px;height:32px" data-multval="${v}" value="${esc(prev[v]||'')}" placeholder="0,00" oninput="_multiplosValorChg()"></div>`
-  ).join(''):'';
+function _addMultiplosPeca(){
+  const cont=g('multiplos-pecas');if(!cont)return;
+  const ult=_getMultiplosItens().pop()||'cupulaM'; // nova peça começa igual à última (3 cúpulas = 3 cliques)
+  cont.insertAdjacentHTML('beforeend',_multiplosRowHTML(ult,''));
+  _renumMultiplos();_multiplosChg();
 }
-function _getMultiplosValores(){
-  const o={};
-  document.querySelectorAll('#multiplos-valores [data-multval]').forEach(inp=>{if(inp.value.trim())o[inp.dataset.multval]=inp.value.trim();});
-  return o;
+function _removeMultiplosPeca(btn){
+  const row=btn.closest('.mp-row');if(row)row.remove();
+  _renumMultiplos();_multiplosChg();
 }
-function _setMultiplosValores(obj){
-  _renderMultiplosValores(false);
-  const vals=obj||{};
-  document.querySelectorAll('#multiplos-valores [data-multval]').forEach(inp=>{
-    if(vals[inp.dataset.multval]!=null)inp.value=vals[inp.dataset.multval];
-  });
-}
-function _multiplosValorChg(){
-  const soma=Array.from(document.querySelectorAll('#multiplos-valores [data-multval]')).reduce((s,inp)=>s+_parseBRL(inp.value),0);
+// Valor Total de um pedido de várias peças não vem de tabela — é a soma do que ela cobrou de
+// cada uma. Só recalcula por ação dela (digitar preço, adicionar/remover/trocar peça COM preço
+// já digitado), nunca ao só abrir a noiva — pra nunca zerar um valor já salvo.
+function _somarMultiplosValores(){
+  const soma=_getMultiplosValores().reduce((s,v)=>s+_parseBRL(v),0);
   sv2('m-valor',_fmtBRLInput(soma/100));
   updateCustoBuque._lastAutoVal=gv('m-valor');
-  setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
+}
+function _multiplosChg(){
+  if(_getMultiplosValores().some(v=>v))_somarMultiplosValores();
+  updateCustoBuque();
+}
+function _multiplosValorChg(){_somarMultiplosValores();updateCustoBuque();}
+// "Fechei as 3 cúpulas por R$4.000": divide o Valor Total igualmente entre as peças (o
+// centavo que sobra vai pra última) pra o app calcular custo e lucro de cada uma.
+function _dividirTotalPecas(){
+  const n=_getMultiplosItens().length;
+  if(!n){_showCalToast('Adicione as peças primeiro.');return;}
+  const total=_parseBRL(gv('m-valor'));
+  if(total<=0){_showCalToast('Preencha o Valor total do pedido primeiro.');return;}
+  const base=Math.floor(total/n),resto=total-base*n;
+  document.querySelectorAll('#multiplos-pecas .mp-val').forEach((inp,i)=>{inp.value=_centsStr(base+(i===n-1?resto:0));});
+  updateCustoBuque();
+}
+// Tabela custo/preço/lucro/margem de cada peça + total do pedido.
+function _renderMultiplosResumo(){
+  const cont=g('multiplos-resumo');if(!cont)return;
+  const itens=_getMultiplosItens();
+  if(radVal('prod')!=='multiplos'||!itens.length){cont.innerHTML='';return;}
+  const custos=calcCustoPecas(itens);
+  const brl=cents=>'R$ '+_fmtBRLInput(cents/100);
+  const pct=(l,p)=>p>0?Math.round(l/p*100)+'%':'—';
+  const cor=l=>l>=0?'#2a7a2a':'#B03420';
+  // custo de cada peça em centavos, com o arredondamento acumulado (a soma bate com o total)
+  let acum=0,antes=0;
+  const custoC=custos.map(v=>{acum+=v;const r=Math.round(acum*100)-antes;antes+=r;return r;});
+  const vals=_getMultiplosValores().map(_parseBRL);
+  let todosComPreco=true;
+  const td='padding:3px 10px 3px 0;white-space:nowrap';
+  const linhas=itens.map((k,i)=>{
+    const p=vals[i]||0;if(!p)todosComPreco=false;
+    const l=p-custoC[i];
+    return `<tr><td style="${td}">${i+1}. ${esc(PLABEL[k]||k)}</td><td style="${td}">${p?brl(p):'—'}</td><td style="${td}">${brl(custoC[i])}</td><td style="${td};font-weight:600;color:${p?cor(l):'inherit'}">${p?brl(l):'—'}</td><td style="${td}">${p?pct(l,p):'—'}</td></tr>`;
+  }).join('');
+  const totCusto=custoC.reduce((s,v)=>s+v,0);
+  const vt=_parseBRL(gv('m-valor'));
+  const lt=vt-totCusto;
+  cont.innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--txl)"><th style="${td}">Peça</th><th style="${td}">Preço</th><th style="${td}">Custo</th><th style="${td}">Lucro</th><th style="${td}">Margem</th></tr></thead><tbody>${linhas}<tr style="border-top:1.5px solid var(--bd);font-weight:700"><td style="${td}">Total do pedido</td><td style="${td}">${brl(vt)}</td><td style="${td}">${brl(totCusto)}</td><td style="${td};color:${cor(lt)}">${brl(lt)}</td><td style="${td}">${pct(lt,vt)}</td></tr></tbody></table></div>${todosComPreco?'':'<p class="hint" style="margin-top:4px">Informe o preço de cada peça (ou clique em "Dividir o valor total igualmente") pra ver o lucro de cada uma.</p>'}`;
 }
 // Lista de produtos "de verdade" usados por essa noiva pra qualquer cálculo de material
-// (custo, lista de compras, dedução de estoque) — o próprio produto, ou os itens marcados
-// do combo quando o produto é "Múltiplos".
+// (custo, lista de compras, dedução de estoque) — o próprio produto, ou as peças do pedido
+// quando o produto é "Múltiplos" (o mesmo produto pode aparecer várias vezes).
 function _produtosDaNoiva(b){
   if((b.produto||'')==='multiplos')return b.multiplosItens||[];
   return [b.produto||''];
 }
 // Quantas vezes um item do estoque é usado no pedido, dada a lista de produtos do pedido
 // (_produtosDaNoiva ou o equivalente lido do form). Item específico de produto (redoma,
-// moldura, isopor): 1x por produto do combo que usa esse item. Item comum (cola, verniz,
-// inseticida...): 1x por PEÇA do combo — um combo de 2 peças gasta o dobro de acabamento.
-// Exceção: Sílica seca as peças do combo no mesmo lote, então conta 1x sempre (não por peça).
+// moldura, isopor): 1x por PEÇA que usa esse item (3 cúpulas = 3 redomas). Item comum (cola,
+// verniz, inseticida...): 1x por peça — um pedido de 2 peças gasta o dobro de acabamento.
+// Exceção: Sílica seca as peças do pedido no mesmo lote, então conta 1x sempre (não por peça).
 function _qtdUsosItem(item,produtos){
-  if(item.porProduto)return item.porProduto.filter(p=>produtos.includes(p)).length;
+  if(item.porProduto)return produtos.filter(p=>item.porProduto.includes(p)).length;
   if(item.nome==='Sílica')return produtos.length?1:0;
   return produtos.length;
+}
+
+// Texto do "Modelo contratado" no contrato. Pedido de várias peças lista cada uma com a
+// quantidade (ex: "3× Cúpula 18×30"), em vez de só "Múltiplos".
+const PRODMAP_CONTRATO={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 30×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
+function _modeloContratoTxt(produto){
+  if(produto==='multiplos'){
+    const itens=_getMultiplosItens();
+    if(itens.length){
+      const cont=new Map();itens.forEach(k=>cont.set(k,(cont.get(k)||0)+1));
+      return [...cont].map(([k,q])=>q+'× '+(PRODMAP_CONTRATO[k]||k)).join(' + ');
+    }
+  }
+  return PRODMAP_CONTRATO[produto]||produto||'';
 }
 
 /* ── SYNC AUTO REMINDERS (tempo real) ────────── */
@@ -2349,7 +2395,7 @@ async function saveModal(){
     retiradaBuque:  radVal('retiradaBuque'),
     produto:        radVal('prod'),
     multiplosItens: radVal('prod')==='multiplos'?_getMultiplosItens():[],
-    multiplosValores: radVal('prod')==='multiplos'?_getMultiplosValores():{},
+    multiplosValores: radVal('prod')==='multiplos'?_getMultiplosValores():[],
     produtoObs:     gv('m-prod-obs').trim(),
     statusEmbalagem:radVal('emb')||'naoEncomendada',
     dataEntregaEmbalagem:gv('m-emb-d'),
@@ -2569,8 +2615,7 @@ function _buildContratoHTML(){
   const produto   = radVal('prod');
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
-  const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 30×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
-  const modeloTxt = prodMap[produto]||produto||'';
+  const modeloTxt = _modeloContratoTxt(produto);
   const chkSim=rep==='sim',chkNao=rep==='nao';
   const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
   const outroTxt=pecas.includes('outro')&&pecasOutro?pecasOutro:'não';
@@ -2626,8 +2671,7 @@ async function enviarAssinar(){
     const produto=radVal('prod');
     const pecas=Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
     const pecasOutro=gv('m-outro').trim();
-    const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 30×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
-    const modeloTxt=prodMap[produto]||produto||'';
+    const modeloTxt = _modeloContratoTxt(produto);
     const chkSim=rep==='sim',chkNao=rep==='nao';
     const chkConvite=pecas.includes('convite'),chkTerco=pecas.includes('terco');
     const outroTxt=pecas.includes('outro')&&pecasOutro?pecasOutro:'não';
@@ -3550,8 +3594,7 @@ function gerarContrato(){
   const pecas     = Array.from(document.querySelectorAll('input[name="pecas"]:checked')).map(c=>c.value);
   const pecasOutro= gv('m-outro').trim();
 
-  const prodMap={'cupulaM':'Cúpula 18×30','cupulaMini':'Mini cúpula 9,5×13','quadro25x30':'Quadro 25×30 cm (acrílico)','quadro32x42':'Quadro 32×42 cm (acrílico)','quadroMadeira37x40':'Quadro 30×40 cm (madeira)','quadroMadeira40x60':'Quadro 40×60 cm (madeira)','quadroMadeira50x70':'Quadro 50×70 cm (madeira)','quadroSobMedida':'Quadro sob medida','multiplos':'Múltiplos','cupulaG':'⚠️ Produto descontinuado'};
-  const modeloTxt = prodMap[produto]||produto||'';
+  const modeloTxt = _modeloContratoTxt(produto);
 
   const chkSim    = rep==='sim';
   const chkNao    = rep==='nao';
@@ -4339,7 +4382,8 @@ function updateCustoBuque(force){
   // Sincroniza os campos de valor por peça com o que está marcado (preserva o que já foi
   // digitado) — mas NÃO recalcula m-valor aqui: isso só acontece quando ela digita um preço
   // (_multiplosValorChg), pra nunca zerar um valor já salvo só por abrir a noiva de novo.
-  if(produto==='multiplos')_renderMultiplosValores();
+  // Ao escolher "Múltiplos" sem nenhuma peça ainda, já abre a primeira linha pra ela preencher.
+  if(produto==='multiplos'&&force&&!_getMultiplosItens().length)_addMultiplosPeca();
   updateCustoBuque._lastProd=produto;
   if(!produto){setTimeout(_calcMargem,0);return;}
   const _rpRaw=_parseBRL(gv('m-redoma-preco'));
@@ -4365,6 +4409,7 @@ function updateCustoBuque(force){
       updateCustoBuque._lastAutoVal=_newVal;
     }
   }
+  _renderMultiplosResumo();
   setTimeout(pagCalc,0);setTimeout(_calcMargem,0);
 }
 
@@ -4384,6 +4429,26 @@ function calcCustoBuque(produto,redomaOverride,subprodutos){
     total += (item.consumo||0) * preco * usos;
   });
   return total;
+}
+
+// Custo de CADA peça de um pedido com várias (mesma conta do calcCustoBuque, só que repartida):
+// cada peça leva o que é dela (redoma/moldura/isopor do produto dela + os materiais comuns),
+// e o que é do pedido inteiro — os R$50 de custos variáveis e a sílica, que seca tudo junto —
+// é dividido igualmente. A soma das peças é exatamente o custo do pedido.
+function calcCustoPecas(pecas,redomaOverride){
+  const n=pecas.length;if(!n)return [];
+  let compart=50.00; // CUSTOS_VARIAVEIS do pedido
+  const custos=pecas.map(()=>0);
+  INV.forEach(item=>{
+    if(item.nome==='Custos variáveis')return;
+    if(!item.porProduto&&item.nome==='Sílica'){compart+=(item.consumo||0)*(item.precoUnit||0);return;}
+    pecas.forEach((p,i)=>{
+      if(item.porProduto&&!item.porProduto.includes(p))return;
+      const preco=(redomaOverride!=null&&item.nome==='Redoma sob medida')?redomaOverride:(item.precoUnit||0);
+      custos[i]+=(item.consumo||0)*preco;
+    });
+  });
+  return custos.map(v=>v+compart/n);
 }
 
 /* ── INVENTORY HELPERS ───────────────────────── */
