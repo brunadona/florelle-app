@@ -2108,7 +2108,10 @@ function fillForm(b){
   updateCustoBuque._lastProd=b.produto||''; // não auto-preenche ao carregar noiva existente
   updateCustoBuque._lastAutoVal=null;
   setTimeout(updateCustoBuque,50);
-  pagCalc(allPagRows.length?allPagRows:null);
+  // Sempre parte das parcelas DESSA noiva (mesmo vazias). Antes, sem parcelas salvas ele lia as
+  // linhas que sobraram na tela da noiva anterior — a cliente nova (ex: via Importar do WhatsApp)
+  // já abria com a parcela de R$4.000,00 da anterior.
+  pagCalc(allPagRows);
   pecaVis();
   renderRL();
   renderAnexos();
@@ -3920,7 +3923,8 @@ function pagCalc(preload,forceRecalcValor){
   const prevHadReserva=preload?!!preload._wasReserva:!!pagCalc._lastReservaAtiva;
   const prevParcelas=prevHadReserva?prevAll.slice(1):prevAll.slice();
   const prevReserva=prevHadReserva?(prevAll[0]||null):null;
-  const useCalc=forceRecalcValor||prevAll.every(r=>!r.valor);
+  // linha vazia ou zerada ("0,00") não tem valor nenhum a preservar — recalcula do Valor total
+  const useCalc=forceRecalcValor||prevAll.every(r=>!_parseBRL(r.valor));
   const reservaAtiva=radVal('reservaAtiva')==='sim';
   const totalCents=_parseBRL(gv('m-valor'));
 
