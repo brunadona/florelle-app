@@ -1167,9 +1167,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
           <div id="multiplos-pecas" style="display:flex;flex-direction:column;gap:6px"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
             <button type="button" class="bsec" style="height:32px;padding:0 12px;font-size:12px" onclick="_addMultiplosPeca()">+ Adicionar peça</button>
-            <button type="button" class="bsec" style="height:32px;padding:0 12px;font-size:12px" onclick="_dividirTotalPecas()" title="Divide o Valor Total do pedido igualmente entre as peças">Dividir o valor total igualmente</button>
+            <button type="button" class="bsec" style="height:32px;padding:0 12px;font-size:12px" onclick="_ratearTotalBtn()" title="Distribui o Valor Total (já com o seu desconto) entre as peças, na proporção do preço de tabela">Ratear o valor total entre as peças</button>
           </div>
-          <p class="hint">Uma linha por peça (3 cúpulas = 3 linhas). Informe quanto cobrou de cada uma — o Valor Total é a soma. Se você só sabe o total do pedido, preencha o Valor Total e clique em "Dividir o valor total igualmente".</p>
+          <p class="hint">Uma linha por peça (3 cúpulas = 3 linhas). Cada peça já entra com o preço de tabela do catálogo. Pra dar desconto, digite o valor final em "Valor total" — o app reparte o desconto entre as peças e mostra quanto foi.</p>
           <div id="multiplos-resumo" style="margin-top:6px"></div>
         </div>
       </div>
@@ -1255,7 +1255,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
       <!-- Valor total -->
       <div class="frow f1" style="margin-bottom:8px">
-        <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" oninput="pagCalc();updateCustoBuque();_calcMargem()" placeholder="Ex: 1.290,00"></div>
+        <div class="fg"><label class="fl">Valor total (R$)</label><input id="m-valor" type="text" class="fi" oninput="pagCalc();updateCustoBuque();_calcMargem()" onchange="_valorTotalEditado()" placeholder="Ex: 1.290,00"></div>
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">Custo de material</label><input id="m-custo" type="text" class="fi" placeholder="R$ 0,00" oninput="_calcMargem()"></div>
@@ -2163,9 +2163,16 @@ function pecaVis(){
 // está aberto o DOM é a fonte da verdade; ao salvar vira b.multiplosItens (lista de produtos,
 // com repetição) e b.multiplosValores (lista de preços, na mesma ordem).
 const MULTI_PRODUTOS=['cupulaM','cupulaMini','quadro25x30','quadro32x42','quadroMadeira37x40','quadroMadeira40x60','quadroMadeira50x70','quadroSobMedida'];
+// Preço de tabela (em centavos) de um produto, conforme a forma de pagamento escolhida:
+// cartão parcelado usa o preço "em até 6x"; pix/à vista usa o preço "à vista/3x no pix".
+function _tabelaCents(prod){
+  const t=(radVal('pag')==='cartao'?PRECO_SUGERIDO_PARC:PRECO_SUGERIDO)[prod];
+  return t?_parseBRL(t):0;
+}
+let _multiTotalManual=false; // true quando a Bruna digitou o Valor total (com desconto) à mão
 function _multiplosRowHTML(prod,val){
   const opts=MULTI_PRODUTOS.map(k=>`<option value="${k}"${k===prod?' selected':''}>${esc(PLABEL[k]||k)}</option>`).join('');
-  return `<div class="mp-row" style="display:flex;align-items:center;gap:6px"><span class="mp-n" style="min-width:20px;font-size:12px;color:var(--txl)"></span><select class="fi mp-prod" style="flex:1;min-width:0;height:34px" onchange="_multiplosChg()">${opts}</select><span style="font-size:12px">R$</span><input type="text" class="fi mp-val" style="width:96px;min-width:0;height:34px" value="${esc(val||'')}" placeholder="0,00" oninput="_multiplosValorChg()"><button type="button" class="bdr" title="Remover peça" onclick="_removeMultiplosPeca(this)">${icn('<path d="M1 1l10 10M11 1L1 11"/>',11,11)}</button></div>`;
+  return `<div class="mp-row" style="display:flex;align-items:center;gap:6px"><span class="mp-n" style="min-width:20px;font-size:12px;color:var(--txl)"></span><select class="fi mp-prod" data-prev="${prod}" style="flex:1;min-width:0;height:34px" onchange="_multiplosSelChg(this)">${opts}</select><span style="font-size:12px">R$</span><input type="text" class="fi mp-val" style="width:96px;min-width:0;height:34px" value="${esc(val||'')}" placeholder="0,00" oninput="_multiplosValorChg()"><button type="button" class="bdr" title="Remover peça" onclick="_removeMultiplosPeca(this)">${icn('<path d="M1 1l10 10M11 1L1 11"/>',11,11)}</button></div>`;
 }
 function _renumMultiplos(){document.querySelectorAll('#multiplos-pecas .mp-n').forEach((el,i)=>{el.textContent=(i+1)+'.';});}
 function _getMultiplosItens(){return Array.from(document.querySelectorAll('#multiplos-pecas .mp-prod')).map(s=>s.value);}
@@ -2176,43 +2183,86 @@ function _setMultiplosPecas(itens,valores){
   // formato antigo: multiplosValores era um objeto {produto:valor} (uma peça por produto)
   const vals=Array.isArray(valores)?valores:itens.map(k=>(valores&&valores[k])||'');
   cont.innerHTML=itens.map((k,i)=>_multiplosRowHTML(k,vals[i])).join('');
+  _multiTotalManual=false;
   _renumMultiplos();
 }
+// Nova peça entra igual à última (3 cúpulas = 3 cliques) já com o preço de tabela dela.
 function _addMultiplosPeca(){
   const cont=g('multiplos-pecas');if(!cont)return;
-  const ult=_getMultiplosItens().pop()||'cupulaM'; // nova peça começa igual à última (3 cúpulas = 3 cliques)
-  cont.insertAdjacentHTML('beforeend',_multiplosRowHTML(ult,''));
+  const ult=_getMultiplosItens().pop()||'cupulaM';
+  const t=_tabelaCents(ult);
+  cont.insertAdjacentHTML('beforeend',_multiplosRowHTML(ult,t?_centsStr(t):''));
   _renumMultiplos();_multiplosChg();
 }
 function _removeMultiplosPeca(btn){
   const row=btn.closest('.mp-row');if(row)row.remove();
   _renumMultiplos();_multiplosChg();
 }
-// Valor Total de um pedido de várias peças não vem de tabela — é a soma do que ela cobrou de
-// cada uma. Só recalcula por ação dela (digitar preço, adicionar/remover/trocar peça COM preço
-// já digitado), nunca ao só abrir a noiva — pra nunca zerar um valor já salvo.
+// Trocou o produto de uma peça: se o preço ainda era o de tabela do produto antigo (ou vazio),
+// passa pro preço de tabela do novo; preço que a Bruna mexeu à mão fica como está.
+function _multiplosSelChg(sel){
+  const row=sel.closest('.mp-row'),inp=row.querySelector('.mp-val');
+  const p=_parseBRL(inp.value),velha=_tabelaCents(sel.dataset.prev),nova=_tabelaCents(sel.value);
+  if(!p||p===velha)inp.value=nova?_centsStr(nova):'';
+  sel.dataset.prev=sel.value;
+  _multiplosChg();
+}
+// Trocou a forma de pagamento (cartão <-> pix): peças que estavam no preço de tabela da
+// forma anterior acompanham o preço de tabela da nova.
+function _multiplosRetabelar(){
+  const cartao=radVal('pag')==='cartao';
+  const nova=cartao?PRECO_SUGERIDO_PARC:PRECO_SUGERIDO,velha=cartao?PRECO_SUGERIDO:PRECO_SUGERIDO_PARC;
+  let mudou=false;
+  document.querySelectorAll('#multiplos-pecas .mp-row').forEach(row=>{
+    const k=row.querySelector('.mp-prod').value,inp=row.querySelector('.mp-val');
+    if(velha[k]&&nova[k]&&_parseBRL(inp.value)===_parseBRL(velha[k])){inp.value=_centsStr(_parseBRL(nova[k]));mudou=true;}
+  });
+  if(mudou)_multiplosAplicarTotal();
+}
+// O Valor Total do pedido: se a Bruna digitou o total com desconto, o desconto é rateado entre
+// as peças; senão o total é a soma dos preços das peças. Só roda por ação dela — nunca ao só
+// abrir a noiva — pra nunca mexer num valor já salvo.
+function _multiplosAplicarTotal(){
+  if(_multiTotalManual&&_parseBRL(gv('m-valor'))>0)_ratearTotalPecas();
+  else if(_getMultiplosValores().some(v=>v))_somarMultiplosValores();
+}
 function _somarMultiplosValores(){
   const soma=_getMultiplosValores().reduce((s,v)=>s+_parseBRL(v),0);
   sv2('m-valor',_fmtBRLInput(soma/100));
   updateCustoBuque._lastAutoVal=gv('m-valor');
 }
-function _multiplosChg(){
-  if(_getMultiplosValores().some(v=>v))_somarMultiplosValores();
-  updateCustoBuque();
+function _multiplosChg(){_multiplosAplicarTotal();updateCustoBuque();}
+function _multiplosValorChg(){_multiTotalManual=false;_somarMultiplosValores();updateCustoBuque();}
+// Ela digitou o Valor total (ex: 3 cúpulas de R$1.480 fechadas por R$4.000): o desconto é
+// repartido entre as peças, cada uma mantendo a mesma proporção do preço de tabela.
+function _valorTotalEditado(){
+  if(radVal('prod')!=='multiplos'||!_getMultiplosItens().length)return;
+  _multiTotalManual=true;
+  _ratearTotalPecas();updateCustoBuque();
 }
-function _multiplosValorChg(){_somarMultiplosValores();updateCustoBuque();}
-// "Fechei as 3 cúpulas por R$4.000": divide o Valor Total igualmente entre as peças (o
-// centavo que sobra vai pra última) pra o app calcular custo e lucro de cada uma.
-function _dividirTotalPecas(){
-  const n=_getMultiplosItens().length;
-  if(!n){_showCalToast('Adicione as peças primeiro.');return;}
-  const total=_parseBRL(gv('m-valor'));
-  if(total<=0){_showCalToast('Preencha o Valor total do pedido primeiro.');return;}
-  const base=Math.floor(total/n),resto=total-base*n;
-  document.querySelectorAll('#multiplos-pecas .mp-val').forEach((inp,i)=>{inp.value=_centsStr(base+(i===n-1?resto:0));});
-  updateCustoBuque();
+function _ratearTotalBtn(){
+  if(!_getMultiplosItens().length){_showCalToast('Adicione as peças primeiro.');return;}
+  if(_parseBRL(gv('m-valor'))<=0){_showCalToast('Preencha o Valor total (o valor final, com desconto) primeiro.');return;}
+  _multiTotalManual=true;_ratearTotalPecas();updateCustoBuque();
 }
-// Tabela custo/preço/lucro/margem de cada peça + total do pedido.
+// Reparte o Valor total entre as peças proporcionalmente ao preço de tabela (peça sem tabela,
+// tipo "sob medida", entra pelo preço que já tem; sem nenhuma referência, divide igual). O
+// centavo que sobra vai pra última peça, pra a soma bater exatamente com o total.
+function _ratearTotalPecas(){
+  const itens=_getMultiplosItens(),n=itens.length;if(!n)return;
+  const total=_parseBRL(gv('m-valor'));if(total<=0)return;
+  const inps=Array.from(document.querySelectorAll('#multiplos-pecas .mp-val'));
+  let pesos=itens.map((k,i)=>_tabelaCents(k)||_parseBRL(inps[i].value));
+  let soma=pesos.reduce((s,v)=>s+v,0);
+  if(soma<=0){pesos=itens.map(()=>1);soma=n;}
+  let acum=0;
+  inps.forEach((inp,i)=>{
+    const v=i===n-1?total-acum:Math.round(total*pesos[i]/soma);
+    acum+=v;inp.value=_centsStr(v);
+  });
+}
+// Tabela por peça e do pedido: preço de tabela, preço cobrado, custo, lucro e margem; e o
+// desconto dado em relação à tabela.
 function _renderMultiplosResumo(){
   const cont=g('multiplos-resumo');if(!cont)return;
   const itens=_getMultiplosItens();
@@ -2225,17 +2275,20 @@ function _renderMultiplosResumo(){
   let acum=0,antes=0;
   const custoC=custos.map(v=>{acum+=v;const r=Math.round(acum*100)-antes;antes+=r;return r;});
   const vals=_getMultiplosValores().map(_parseBRL);
-  let todosComPreco=true;
+  let todosComPreco=true,tabTotal=0,tabCompleta=true;
   const td='padding:3px 10px 3px 0;white-space:nowrap';
   const linhas=itens.map((k,i)=>{
     const p=vals[i]||0;if(!p)todosComPreco=false;
+    const t=_tabelaCents(k);tabTotal+=t;if(!t)tabCompleta=false;
     const l=p-custoC[i];
-    return `<tr><td style="${td}">${i+1}. ${esc(PLABEL[k]||k)}</td><td style="${td}">${p?brl(p):'—'}</td><td style="${td}">${brl(custoC[i])}</td><td style="${td};font-weight:600;color:${p?cor(l):'inherit'}">${p?brl(l):'—'}</td><td style="${td}">${p?pct(l,p):'—'}</td></tr>`;
+    return `<tr><td style="${td}">${i+1}. ${esc(PLABEL[k]||k)}</td><td style="${td};color:var(--txl)">${t?brl(t):'—'}</td><td style="${td}">${p?brl(p):'—'}</td><td style="${td}">${brl(custoC[i])}</td><td style="${td};font-weight:600;color:${p?cor(l):'inherit'}">${p?brl(l):'—'}</td><td style="${td}">${p?pct(l,p):'—'}</td></tr>`;
   }).join('');
   const totCusto=custoC.reduce((s,v)=>s+v,0);
   const vt=_parseBRL(gv('m-valor'));
   const lt=vt-totCusto;
-  cont.innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--txl)"><th style="${td}">Peça</th><th style="${td}">Preço</th><th style="${td}">Custo</th><th style="${td}">Lucro</th><th style="${td}">Margem</th></tr></thead><tbody>${linhas}<tr style="border-top:1.5px solid var(--bd);font-weight:700"><td style="${td}">Total do pedido</td><td style="${td}">${brl(vt)}</td><td style="${td}">${brl(totCusto)}</td><td style="${td};color:${cor(lt)}">${brl(lt)}</td><td style="${td}">${pct(lt,vt)}</td></tr></tbody></table></div>${todosComPreco?'':'<p class="hint" style="margin-top:4px">Informe o preço de cada peça (ou clique em "Dividir o valor total igualmente") pra ver o lucro de cada uma.</p>'}`;
+  const desc=tabCompleta&&tabTotal>0?tabTotal-vt:0;
+  const linhaDesc=desc>0?`<p style="margin:4px 0 0;font-size:12px;color:var(--txm)">Valor de tabela ${brl(tabTotal)} − desconto <b>${brl(desc)}</b> (${(desc/tabTotal*100).toFixed(1).replace('.',',')}%) = ${brl(vt)}</p>`:'';
+  cont.innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--txl)"><th style="${td}">Peça</th><th style="${td}">Tabela</th><th style="${td}">Cobrado</th><th style="${td}">Custo</th><th style="${td}">Lucro</th><th style="${td}">Margem</th></tr></thead><tbody>${linhas}<tr style="border-top:1.5px solid var(--bd);font-weight:700"><td style="${td}">Total do pedido</td><td style="${td};color:var(--txl)">${tabCompleta&&tabTotal?brl(tabTotal):'—'}</td><td style="${td}">${brl(vt)}</td><td style="${td}">${brl(totCusto)}</td><td style="${td};color:${cor(lt)}">${brl(lt)}</td><td style="${td}">${pct(lt,vt)}</td></tr></tbody></table></div>${linhaDesc}${todosComPreco?'':'<p class="hint" style="margin-top:4px">Informe o preço de cada peça (ou o Valor total + "Ratear o valor total entre as peças") pra ver o lucro de cada uma.</p>'}`;
 }
 // Lista de produtos "de verdade" usados por essa noiva pra qualquer cálculo de material
 // (custo, lista de compras, dedução de estoque) — o próprio produto, ou as peças do pedido
@@ -3834,6 +3887,7 @@ function pagChg(){
   pagCalc(prev.length?prev:null,true);
   // Cartão e Pix vendem a mesma peça por preços diferentes (catálogo) — reavalia o valor
   // sugerido ao trocar a forma de pagamento (só se ela não tiver digitado um valor próprio).
+  if(radVal('prod')==='multiplos')_multiplosRetabelar();
   updateCustoBuque();
 }
 
