@@ -1109,7 +1109,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <div class="fg"><label class="fl">Cidade/UF</label><input id="m-cidade" type="text" class="fi" placeholder="Ex: Cascavel/PR"></div>
       </div>
       <div class="frow">
-        <div class="fg"><label class="fl">CEP</label><input id="m-cep" type="text" class="fi" placeholder="00000-000"></div>
+        <div class="fg"><label class="fl">CEP</label><input id="m-cep" type="text" class="fi" placeholder="00000-000" oninput="cepChg()"></div>
         <div class="fg"><label class="fl">Como nos conheceu</label><select id="m-origem" class="fi"><option value="">Não informado</option><option value="instagram">Instagram</option><option value="indicacao">Indicação</option><option value="google">Google</option><option value="facebook">Facebook</option><option value="outro">Outro</option></select></div>
       </div>
       <div class="frow f1">
@@ -3799,6 +3799,32 @@ function pixNChg(){
   g('pag-rows').innerHTML='';
   pagCalc(prev.length?prev:null,true);
 }
+// Cidade/UF de um CEP, de fonte oficial (ViaCEP, com BrasilAPI de reserva). A IA que lê a
+// conversa do WhatsApp não tem tabela de CEP e chuta a cidade (já trocou Cascavel por
+// Maringá) — então o CEP manda: com 8 dígitos, a cidade vem daqui, não do palpite da IA.
+async function _cidadePorCep(cep){
+  const d=(cep||'').replace(/\D/g,'');
+  if(d.length!==8)return null;
+  try{
+    const r=await fetch('https://viacep.com.br/ws/'+d+'/json/');
+    if(r.ok){const j=await r.json();if(j&&j.erro)return null;if(j&&j.localidade)return j.localidade+'/'+j.uf;}
+  }catch(e){}
+  try{
+    const r=await fetch('https://brasilapi.com.br/api/cep/v1/'+d);
+    if(r.ok){const j=await r.json();if(j&&j.city)return j.city+'/'+j.state;}
+  }catch(e){}
+  return null;
+}
+let _cepSeq=0;
+async function cepChg(){
+  const cep=gv('m-cep');
+  if(cep.replace(/\D/g,'').length!==8)return;
+  const seq=++_cepSeq;
+  const cid=await _cidadePorCep(cep);
+  if(!cid||seq!==_cepSeq||gv('m-cep')!==cep)return; // CEP mudou no meio da busca, ignora
+  if(gv('m-cidade').trim()!==cid){sv2('m-cidade',cid);_showCalToast('Cidade ajustada pelo CEP: '+cid);}
+}
+
 function pagChg(){
   const fp=radVal('pag');
   g('cartao-parcelas').style.display=fp==='cartao'?'':'none';
@@ -6231,6 +6257,7 @@ async function waAnalyze(){
       if(g('bdup'))g('bdup').classList.add('hidden');
     }
     g('ov').classList.remove('hidden');
+    cepChg(); // a IA chuta a cidade a partir do CEP — a cidade certa vem do CEP
     // Só sobe as imagens pro Drive depois que a noiva for salva (saveModal chama isso) — antes disso
     // não existe um id estável pra anexar, e subir na hora corria risco de perder o anexo se ela
     // salvasse rápido (ver comentário perto de _pendingWaImages).
